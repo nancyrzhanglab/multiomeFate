@@ -10,8 +10,9 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     MASS,
-    RSpectra,
-    irlba
+    hash,
+    igraph,
+    glmnet
 Suggests:
     testthat
 RoxygenNote: 6.1.1
