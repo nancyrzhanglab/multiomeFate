@@ -4,7 +4,7 @@
 # some outputs: data frame of cells [uncorrupted atac and rna] as well as its branch and psuedotime,
 # true datapoint mother
 # and another data of simply cells with the noisy data
-generate_data <- function(obj_next, initial_x, max_n){
+generate_data <- function(obj_next, initial_x, max_n, number_runs = 1){
   # initialize the noiseless matrix
   
   # while loop

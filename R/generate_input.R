@@ -58,7 +58,8 @@ generate_gcoef_simple <- function(df_x, df_y, window = max(floor(0.5*(nrow(df_y)
 # cascading sigmoids with slope controled by \code{steepness}.
 # output mat_1 and mat_2 with \code{nrow(mat_1) = nrow(mat_2) = timepoints}.
 generate_traj_cascading <- function(df_x, steepness = 10, 
-                                    start_midpoint = 0, end_midpoint = 1, timepoints = 10*nrow(df_x)){
+                                    start_midpoint = 0, end_midpoint = 1, timepoints = 10*nrow(df_x),
+                                    max_prob = 1){
   stopifnot(end_midpoint > start_midpoint, timepoints > 3)
   
   start <- min(df_x$location); end <- max(df_x$location); len <- end-start
@@ -71,6 +72,7 @@ generate_traj_cascading <- function(df_x, steepness = 10,
   mat <- t(sapply(1:timepoints, function(i){
     1-.sigmoid(eval_vec, x0 = mid_vec[i], k = steepness)
   }))
+  mat <- mat*max_prob
   colnames(mat) <- df_x$name
   
   mat_1 <- mat[-nrow(mat),]; mat_2 <- mat[-1,]
