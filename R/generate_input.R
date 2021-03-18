@@ -26,7 +26,7 @@ generate_df_simple <- function(p1, p2, genome_length = 10*(p1+p2), window = max(
 
 # generate a simple matrix of regression coefficients
 generate_gmat_simple <- function(df_x, df_y, window = max(floor(0.5*(nrow(df_y)/nrow(df_x))),1), 
-                                 sparsity = 0, signal_mean = 5*nrow(df_y)/nrow(df_x), signal_sd = 0){
+                                 sparsity = 0, signal_mean = 3*nrow(df_y)/nrow(df_x), signal_sd = 0){
   stopifnot(length(signal_mean) == 1, length(signal_sd) == 1, signal_sd >= 0)
   
   p1 <- nrow(df_x); p2 <- nrow(df_y)
@@ -48,11 +48,39 @@ generate_gmat_simple <- function(df_x, df_y, window = max(floor(0.5*(nrow(df_y)/
     signal_vec
   })
   
+  colnames(g_mat) <- df_y$name; rownames(g_mat) <- df_x$name
+  
+  g_mat
+  
 }
 
 # cascading sigmoids with slope controled by \code{steepness}.
 # output mat_1 and mat_2 with \code{nrow(mat_1) = nrow(mat_2) = resolution}.
-generate_traj_cascading <- function(df_x, steepness = 1, 
+generate_traj_cascading <- function(df_x, steepness = 10, 
                                     start_midpoint = 0, end_midpoint = 1, resolution = 10){
+  stopifnot(end_midpoint > start_midpoint, resolution > 3)
   
+  start <- min(df_x$location); end <- max(df_x$location); len <- end-start
+  p1 <- nrow(df_x)
+  
+  # set up the values on the [0,1] scale
+  mid_vec <- seq(start_midpoint, end_midpoint, length.out = resolution)
+  eval_vec <- (df_x$location-start)/len
+  
+  mat <- t(sapply(1:resolution, function(i){
+    1-.sigmoid(eval_vec, x0 = mid_vec[i], k = steepness)
+  }))
+  colnames(mat) <- df_x$name
+  
+  mat_1 <- mat[-nrow(mat),]; mat_2 <- mat[-1,]
+  
+  list(mat_1 = mat_1, mat_2 = mat_2)
 }
+
+#####################
+
+# https://en.wikipedia.org/wiki/Logistic_function
+.sigmoid <- function(x, x0 = 0, k = 1){
+  1/(1+exp(-k*(x-x0)))
+}
+

@@ -17,7 +17,7 @@ test_that("generate_df_simple works", {
   expect_true(all(res$df_y$location <= genome_length))
 })
 
-##333333#33#########
+#####################
 
 ## generate_gmat_simple is correct
 
@@ -34,4 +34,27 @@ test_that("generate_gmat_simple works", {
     all(res[idx,i] == 0)
   })
   expect_true(all(bool_vec))
+  expect_true(all(rownames(res) == df$df_x$name))
+  expect_true(all(colnames(res) == df$df_y$name))
 })
+
+#####################
+
+## generate_traj_cascading is correct
+
+test_that("generate_traj_cascading works", {
+  p1 <- 20; p2 <- 5; genome_length <- 1000; window = 10
+  df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = window)
+  
+  resolution <- 20
+  res <- generate_traj_cascading(df$df_x, resolution = resolution)
+  
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("mat_1", "mat_2"))))
+  expect_true(all(sapply(res, ncol) == p1))
+  expect_true(all(sapply(res, nrow) == resolution-1))
+})
+
+
+
+
