@@ -19,12 +19,12 @@ test_that("generate_df_simple works", {
 
 #####################
 
-## generate_gmat_simple is correct
+## generate_gcoef_simple is correct
 
-test_that("generate_gmat_simple works", {
+test_that("generate_gcoef_simple works", {
   p1 <- 20; p2 <- 5; genome_length <- 1000; window = 10
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = window)
-  res <- generate_gmat_simple(df$df_x, df$df_y, window = window)
+  res <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   
   expect_true(all(dim(res) == c(nrow(df$df_x), nrow(df$df_y))))
   bool_vec <- sapply(1:nrow(df$df_y), function(i){
@@ -46,14 +46,14 @@ test_that("generate_traj_cascading works", {
   p1 <- 20; p2 <- 5; genome_length <- 1000; window = 10
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = window)
   
-  resolution <- 20
-  res <- generate_traj_cascading(df$df_x, resolution = resolution)
+  timepoints <- 20
+  res <- generate_traj_cascading(df$df_x, timepoints = timepoints)
   
   expect_true(is.list(res))
   expect_true(all(sort(names(res)) == sort(c("mat_1", "mat_2"))))
   expect_true(all(sapply(res, ncol) == p1))
   expect_true(all(sapply(res, function(x){all(colnames(x) == df$df_x$name)})))
-  expect_true(all(sapply(res, nrow) == resolution-1))
+  expect_true(all(sapply(res, nrow) == timepoints-1))
 })
 
 

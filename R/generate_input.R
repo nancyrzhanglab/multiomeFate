@@ -7,31 +7,32 @@ generate_df_simple <- function(p1, p2, genome_length = 10*(p1+p2), window = max(
   
   # generate locations for p2
   y_loc <- round(seq(0, genome_length, length.out = p2+2)); y_loc <- y_loc[-c(1,length(y_loc))]
-  stopifnot(all(diff(sort(y_loc)) > 0))
+  stopifnot(all(diff(sort(y_loc)) > 0), all(y_loc > 0))
   
   # generate locations for p1
   num_p1inp2 <- rep(floor(p1/p2), length = p2)
   if(sum(num_p1inp2) < p1) num_p1inp2[1:(p1-sum(num_p1inp2))] <- num_p1inp2[1:(p1-sum(num_p1inp2))]+1
   x_loc <- unlist(lapply(1:p2, function(i){
-    y_loc[i] + round(seq(-window, window, length.out = num_p1inp2[i]))
+     round(seq(max(y_loc[i]-window, 1), min(y_loc[i]+window,genome_length), 
+               length.out = num_p1inp2[i]))
   }))
-  stopifnot(all(diff(sort(x_loc)) > 0))
+  stopifnot(all(diff(sort(x_loc)) > 0), all(x_loc > 0))
   
   # generate dfs
   df_x <- data.frame(name = paste0(prefix1, 1:p1), location = x_loc)
-  df_y <- data.frame(name = paste0(prefix1, 1:p2), location = y_loc, baseline = intercept2)
+  df_y <- data.frame(name = paste0(prefix2, 1:p2), location = y_loc, baseline = intercept2)
   
   list(df_x = df_x, df_y = df_y)
 }
 
 # generate a simple matrix of regression coefficients
-generate_gmat_simple <- function(df_x, df_y, window = max(floor(0.5*(nrow(df_y)/nrow(df_x))),1), 
+generate_gcoef_simple <- function(df_x, df_y, window = max(floor(0.5*(nrow(df_y)/nrow(df_x))),1), 
                                  sparsity = 0, signal_mean = 3*nrow(df_y)/nrow(df_x), signal_sd = 0){
   stopifnot(length(signal_mean) == 1, length(signal_sd) == 1, signal_sd >= 0)
   
   p1 <- nrow(df_x); p2 <- nrow(df_y)
   
-  g_mat <- sapply(1:p2, function(i){
+  mat_g <- sapply(1:p2, function(i){
     signal_vec <- rep(0, p1)
     
     # find all p1's within window of a particular p2[i]
@@ -48,26 +49,26 @@ generate_gmat_simple <- function(df_x, df_y, window = max(floor(0.5*(nrow(df_y)/
     signal_vec
   })
   
-  colnames(g_mat) <- df_y$name; rownames(g_mat) <- df_x$name
+  colnames(mat_g) <- df_y$name; rownames(mat_g) <- df_x$name
   
-  g_mat
+  mat_g
   
 }
 
 # cascading sigmoids with slope controled by \code{steepness}.
-# output mat_1 and mat_2 with \code{nrow(mat_1) = nrow(mat_2) = resolution}.
+# output mat_1 and mat_2 with \code{nrow(mat_1) = nrow(mat_2) = timepoints}.
 generate_traj_cascading <- function(df_x, steepness = 10, 
-                                    start_midpoint = 0, end_midpoint = 1, resolution = 10){
-  stopifnot(end_midpoint > start_midpoint, resolution > 3)
+                                    start_midpoint = 0, end_midpoint = 1, timepoints = 10*nrow(df_x)){
+  stopifnot(end_midpoint > start_midpoint, timepoints > 3)
   
   start <- min(df_x$location); end <- max(df_x$location); len <- end-start
   p1 <- nrow(df_x)
   
   # set up the values on the [0,1] scale
-  mid_vec <- seq(start_midpoint, end_midpoint, length.out = resolution)
+  mid_vec <- seq(start_midpoint, end_midpoint, length.out = timepoints)
   eval_vec <- (df_x$location-start)/len
   
-  mat <- t(sapply(1:resolution, function(i){
+  mat <- t(sapply(1:timepoints, function(i){
     1-.sigmoid(eval_vec, x0 = mid_vec[i], k = steepness)
   }))
   colnames(mat) <- df_x$name
