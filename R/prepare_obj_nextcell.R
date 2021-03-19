@@ -32,7 +32,7 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_x1, list_x2,
   ## [for now: hard-code the fact it's a linear trajectory. we'll need to use paths from start to end later on -- how would this capture cycles?]
   ## count how many unique rows there are
   mat_starty <- t(sapply(1:nrow(list_x1[[1]]), function(i){
-    .possion_ygivenx(x = list_x1[[1]][i,], mat_g, max_val = max_y)
+    .possion_ygivenx(list_x1[[1]][i,], mat_g, max_val = max_y)
   }))
   n_total <- nrow(mat_starty)
   list_time <- list(seq(0, 1, length.out = n_total)) # !!
@@ -63,7 +63,10 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_x1, list_x2,
   stopifnot(counter-1 == n_total)
  
   # prepare outputs
-  structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, mat_starty = mat_starty),
+  start_x <- list_x1[[1]][1,]
+  start_y <- .possion_ygivenx(start_x, mat_g, max_val = max_y)
+  structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, mat_starty = mat_starty,
+                 start_x = start_x, start_y = start_y),
             class = "obj_next")
 }
 
@@ -97,6 +100,7 @@ generate_xgiveny <- function(obj_next, y){
   x <- stats::rbinom(length(x), size = 1, prob = x)
   
   # prepare output (include the pseudotime from the hashtable)
+  # [should record trajectory in the future also]
   list(x = x, time = info$time)
 }
 
