@@ -12,7 +12,8 @@ Imports:
     MASS,
     hash,
     igraph,
-    glmnet
+    glmnet,
+    Seurat
 Suggests:
     testthat
 RoxygenNote: 7.1.1
