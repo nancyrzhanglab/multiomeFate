@@ -22,7 +22,7 @@ plot_heatmap <- function(dat, reorder = F, ...){
     mat <- mat[order(dat$df_info$time, decreasing = F), ]
   }
   
-  image(.rotate(mat), ...)
+  graphics::image(.rotate(mat), ...)
 }
 
 plot_umap <- function(dat, mode_x = T, mode_y = T, noiseless = T, k = 10,

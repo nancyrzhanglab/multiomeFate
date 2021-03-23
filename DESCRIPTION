@@ -13,7 +13,9 @@ Imports:
     hash,
     igraph,
     glmnet,
-    Seurat
+    Seurat,
+    clplite,
+    RANN
 Suggests:
     testthat
 RoxygenNote: 7.1.1

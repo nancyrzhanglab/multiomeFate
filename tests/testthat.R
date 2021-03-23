@@ -1,4 +1,4 @@
 library(testthat)
-library(multiomefate)
+library(multiomeFate)
 
-test_check("multiomefate")
+test_check("multiomeFate")
