@@ -82,14 +82,14 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
 
 # [note to self: this entire function is currently coded assuming one trajectory]
 .compute_xfromy <- function(list_traj_mat, mat_g){
-  p1 <- nrow(mat_g)
+  p1 <- nrow(mat_g); n <- nrow(list_traj_mat[[1]])
   
   # compute starting x
-  mat_startx <- matrix(0, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g))
+  mat_startx <- matrix(0, nrow = n, ncol = nrow(mat_g))
   mat_startx[1,] <- .compute_xfromy_starting(list_traj_mat[[1]][1,], mat_g)
   
   # compute the next x's
-  for(i in 2:p1){
+  for(i in 2:n){
     mat_startx[i,] <- .compute_xfromy_next(mat_startx[i-1,], list_traj_mat[[1]][i,], mat_g)
   }
   
