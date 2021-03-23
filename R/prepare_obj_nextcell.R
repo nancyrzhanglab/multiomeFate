@@ -16,41 +16,47 @@
 # [note: in the future, replace this with an exposed C++ obj from RANN: https://github.com/jefferislab/RANN/blob/master/R/nn.R]
 # WARNING: We'll code as if there's no branching for now. But in the future, it'll prob require putting information in the nodes of 
 #  \code{branching_graph}, and we'll need fancy functions to grab the correct rows, etc.
-  prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_x1, list_x2, 
+prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y = T, 
                                  branching_graph = NA, coarseness = 0.1, max_y = 1e5, verbose = T){
   
-  stopifnot(length(list_x1) == length(list_x2), all(sapply(length(list_x1), function(i){all(dim(list_x1[[i]]) == dim(list_x2[[i]]))})))
-  if(is.na(branching_graph)) stopifnot(length(list_x1) == 1) else {
-    stopifnot(class(branching_graph) == "igraph", igraph::vcount(branching_graph) == length(list_x1), igraph::components(branching_graph)$no == 1)
+  if(is.na(branching_graph)) stopifnot(length(list_traj_mat) == 1) else {
+    stopifnot(class(branching_graph) == "igraph", igraph::vcount(branching_graph) == length(list_traj_mat), igraph::components(branching_graph)$no == 1)
   }
-  # [need a check to make sure resolution is not too large wrt number of rows in list_x1's matrices]
+    
+  # [note to self: need a check to make sure resolution is not too large wrt number of rows in list_x1's matrices]
   
-  # [in the future: put a function here to check branching_graph wrt list_x1 and list_x2.
-  # for example, the first row of list_x1 when a branch occurs are the same]
+  # [note to self: put a function here to check branching_graph wrt list_traj_mat.
+  # for example, the first row of list_traj_mat when a branch occurs are the same]
   
-  # compute pseudotime of each rows in list_x1
-  ## [for now: hard-code the fact it's a linear trajectory. we'll need to use paths from start to end later on -- how would this capture cycles?]
-  ## count how many unique rows there are
-  mat_starty <- t(sapply(1:nrow(list_x1[[1]]), function(i){
-    .possion_ygivenx(list_x1[[1]][i,], mat_g, max_val = max_y)
-  }))
-  n_total <- nrow(mat_starty)
-  list_time <- list(seq(0, 1, length.out = n_total)) # !!
+  # enumerate all unique df_y's needed for the hash table
+  ## [note to self: hard-code the fact it's a linear trajectory. we'll need to use paths from start to end later on -- how would this capture cycles?]
+  if(!bool_traj_y){
+    # if trajectory is for df_x
+    mat_startx <- do.call(rbind, list_traj_mat) #x1
+    mat_starty <- t(sapply(1:nrow(list_traj_mat[[1]]), function(i){
+      .possion_ygivenx(list_traj_mat[[1]][i,], mat_g, max_val = max_y)
+    })) # y2
+  } else {
+    # if trajectory is for df_y
+    mat_startx <- .compute_xfromy(list_traj_mat, mat_g) #x1
+    mat_starty <- do.call(rbind, list_traj_mat) #y2
+  }
+  n_total <- nrow(mat_starty) # count how many unique rows there are
+  list_time <- list(seq(0, 1, length.out = n_total)) # [note to self: currently hard-coded for linear trajectory]
    
   # initialize hash table
   ht <- hash::hash()
   counter <- 1
-  for(k in 1:length(list_x1)){
-    for(i in 1:nrow(list_x1[[k]])){
-      if(verbose && i %% floor(nrow(list_x1[[k]])/10) == 0) cat('*')
+  for(k in 1:length(list_traj_mat)){
+    for(i in 1:nrow(list_traj_mat[[k]])){
+      if(verbose && i %% floor(nrow(list_traj_mat[[k]])/10) == 0) cat('*')
       
-      ## grab the relevant rows 
-      ## [for now: hard-code the fact it's a linear trajectory]
-      idx <- c(max(round(i-coarseness*n_total), 1):min(round(i+coarseness*n_total), n_total))
-      mat_x1 <- list_x1[[k]][idx,,drop = F]
-      mat_y2 <- t(apply(mat_x1, 1, function(x){.possion_ygivenx(x, mat_g, max_val = max_y)}))
-      mat_x2 <- list_x2[[k]][idx,,drop = F]
-      
+      ## grab the relevant rows
+      ## [note to self: hard-code the fact it's a linear trajectory]
+      idx <- c(max(round(i-coarseness*n_total), 1):min(round(i+coarseness*n_total), n_total-1))
+      mat_y2 <- mat_starty[idx,,drop = F] 
+      mat_x2 <- mat_startx[idx+1,,drop = F] 
+     
       ## perform logistic regression
       list_coef <- .glmnet_logistic(mat_y2, mat_x2)
       
@@ -70,41 +76,80 @@
             class = "obj_next")
 }
 
-generate_ygivenx <- function(obj_next, x){
-  stopifnot(class(obj_next) == "obj_next")
-  
-  # generate y from x
-  y <- .possion_ygivenx(x, obj_next$mat_g)
-  
-  # add the intercepts given by dat_y
-  y <- y + obj_next$df_y$baseline
-  
-  # generate poisson
-  stats::rpois(length(y), lambda = y)
-}
-
-generate_xgiveny <- function(obj_next, y){
-  stopifnot(class(obj_next) == "obj_next")
-  
-  # find the nearest neighbor 
-  tmp <- matrix(y, nrow = 1, ncol = length(y))
-  idx <- RANN::nn2(obj_next$mat_starty, query = tmp, k = 1)$nn.idx[1,1]
-  
-  # grab the information from the hash table
-  info <- obj_next$ht[[as.character(idx)]]
-  
-  # [to come: determine which traj to use]
-  
-  # use logistic regression
-  x <- .bernoulli_xgiveny(y, info$list_coef$mat_coef, info$list_coef$vec_intercept)
-  x <- stats::rbinom(length(x), size = 1, prob = x)
-  
-  # prepare output (include the pseudotime from the hashtable)
-  # [should record trajectory in the future also]
-  list(x = x, time = info$time)
-}
-
 ####################################
+
+# [note to self: this entire function is currently coded assuming one trajectory]
+.compute_xfromy <- function(list_traj_mat, mat_g){
+  p1 <- nrow(mat_g)
+  
+  # compute starting x
+  mat_startx <- matrix(0, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g))
+  mat_startx[1,] <- .compute_xfromy_starting(list_traj_mat[[1]][1,], mat_g)
+  
+  # compute the next x's
+  for(i in 2:p1){
+    mat_startx[i,] <- .compute_xfromy_next(mat_startx[i-1,], list_traj_mat[[1]][i,], mat_g)
+  }
+  
+  mat_startx
+}
+
+.compute_xfromy_starting <- function(vec_y, mat_g, tol = 1e-6){
+  stopifnot(ncol(mat_g) == length(vec_y))
+  p1 <- nrow(mat_g); p2 <- ncol(mat_g)
+  
+  obj <- rep(1, p1)
+  A <- t(mat_g)
+  constr_lb <- vec_y - tol
+  constr_ub <- vec_y + tol
+  var_lb <- rep(0, p1)
+  var_ub <- rep(1, p1)
+  
+  res <- clplite::clp_solve(obj, A, constr_lb, constr_ub, var_lb, var_ub, max = FALSE)
+  stopifnot(res$status == 0)
+  res$solution
+}
+
+# min |x2 - x1| : G*x2 = y2, and x2 in [0,1]
+#  where x1 (vector of length p1) is the previous ATAC, x2 (vector of length p1)
+#    is the current ATAC we wish to solve for
+#  and G is the linear function that maps the current ATAC to RNA,
+#  and y (vector of length p2) is the current RNA we're given
+#
+# reformulate to:
+# min e_1 + ... + e_p1 : e_i >= x2_i - x1_i and  -e_i <= -(x2_i - x1_i) for all i in {1,...,p1}
+#  and G*x2 = y2, and x2 in [0,1]
+# 
+# reformulate to:
+# min e_1 + ... + e_p1 : x1_i >= x2_i - e_i and -x1_i <= -x2_i + e_i for all i in {1,...,p1}
+#  and G*x2 = y2, and x2 in [0,1]
+# put the x2's first, then e's
+.compute_xfromy_next <- function(vec_x, vec_y, mat_g, tol = 1e-6){
+  stopifnot(all(vec_x >= 0), all(vec_x <= 1), length(vec_x) == nrow(mat_g), length(vec_y) == ncol(mat_g))
+  p1 <- nrow(mat_g); p2 <- ncol(mat_g)
+  
+  obj <- c(rep(0, p1), rep(1, p1))
+  
+  A <- matrix(0, nrow = 2*p1+p2, ncol = 2*p1)
+  for(i in 1:p1){
+    A[i, c(i, i+p1)] <- c(1,-1)
+  }
+  for(i in (p1+1):(2*p1)){
+    A[i, c(i, i+p1)] <- c(-1,+1)
+  }
+  A[((2*p1+1):(2*p1+p2)),1:p1] <- t(mat_g)
+  
+  constr_lb <- c(rep(-Inf, p1), -vec_x, vec_y - tol)
+  constr_ub <- c(vec_x, rep(Inf, p1), vec_y + tol)
+  var_lb <- rep(0, 2*p1)
+  var_ub <- c(rep(1, p1), rep(Inf, p1))
+  
+  res <- clplite::clp_solve(obj, A, constr_lb, constr_ub, var_lb, var_ub, max = FALSE)
+  stopifnot(res$status == 0)
+  res$solution[1:p1]
+}
+
+####################
 
 .possion_ygivenx <- function(x, mat_g, max_val = 1e5){
   pmin(as.numeric(exp(x %*% mat_g)), max_val)

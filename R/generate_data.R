@@ -57,6 +57,42 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
        df_info = df_info)
 }
 
+################
+
+generate_ygivenx <- function(obj_next, x){
+  stopifnot(class(obj_next) == "obj_next")
+  
+  # generate y from x
+  y <- .possion_ygivenx(x, obj_next$mat_g)
+  
+  # add the intercepts given by dat_y
+  y <- y + obj_next$df_y$baseline
+  
+  # generate poisson
+  stats::rpois(length(y), lambda = y)
+}
+
+generate_xgiveny <- function(obj_next, y){
+  stopifnot(class(obj_next) == "obj_next")
+  
+  # find the nearest neighbor 
+  tmp <- matrix(y, nrow = 1, ncol = length(y))
+  idx <- RANN::nn2(obj_next$mat_starty, query = tmp, k = 1)$nn.idx[1,1]
+  
+  # grab the information from the hash table
+  info <- obj_next$ht[[as.character(idx)]]
+  
+  # [to come: determine which traj to use]
+  
+  # use logistic regression
+  x <- .bernoulli_xgiveny(y, info$list_coef$mat_coef, info$list_coef$vec_intercept)
+  x <- stats::rbinom(length(x), size = 1, prob = x)
+  
+  # prepare output (include the pseudotime from the hashtable)
+  # [should record trajectory in the future also]
+  list(x = x, time = info$time)
+}
+
 #############################
 
 .expand_matrix <- function(mat, scaling = .5){
