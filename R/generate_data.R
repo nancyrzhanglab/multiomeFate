@@ -76,6 +76,7 @@ generate_xgiveny <- function(obj_next, y){
   stopifnot(class(obj_next) == "obj_next")
   
   # find the nearest neighbor 
+  # [note: in the future, replace this with an exposed C++ obj from RANN: https://github.com/jefferislab/RANN/blob/master/R/nn.R]
   tmp <- matrix(y, nrow = 1, ncol = length(y))
   idx <- RANN::nn2(obj_next$mat_starty, query = tmp, k = 1)$nn.idx[1,1]
   

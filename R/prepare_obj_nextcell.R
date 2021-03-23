@@ -13,17 +13,19 @@
 # and contains 1) probability of which traj to use, and 2) that traj's logistic function coefficients,
 # and 3) the psuedotime
 # - a huge matrix of all the elements in "g(mat_1)", corresponding to the hash table 
-# [note: in the future, replace this with an exposed C++ obj from RANN: https://github.com/jefferislab/RANN/blob/master/R/nn.R]
+# 
 # WARNING: We'll code as if there's no branching for now. But in the future, it'll prob require putting information in the nodes of 
 #  \code{branching_graph}, and we'll need fancy functions to grab the correct rows, etc.
 prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y = T, 
                                  branching_graph = NA, coarseness = 0.1, max_y = 1e5, verbose = T){
-  
+  stopifnot(coarseness > 0, coarseness <= 1)
   if(is.na(branching_graph)) stopifnot(length(list_traj_mat) == 1) else {
     stopifnot(class(branching_graph) == "igraph", igraph::vcount(branching_graph) == length(list_traj_mat), igraph::components(branching_graph)$no == 1)
   }
-  stopifnot(all(mat_g >= 0)) # [note to self: needed for now for simplicity -- should be removed in the future]
-  stopifnot(all(matrix(1, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g)) %*% mat_g >= list_traj_mat[[1]])) # [note to self : needed for now for simplicity -- assumes only one trajectory]
+  # [note to self vv: needed for now for simplicity -- should be removed in the future]
+  stopifnot(all(mat_g >= 0)) 
+  # [note to self vv: needed for now for simplicity -- assumes only one trajectory]
+  if(bool_traj_y) stopifnot(all(matrix(1, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g)) %*% mat_g >= list_traj_mat[[1]])) 
     
   # [note to self: need a check to make sure resolution is not too large wrt number of rows in list_x1's matrices]
   
@@ -34,16 +36,16 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   ## [note to self: hard-code the fact it's a linear trajectory. we'll need to use paths from start to end later on -- how would this capture cycles?]
   if(!bool_traj_y){
     # if trajectory is for df_x
-    mat_startx <- do.call(rbind, list_traj_mat) #x1
-    mat_starty <- t(sapply(1:nrow(list_traj_mat[[1]]), function(i){
+    mat_x1all <- do.call(rbind, list_traj_mat) 
+    mat_y2all <- t(sapply(1:nrow(list_traj_mat[[1]]), function(i){
       .possion_ygivenx(list_traj_mat[[1]][i,], mat_g, max_val = max_y)
-    })) # y2
+    })) 
   } else {
     # if trajectory is for df_y
-    mat_startx <- .compute_xfromy(list_traj_mat, mat_g) #x1
-    mat_starty <- do.call(rbind, list_traj_mat) #y2
+    mat_x1all <- .compute_xfromy(list_traj_mat, mat_g) #x1
+    mat_y2all <- do.call(rbind, list_traj_mat) #y2
   }
-  n_total <- nrow(mat_starty) # count how many unique rows there are
+  n_total <- nrow(mat_y2all) # count how many unique rows there are
   list_time <- list(seq(0, 1, length.out = n_total)) # [note to self: currently hard-coded for linear trajectory]
    
   # initialize hash table
@@ -56,8 +58,8 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
       ## grab the relevant rows
       ## [note to self: hard-code the fact it's a linear trajectory]
       idx <- c(max(round(i-coarseness*n_total), 1):min(round(i+coarseness*n_total), n_total-1))
-      mat_y2 <- mat_starty[idx,,drop = F] 
-      mat_x2 <- mat_startx[idx+1,,drop = F] 
+      mat_y2 <- mat_y2all[idx,,drop = F] 
+      mat_x2 <- mat_x1all[idx+1,,drop = F] 
      
       ## perform logistic regression
       list_coef <- .glmnet_logistic(mat_y2, mat_x2)
@@ -71,10 +73,11 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   stopifnot(counter-1 == n_total)
  
   # prepare outputs
-  start_x <- list_x1[[1]][1,]
-  start_y <- .possion_ygivenx(start_x, mat_g, max_val = max_y)
-  structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, mat_starty = mat_starty,
-                 start_x = start_x, start_y = start_y),
+  # [note to self: make this more flexible]
+  vec_startx <- mat_x1all[2,]
+  vec_starty <- mat_y2all[2,]
+  structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, mat_y2all = mat_y2all,
+                 vec_startx = vec_startx, vec_starty = vec_starty),
             class = "obj_next")
 }
 
