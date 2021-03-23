@@ -16,7 +16,7 @@
 # [note: in the future, replace this with an exposed C++ obj from RANN: https://github.com/jefferislab/RANN/blob/master/R/nn.R]
 # WARNING: We'll code as if there's no branching for now. But in the future, it'll prob require putting information in the nodes of 
 #  \code{branching_graph}, and we'll need fancy functions to grab the correct rows, etc.
-prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_x1, list_x2, 
+  prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_x1, list_x2, 
                                  branching_graph = NA, coarseness = 0.1, max_y = 1e5, verbose = T){
   
   stopifnot(length(list_x1) == length(list_x2), all(sapply(length(list_x1), function(i){all(dim(list_x1[[i]]) == dim(list_x2[[i]]))})))
@@ -36,7 +36,7 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_x1, list_x2,
   }))
   n_total <- nrow(mat_starty)
   list_time <- list(seq(0, 1, length.out = n_total)) # !!
-  
+   
   # initialize hash table
   ht <- hash::hash()
   counter <- 1
