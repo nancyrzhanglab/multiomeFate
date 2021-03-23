@@ -49,11 +49,9 @@ test_that("generate_traj_cascading works", {
   timepoints <- 20
   res <- generate_traj_cascading(df$df_x, timepoints = timepoints)
   
-  expect_true(is.list(res))
-  expect_true(all(sort(names(res)) == sort(c("mat_1", "mat_2"))))
-  expect_true(all(sapply(res, ncol) == p1))
-  expect_true(all(sapply(res, function(x){all(colnames(x) == df$df_x$name)})))
-  expect_true(all(sapply(res, nrow) == timepoints-1))
+  expect_true(is.matrix(res))
+  expect_true(all(colnames(res) == df$df_x$name))
+  expect_true(nrow(res) == timepoints)
 })
 
 

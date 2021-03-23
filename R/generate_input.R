@@ -75,9 +75,7 @@ generate_traj_cascading <- function(df_x, steepness = 10,
   mat <- mat*max_prob
   colnames(mat) <- df_x$name
   
-  mat_1 <- mat[-nrow(mat),]; mat_2 <- mat[-1,]
-  
-  list(mat_1 = mat_1, mat_2 = mat_2)
+  mat
 }
 
 #####################

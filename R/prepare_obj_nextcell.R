@@ -22,6 +22,8 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   if(is.na(branching_graph)) stopifnot(length(list_traj_mat) == 1) else {
     stopifnot(class(branching_graph) == "igraph", igraph::vcount(branching_graph) == length(list_traj_mat), igraph::components(branching_graph)$no == 1)
   }
+  stopifnot(all(mat_g >= 0)) # [note to self: needed for now for simplicity -- should be removed in the future]
+  stopifnot(all(matrix(1, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g)) %*% mat_g >= list_traj_mat[[1]])) # [note to self : needed for now for simplicity -- assumes only one trajectory]
     
   # [note to self: need a check to make sure resolution is not too large wrt number of rows in list_x1's matrices]
   
@@ -105,9 +107,12 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   var_lb <- rep(0, p1)
   var_ub <- rep(1, p1)
   
-  res <- clplite::clp_solve(obj, A, constr_lb, constr_ub, var_lb, var_ub, max = FALSE)
+  res <- suppressWarnings(clplite::clp_solve(obj, A, constr_lb, constr_ub, 
+                                             var_lb, var_ub, max = FALSE))
   stopifnot(res$status == 0)
-  res$solution
+  vec <- res$solution
+  vec[vec <= tol] <- 0
+  vec
 }
 
 # min |x2 - x1| : G*x2 = y2, and x2 in [0,1]
@@ -134,8 +139,8 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   for(i in 1:p1){
     A[i, c(i, i+p1)] <- c(1,-1)
   }
-  for(i in (p1+1):(2*p1)){
-    A[i, c(i, i+p1)] <- c(-1,+1)
+  for(i in 1:p1){
+    A[i+p1, c(i, i+p1)] <- c(-1,1)
   }
   A[((2*p1+1):(2*p1+p2)),1:p1] <- t(mat_g)
   
@@ -144,9 +149,12 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   var_lb <- rep(0, 2*p1)
   var_ub <- c(rep(1, p1), rep(Inf, p1))
   
-  res <- clplite::clp_solve(obj, A, constr_lb, constr_ub, var_lb, var_ub, max = FALSE)
+  res <- suppressWarnings(clplite::clp_solve(obj, A, constr_lb, constr_ub, 
+                                             var_lb, var_ub, max = FALSE))
   stopifnot(res$status == 0)
-  res$solution[1:p1]
+  vec <- res$solution[1:p1]
+  vec[vec <= tol] <- 0
+  vec
 }
 
 ####################
