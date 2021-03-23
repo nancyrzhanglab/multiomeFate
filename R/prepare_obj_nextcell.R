@@ -166,6 +166,7 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   pmin(as.numeric(exp(x %*% mat_g)), max_val)
 }
 
+# [note to self: not sure what sensible tests there are for this. maybe tests set up for stationary points?]
 .bernoulli_xgiveny <- function(y, mat_coef, vec_intercept){
   p1 <- ncol(mat_coef)
   

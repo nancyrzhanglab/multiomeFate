@@ -77,3 +77,81 @@ test_that("prepare_obj_nextcell works", {
   expect_true(all(sort(names(res)) == sort(c("df_x", "df_y", "mat_g", "ht", "mat_y2all",
                                              "vec_startx", "vec_starty"))))
 })
+
+##########################
+
+## .possion_ygivenx is correct
+
+test_that(".possion_ygivenx works", {
+  set.seed(10)
+  p1 <- 100; p2 <- 10; genome_length <- 1000; window <- 10
+  df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
+  mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
+  x <- runif(p1)
+  
+  res <- .possion_ygivenx(x, mat_g)
+  expect_true(length(res) == p2)
+  expect_true(all(res >= 0))
+})
+
+test_that(".possion_ygivenx roughly gives the correct mean", {
+  set.seed(10)
+  p1 <- 100; p2 <- 10; genome_length <- 1000; window <- 10
+  df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
+  mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
+  x1 <- seq(0, 1, length.out = p1)
+  x2 <- rep(0.5, length = p1)
+  
+  trials <- 100
+  res1 <- sapply(1:trials, function(i){
+    .possion_ygivenx(x1, mat_g)
+  })
+  row1 <- rowMeans(res1)
+  res2 <- sapply(1:trials, function(i){
+    .possion_ygivenx(x2, mat_g)
+  })
+  row2 <- rowMeans(res2)
+  
+  row_target <- exp(x1 %*% mat_g)
+  
+  expect_true(sum(abs(row1 - row_target)) <= sum(abs(row2 - row_target)))
+})
+
+###########################
+
+## .glmnet_logistic is correct
+
+test_that(".glmnet_logistic works", {
+  set.seed(10)
+  n <- 50
+  covariate <- rbind(matrix(rnorm(3*n), n, 3), matrix(rnorm(3*n, mean = 1), n, 3))
+  response_prob <- cbind(c(runif(n, max = 0.1), runif(n, min = 0.9)), runif(2*n))
+  
+  res <- .glmnet_logistic(covariate, response_prob)
+  
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("mat_coef", "vec_intercept"))))
+  expect_true(all(dim(res$mat_coef) == c(3,2)))
+  expect_true(length(res$vec_intercept) == 2)
+})
+
+#########################
+
+## .bernoulli_xgiveny is correct
+
+test_that(".bernoulli_xgiveny gives meaningful answers", {
+  set.seed(10)
+  n <- 50
+  covariate <- rbind(matrix(rnorm(3*n), n, 3), matrix(rnorm(3*n, mean = 1), n, 3))
+  response_prob <- cbind(c(runif(n, max = 0.1), runif(n, min = 0.9)), runif(2*n))
+  obj <- .glmnet_logistic(covariate, response_prob)
+  
+  res <- sapply(1:nrow(covariate), function(i){
+    .bernoulli_xgiveny(covariate[i,], obj$mat_coef, obj$vec_intercept)
+  })
+  
+  expect_true(nrow(res) == 2)
+  expect_true(sd(res[1,]) >= sd(res[2,]))
+  expect_true(median(res[1,1:n]) <= median(res[1,(n+1):(2*n)]))
+})
+
