@@ -8,7 +8,7 @@ test_that(".generate_ygivenx works", {
   df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   timepoints <- 5
-  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)
+  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj))
   
   res <- .generate_ygivenx(obj_next, obj_next$vec_startx)
@@ -27,7 +27,7 @@ test_that(".generate_xgiveny works", {
   df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   timepoints <- 5
-  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)
+  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj))
   
   res <- .generate_xgiveny(obj_next, obj_next$vec_starty)
@@ -51,7 +51,7 @@ test_that(".generate_data_single works", {
   df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   timepoints <- 100
-  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)*3
+  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, 
                                    list(mat_traj), verbose = F)
   
@@ -86,7 +86,7 @@ test_that("generate_data works", {
   df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   timepoints <- 100
-  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)*3
+  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, 
                                    list(mat_traj), verbose = F)
   

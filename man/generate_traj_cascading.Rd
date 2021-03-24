@@ -10,7 +10,8 @@ generate_traj_cascading(
   start_midpoint = 0,
   end_midpoint = 1,
   timepoints = 10 * nrow(df_mod),
-  max_val = 1
+  max_val = 1,
+  min_val = 0
 )
 }
 \arguments{
@@ -27,8 +28,9 @@ input in \code{generate_gcoef_simple}.}
 \item{timepoints}{discretization of how many rows are outputted by this function.
 The larger this number is, the higher the resolution and the more rows there are}
 
-\item{max_val}{maximum value of the output matrix. (The values are rescaled by multiplying
-by this value)}
+\item{max_val}{maximum value of the output matrix (formed by rescaling the logistic function)}
+
+\item{min_val}{minimum value of the output matrix (formed by rescaling the logistic function)}
 }
 \value{
 matrix with \code{timepoints} rows and \code{nrow(df_mod)} columns

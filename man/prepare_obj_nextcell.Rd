@@ -53,11 +53,18 @@ the information in \code{ht[[as.character(i)]]}, and number of columns equal to
 \code{vec_starty} (the initial value for the cell in Modality 2)
 }
 \description{
-Additional requirements: \code{df_x} and \code{df_y} are required to be data frames
-with a column named \code{name}. The output of this function is meant as the input for
-\code{generate_data}
+If \code{list_traj_mat} is used to describe the evoluation of \code{df_x}, then the values in \code{list_traj_mat}
+currently denote the expected probability of a Bernoulli.
+If \code{list_traj_mat} is used  to describe the evoluation of \code{df_y}, then the values in \code{list_traj_mat}
+currently denote the expected probability of a Poisson. Importantly, this means
+\code{log} of these values denote the natural parameters. It is important then for
+\code{list_traj_mat} to have values 1 or more in this case.
 }
 \details{
+Additional requirements: \code{df_x} and \code{df_y} are required to be data frames
+with a column named \code{name}. The output of this function is meant as the input for
+\code{generate_data}. 
+
 Notes to self: 1) All entries in \code{mat_g} currently need to be non-negative,
 2) Only linear trajectories are allowed currently, 3) Modality 1 (represented by
 \code{df_x}) is assumed be Bernoulli and Modality 2 (represented by \code{df_y})

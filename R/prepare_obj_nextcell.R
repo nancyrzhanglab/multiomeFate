@@ -1,8 +1,15 @@
 #' Generate object to prepare for simulating data
 #' 
+#' If \code{list_traj_mat} is used to describe the evoluation of \code{df_x}, then the values in \code{list_traj_mat}
+#' currently denote the expected probability of a Bernoulli.
+#' If \code{list_traj_mat} is used  to describe the evoluation of \code{df_y}, then the values in \code{list_traj_mat}
+#' currently denote the expected probability of a Poisson. Importantly, this means
+#' \code{log} of these values denote the natural parameters. It is important then for
+#' \code{list_traj_mat} to have values 1 or more in this case.
+#' 
 #' Additional requirements: \code{df_x} and \code{df_y} are required to be data frames
 #' with a column named \code{name}. The output of this function is meant as the input for
-#' \code{generate_data}
+#' \code{generate_data}. 
 #' 
 #' Notes to self: 1) All entries in \code{mat_g} currently need to be non-negative,
 #' 2) Only linear trajectories are allowed currently, 3) Modality 1 (represented by
@@ -63,9 +70,9 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat,
   stopifnot(all(mat_g >= 0)) 
   if(all(sort(colnames(list_traj_mat[[1]])) == sort(df_y$name))) {
     bool_traj_y <- T
-    # [note to self vv: needed for now for simplicity -- assumes only one trajectory]
+    # [note to self vv: needed for now for simplicity -- assumes only one trajectory, and poisson data]
     tmp <- matrix(1, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g)) 
-    stopifnot(all(tmp %*% mat_g >= list_traj_mat[[1]])) 
+    stopifnot(all(tmp %*% mat_g >= log(list_traj_mat[[1]])))
   } else {
     bool_traj_y <- F
   }
@@ -131,17 +138,18 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat,
 
 ####################################
 
-# [note to self: this entire function is currently coded assuming one trajectory]
+# [note to self: this entire function is currently coded assuming one trajectory,
+#  and also assumes poisson data]
 .compute_xfromy <- function(list_traj_mat, mat_g){
   p1 <- nrow(mat_g); n <- nrow(list_traj_mat[[1]])
   
   # compute starting x
   mat_startx <- matrix(0, nrow = n, ncol = nrow(mat_g))
-  mat_startx[1,] <- .compute_xfromy_starting(list_traj_mat[[1]][1,], mat_g)
+  mat_startx[1,] <- .compute_xfromy_starting(log(list_traj_mat[[1]][1,]), mat_g)
   
   # compute the next x's
   for(i in 2:n){
-    mat_startx[i,] <- .compute_xfromy_next(mat_startx[i-1,], list_traj_mat[[1]][i,], mat_g)
+    mat_startx[i,] <- .compute_xfromy_next(mat_startx[i-1,], log(list_traj_mat[[1]][i,]), mat_g)
   }
   
   mat_startx

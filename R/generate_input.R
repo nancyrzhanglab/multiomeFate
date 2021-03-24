@@ -101,14 +101,14 @@ generate_gcoef_simple <- function(df_x, df_y, window = max(floor(0.5*(nrow(df_y)
 #' @param end_midpoint  numeric denoting where the logistic function's mid ends up
 #' @param timepoints discretization of how many rows are outputted by this function.
 #' The larger this number is, the higher the resolution and the more rows there are 
-#' @param max_val maximum value of the output matrix. (The values are rescaled by multiplying
-#' by this value)
+#' @param max_val maximum value of the output matrix (formed by rescaling the logistic function)
+#' @param min_val minimum value of the output matrix (formed by rescaling the logistic function)
 #'
 #' @return matrix with \code{timepoints} rows and \code{nrow(df_mod)} columns
 #' @export
 generate_traj_cascading <- function(df_mod, steepness = 10, 
                                     start_midpoint = 0, end_midpoint = 1, timepoints = 10*nrow(df_mod),
-                                    max_val = 1){
+                                    max_val = 1, min_val = 0){
   stopifnot(end_midpoint > start_midpoint, timepoints > 3, timepoints %% 1 == 0)
   
   start <- min(df_mod$location); end <- max(df_mod$location); len <- end-start
@@ -121,7 +121,7 @@ generate_traj_cascading <- function(df_mod, steepness = 10,
   mat <- t(sapply(1:timepoints, function(i){
     1-.sigmoid(eval_vec, x0 = mid_vec[i], k = steepness)
   }))
-  mat <- mat*max_val
+  mat <- mat*(max_val-min_val)+min_val
   colnames(mat) <- df_mod$name
   
   mat
