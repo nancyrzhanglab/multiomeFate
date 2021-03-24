@@ -4,10 +4,33 @@
 # some outputs: data frame of cells [uncorrupted atac and rna] as well as its branch and psuedotime,
 # true datapoint mother
 # and another data of simply cells with the noisy data
-generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs = 1,
+generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs = 5,
+                          sample_perc = 1,
                           time_tol = 0.01, verbose = T){
-  # [!! handle number_runs in the future]
-  # initialize the noiseless matrix
+  stopifnot(sample_perc > 0, sample_perc <= 1)
+  list_out <- lapply(1:number_runs, function(i){
+    .generate_data_single(obj_next, max_n, time_tol, verbose)
+  })
+  
+  # merge all outputs
+  n_tot <- sum(sapply(list_out, function(x){nrow(x$df_info)}))
+  idx <- sort(sample(1:n_tot, replace = F, size = ceiling(n_tot*sample_perc)))
+  res <- .merge_run_outputs(list_out, idx)
+  
+  # prepare output
+  list(df_x = obj_next$df_x, df_y = obj_next$df_y,
+       obs_x = res$obs_x, obs_y = res$obs_y, 
+       true_x = res$true_x, true_y = res$true_y, 
+       df_info = res$df_info)
+}
+
+################
+
+.generate_data_single <- function(obj_next, max_n = 2*length(obj_next$ht), time_tol = 0.01,
+                                  verbose = T){
+  stopifnot(time_tol > 0, time_tol <= 1)
+  
+  # initialize
   p1 <- nrow(obj_next$df_x); p2 <- nrow(obj_next$df_y)
   init_row <- 10
   mat_x <- matrix(NA, nrow = init_row, ncol = p1); colnames(mat_x) <- obj_next$df_x$name
@@ -15,17 +38,18 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
   df_info <- data.frame(time = rep(NA, length = init_row), counter = rep(NA, length = init_row))
   
   n <- 1
-  tmp <- obj_next$start_x
+  tmp <- obj_next$vec_startx
   mat_x[n,] <- stats::rbinom(length(tmp), size = 1, prob = tmp)
-  tmp <- obj_next$start_y
+  tmp <- obj_next$vec_starty
   mat_y[n,] <- stats::rpois(length(tmp), lambda = tmp)
   df_info[n,"time"] <- 0; df_info[n,"counter"] <- n
   
   # while loop
   while(n < max_n){
+    # [note to self: This print statement could be improved]
     if(verbose) print(paste0("n: ", n, ", time:", round(df_info[n,"time"], 2)))
     if(df_info[n,"time"] > 1-time_tol) break()
-      
+    
     ## generate next y, based on x
     mat_y[n+1,] <- .generate_ygivenx(obj_next, mat_x[n,])
     
@@ -42,22 +66,18 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
     
     n <- n+1
   }
- 
-  # [to do: add technical noise to matrices. dropout?]
-  # [in the future: df_info should contain who is the mother, what traj?]
+  
+  # [note to self: df_info should contain who is the mother, what traj?]
   idx <- which(is.na(mat_x[,1]))
   if(length(idx) > 0){
     mat_x <- mat_x[-idx,]; mat_y <- mat_y[-idx,]; df_info <- df_info[-idx,]
   }
+  # [note to self: need to add technical noise]
   obs_x <- mat_x; obs_y <- mat_y
   
-  # prepare output
-  list(df_x = obj_next$df_x, df_y = obj_next$df_y,
-       obs_x = obs_x, obs_y = obs_y, true_x = mat_x, true_y = mat_y, 
-       df_info = df_info)
+  list(obs_x = obs_x, obs_y = obs_y, true_x = mat_x, true_y = mat_y, 
+        df_info = df_info)
 }
-
-################
 
 .generate_ygivenx <- function(obj_next, x){
   stopifnot(class(obj_next) == "obj_next")
@@ -96,12 +116,33 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
 
 #############################
 
+.merge_run_outputs <- function(list_out, idx = NA){
+  obs_x <- do.call(rbind, lapply(list_out, function(x){x$obs_x}))
+  obs_y <- do.call(rbind, lapply(list_out, function(x){x$obs_y}))
+  true_x <- do.call(rbind, lapply(list_out, function(x){x$true_x}))
+  true_y <- do.call(rbind, lapply(list_out, function(x){x$true_y}))
+  df_info <- do.call(rbind, lapply(list_out, function(x){x$df_info}))
+  
+  if(!any(is.na(idx))){
+    obs_x <- obs_x[idx,,drop = F]; obs_y <- obs_y[idx,,drop = F]
+    true_x <- true_x[idx,,drop = F]; true_y <- true_y[idx,,drop = F]
+    df_info <- df_info[idx,,drop = F]
+  }
+  
+  list(obs_x = obs_x, obs_y = obs_y, true_x = true_x, true_y = true_y,
+       df_info = df_info)
+}
+
 .expand_matrix <- function(mat, scaling = .5){
+  stopifnot(scaling > 0)
+  
   n <- nrow(mat); p <- ncol(mat)
   rbind(mat, matrix(NA, nrow = ceiling(scaling*n), ncol = p))
 }
 
 .expand_df <- function(df, scaling = .5){
+  stopifnot(scaling > 0)
+  
   n <- nrow(df); p <- ncol(df)
   df2 <- matrix(NA, nrow = ceiling(scaling*n), ncol = p)
   df2 <- as.data.frame(df2)
