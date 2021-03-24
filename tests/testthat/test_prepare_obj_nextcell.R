@@ -67,8 +67,8 @@ test_that("prepare_obj_nextcell works", {
   df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   timepoints <- 30
-  mat_traj <- generate_traj_cascading(df$df_x, timepoints = timepoints)
   
+  mat_traj <- generate_traj_cascading(df$df_x, timepoints = timepoints)
   res <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj), 
                               bool_traj_y = F, verbose = F)
   
@@ -76,6 +76,10 @@ test_that("prepare_obj_nextcell works", {
   expect_true(class(res) == "obj_next")
   expect_true(all(sort(names(res)) == sort(c("df_x", "df_y", "mat_g", "ht", "mat_y2all",
                                              "vec_startx", "vec_starty"))))
+  
+  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)*2
+  res <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj), 
+                              bool_traj_y = T, verbose = F)
 })
 
 ##########################
@@ -135,6 +139,19 @@ test_that(".glmnet_logistic works", {
   expect_true(length(res$vec_intercept) == 2)
 })
 
+test_that(".glmnet_logistic doesn't crash when all the values are the same", {
+  set.seed(10)
+  n <- 50
+  covariate <- rbind(matrix(rnorm(3*n), n, 3), matrix(rnorm(3*n, mean = 1), n, 3))
+  response_prob <- cbind(rep(0, 2*n), rep(0.9, 2*n))
+  
+  res <- .glmnet_logistic(covariate, response_prob)
+  
+  expect_true(all(dim(res$mat_coef) == c(3,2)))
+  expect_true(all(is.na(res$mat_coef)))
+  expect_true(all(res$vec_intercept == c(0, 0.9)))
+})
+
 #########################
 
 ## .bernoulli_xgiveny is correct
@@ -153,5 +170,20 @@ test_that(".bernoulli_xgiveny gives meaningful answers", {
   expect_true(nrow(res) == 2)
   expect_true(sd(res[1,]) >= sd(res[2,]))
   expect_true(median(res[1,1:n]) <= median(res[1,(n+1):(2*n)]))
+})
+
+test_that(".bernoulli_xgiveny gives meaningful answers under constant vectors", {
+  set.seed(10)
+  n <- 50
+  covariate <- rbind(matrix(rnorm(3*n), n, 3), matrix(rnorm(3*n, mean = 1), n, 3))
+  response_prob <- cbind(rep(0, 2*n), rep(0.9, 2*n))
+  obj <- .glmnet_logistic(covariate, response_prob)
+  
+  res <- sapply(1:nrow(covariate), function(i){
+    .bernoulli_xgiveny(covariate[i,], obj$mat_coef, obj$vec_intercept)
+  })
+  
+  expect_true(all(res[1,] == 0))
+  expect_true(all(res[2,] == 0.9))
 })
 

@@ -27,10 +27,10 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
     if(df_info[n,"time"] > 1-time_tol) break()
       
     ## generate next y, based on x
-    mat_y[n+1,] <- generate_ygivenx(obj_next, mat_x[n,])
+    mat_y[n+1,] <- .generate_ygivenx(obj_next, mat_x[n,])
     
     ## based on the next y, generate that corresponding x
-    tmp <- generate_xgiveny(obj_next, y = mat_y[n+1,])
+    tmp <- .generate_xgiveny(obj_next, y = mat_y[n+1,])
     mat_x[n+1,] <- tmp$x
     df_info[n+1, "time"] <- tmp$time; df_info[n+1, "counter"] <- n+1
     
@@ -59,7 +59,7 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
 
 ################
 
-generate_ygivenx <- function(obj_next, x){
+.generate_ygivenx <- function(obj_next, x){
   stopifnot(class(obj_next) == "obj_next")
   
   # generate y from x
@@ -72,13 +72,13 @@ generate_ygivenx <- function(obj_next, x){
   stats::rpois(length(y), lambda = y)
 }
 
-generate_xgiveny <- function(obj_next, y){
+.generate_xgiveny <- function(obj_next, y){
   stopifnot(class(obj_next) == "obj_next")
   
   # find the nearest neighbor 
   # [note: in the future, replace this with an exposed C++ obj from RANN: https://github.com/jefferislab/RANN/blob/master/R/nn.R]
   tmp <- matrix(y, nrow = 1, ncol = length(y))
-  idx <- RANN::nn2(obj_next$mat_starty, query = tmp, k = 1)$nn.idx[1,1]
+  idx <- RANN::nn2(obj_next$mat_y2all, query = tmp, k = 1)$nn.idx[1,1]
   
   # grab the information from the hash table
   info <- obj_next$ht[[as.character(idx)]]

@@ -23,6 +23,8 @@ plot_heatmap <- function(dat, reorder = F, ...){
   }
   
   graphics::image(.rotate(mat), ...)
+  
+  invisible()
 }
 
 plot_umap <- function(dat, mode_x = T, mode_y = T, noiseless = T, k = 10,

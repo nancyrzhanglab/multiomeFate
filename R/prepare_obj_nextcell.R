@@ -53,7 +53,7 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   counter <- 1
   for(k in 1:length(list_traj_mat)){
     for(i in 1:nrow(list_traj_mat[[k]])){
-      if(verbose && i %% floor(nrow(list_traj_mat[[k]])/10) == 0) cat('*')
+      if(verbose && nrow(list_traj_mat[[k]]) > 10 && i %% floor(nrow(list_traj_mat[[k]])/10) == 0) cat('*')
       
       ## grab the relevant rows
       ## [note to self: hard-code the fact it's a linear trajectory]
@@ -171,25 +171,34 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   p1 <- ncol(mat_coef)
   
   sapply(1:p1, function(i){
-    val <- as.numeric(y%*%mat_coef[,i]) + vec_intercept[i]
-    .sigmoid(val)
+    if(all(is.na(mat_coef[,i]))){
+      vec_intercept[i]
+    } else {
+      val <- as.numeric(y%*%mat_coef[,i]) + vec_intercept[i]
+      .sigmoid(val)
+    }
   })
 }
 
-.glmnet_logistic <- function(covariate, response_prob){
+.glmnet_logistic <- function(covariate, response_prob, tol = 1e-3){
   x <- covariate
   p1 <- ncol(response_prob); p2 <- ncol(covariate)
   mat_coef <- matrix(NA, nrow = p2, ncol = p1)
   vec_intercept <- rep(NA, length = ncol(response_prob))
   
   for(i in 1:p1){
-    y_mat <- cbind(1-response_prob[,i], response_prob[,i])
-    fit <- glmnet::glmnet(x = x, y = y_mat, family = "binomial",
-                          standardize = FALSE, intercept = TRUE)
-    
-    len <- length(fit$lambda)
-    mat_coef[,i] <- fit$beta[,len]
-    vec_intercept[i] <- fit$a0[len]
+    if (diff(range(response_prob[,i])) <= tol){
+      mat_coef[,i] <- NA; vec_intercept[i] <- stats::median(response_prob[,i])
+      
+    } else {
+      y_mat <- cbind(1-response_prob[,i], response_prob[,i])
+      fit <- glmnet::glmnet(x = x, y = y_mat, family = "binomial",
+                            standardize = FALSE, intercept = TRUE, alpha = 0)
+      
+      len <- length(fit$lambda)
+      mat_coef[,i] <- fit$beta[,len]
+      vec_intercept[i] <- fit$a0[len]
+    }
   }
   
   list(mat_coef = mat_coef, vec_intercept = vec_intercept)
