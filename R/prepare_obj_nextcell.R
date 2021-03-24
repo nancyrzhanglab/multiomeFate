@@ -1,36 +1,82 @@
-# some inputs: 
-# - df_x (data frame of inputs for modal 1: name, location)
-# - df_y (name, location, baseline expression [the intercept])
-# - matrix of regression coef for g, 
-# - list of mat_1 [can be proportions between [0,1]], 
-# - list of mat_2 [can be proportions between [0,1]],
-# - igraph for branching structure
-#
-# some outputs: essentially all the ingredients for the simulation:
-# - df_x, df_y
-# - the matrix of coefficients formed by g
-# - a huge hash table that stores each unique element of "g(mat_1)"
-# and contains 1) probability of which traj to use, and 2) that traj's logistic function coefficients,
-# and 3) the psuedotime
-# - a huge matrix of all the elements in "g(mat_1)", corresponding to the hash table 
-# 
-# WARNING: We'll code as if there's no branching for now. But in the future, it'll prob require putting information in the nodes of 
-#  \code{branching_graph}, and we'll need fancy functions to grab the correct rows, etc.
-prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y = T, 
-                                 branching_graph = NA, coarseness = 0.1, max_y = 1e5, verbose = T){
-  stopifnot(coarseness > 0, coarseness <= 1)
+#' Generate object to prepare for simulating data
+#' 
+#' Additional requirements: \code{df_x} and \code{df_y} are required to be data frames
+#' with a column named \code{name}. The output of this function is meant as the input for
+#' \code{generate_data}
+#' 
+#' Notes to self: 1) All entries in \code{mat_g} currently need to be non-negative,
+#' 2) Only linear trajectories are allowed currently, 3) Modality 1 (represented by
+#' \code{df_x}) is assumed be Bernoulli and Modality 2 (represented by \code{df_y})
+#' is assumed by Poisson. 4) Currently, the order of names in \code{mat_g} and 
+#' \code{list_traj_mat} must match the exact order of names in \code{df_x} and \code{df_y}
+#'
+#' @param df_x data frame where each row contains information about each variable in Modality 1
+#' @param df_y data frame where each row contains information about each variable in Modality 2
+#' @param mat_g matrix with \code{nrow(df_x)} rows and \code{nrow(df_y)} columns containing the linear coefficients on how
+#' Modality 1's value affects the mean of Modality 2's values (i.e., the deterministic
+#' relation from Modality 1 to Modality 2)
+#' @param list_traj_mat list of matrices, where each matrix contains either \code{nrow(df_x)}
+#' or \code{nrow(df_y)} columns. Each element of the list represents a different
+#' segment in the trajectories. Each of the matrices within the list must have
+#' column names matching either \code{df_x$name} or \code{df_y$name}.
+#' @param branching_graph \code{igraph} object describing the branching structure
+#' @param coarseness number between 0 and 1, describing how many rows in \code{list_traj_mat}
+#' are used to fit the probabilistic relation from Modality 2 to Modality 1. The larger the number,
+#' the more coarse (i.e., more approximate) the probabilistic relation is, but potentially
+#' computationally more stable.
+#' @param max_y positive integer, denoting the maximum value in Modality 2
+#' @param verbose boolean
+#'
+#' @return object of class \code{mf_obj_next} containing the following components:
+#' \code{df_x} and \code{df_y} and \code{mat_g} (all same as input), 
+#' \code{ht} (a \code{hash} object storing all the pseudotimes and logistic regression coefficient
+#' comprising the probabilistic relation from Modality 2 to Modality 1),
+#' \code{mat_y2all} (a matrix with number of rows equal to \code{length(ht)},
+#' where row \code{i} in this matrix is the Modality 2 vector corresponding to
+#' the information in \code{ht[[as.character(i)]]}, and number of columns equal to
+#' \code{nrow(df_y)})
+#' \code{vec_startx} (the initial value for the cell in Modality 1),
+#' \code{vec_starty} (the initial value for the cell in Modality 2)
+#' @export
+prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, 
+                                 branching_graph = NA, coarseness = 0.1, 
+                                 max_y = 1e5, verbose = T){
+  # run a lot of checks
+  stopifnot(coarseness > 0, coarseness <= 1, is.data.frame(df_x), is.data.frame(df_y),
+            "name" %in% names(df_x), "name" %in% names(df_y), 
+            length(unique(sapply(list_traj_mat, ncol))) == 1)
+  stopifnot(length(c(df_x$name, df_y$name)) == length(unique(c(df_x$name, df_y$name))),
+            all(colnames(list_traj_mat[[1]]) == df_x$name) || 
+              all(colnames(list_traj_mat[[1]]) == df_y$name))
+  if(length(list_traj_mat) > 1){
+    for(i in 2:length(list_traj_mat)){
+      all(colnames(list_traj_mat[[1]]) == colnames(list_traj_mat[[i]]))
+    }
+  }
+  stopifnot(all(rownames(mat_g) == df_x$name), all(colnames(mat_g) == df_y$name))
+  
   if(is.na(branching_graph)) stopifnot(length(list_traj_mat) == 1) else {
     stopifnot(class(branching_graph) == "igraph", igraph::vcount(branching_graph) == length(list_traj_mat), igraph::components(branching_graph)$no == 1)
   }
+  
   # [note to self vv: needed for now for simplicity -- should be removed in the future]
   stopifnot(all(mat_g >= 0)) 
-  # [note to self vv: needed for now for simplicity -- assumes only one trajectory]
-  if(bool_traj_y) stopifnot(all(matrix(1, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g)) %*% mat_g >= list_traj_mat[[1]])) 
+  if(all(sort(colnames(list_traj_mat[[1]])) == sort(df_y$name))) {
+    bool_traj_y <- T
+    # [note to self vv: needed for now for simplicity -- assumes only one trajectory]
+    tmp <- matrix(1, nrow = nrow(list_traj_mat[[1]]), ncol = nrow(mat_g)) 
+    stopifnot(all(tmp %*% mat_g >= list_traj_mat[[1]])) 
+  } else {
+    bool_traj_y <- F
+  }
     
   # [note to self: need a check to make sure resolution is not too large wrt number of rows in list_x1's matrices]
   
   # [note to self: put a function here to check branching_graph wrt list_traj_mat.
   # for example, the first row of list_traj_mat when a branch occurs are the same]
+  
+  ####
+  # some preparation
   
   # enumerate all unique df_y's needed for the hash table
   ## [note to self: hard-code the fact it's a linear trajectory. we'll need to use paths from start to end later on -- how would this capture cycles?]
@@ -48,6 +94,8 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   n_total <- nrow(mat_y2all) # count how many unique rows there are
   list_time <- list(seq(0, 1, length.out = n_total)) # [note to self: currently hard-coded for linear trajectory]
    
+  ################
+  
   # initialize hash table
   ht <- hash::hash()
   counter <- 1
@@ -78,7 +126,7 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat, bool_traj_y =
   vec_starty <- mat_y2all[2,]
   structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, mat_y2all = mat_y2all,
                  vec_startx = vec_startx, vec_starty = vec_starty),
-            class = "obj_next")
+            class = "mf_obj_next")
 }
 
 ####################################

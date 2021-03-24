@@ -9,8 +9,7 @@ test_that(".generate_ygivenx works", {
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   timepoints <- 5
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)
-  obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, 
-                                   list(mat_traj), bool_traj_y = T)
+  obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj))
   
   res <- .generate_ygivenx(obj_next, obj_next$vec_startx)
   
@@ -29,8 +28,7 @@ test_that(".generate_xgiveny works", {
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   timepoints <- 5
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)
-  obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, 
-                                   list(mat_traj), bool_traj_y = T)
+  obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj))
   
   res <- .generate_xgiveny(obj_next, obj_next$vec_starty)
   
@@ -55,7 +53,7 @@ test_that(".generate_data_single works", {
   timepoints <- 100
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)*3
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, 
-                                   list(mat_traj), bool_traj_y = T, verbose = F)
+                                   list(mat_traj), verbose = F)
   
   res <- .generate_data_single(obj_next, verbose = F)
   
@@ -90,10 +88,11 @@ test_that("generate_data works", {
   timepoints <- 100
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)*3
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, 
-                                   list(mat_traj), bool_traj_y = T, verbose = F)
+                                   list(mat_traj), verbose = F)
   
   res <- generate_data(obj_next, number_runs = 5, sample_perc = 0.9, verbose = F)
   
+  expect_true(class(res) == "mf_simul")
   expect_true(is.list(res))
   expect_true(all(sort(names(res)) == sort(c("obs_x", "obs_y", "true_x", "true_y", "df_info", "df_x", "df_y"))))
   idx <- which(names(res) %in% c("obs_x", "obs_y", "true_x", "true_y", "df_info"))

@@ -69,17 +69,15 @@ test_that("prepare_obj_nextcell works", {
   timepoints <- 30
   
   mat_traj <- generate_traj_cascading(df$df_x, timepoints = timepoints)
-  res <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj), 
-                              bool_traj_y = F, verbose = F)
+  res <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj), verbose = F)
   
   expect_true(is.list(res))
-  expect_true(class(res) == "obj_next")
+  expect_true(class(res) == "mf_obj_next")
   expect_true(all(sort(names(res)) == sort(c("df_x", "df_y", "mat_g", "ht", "mat_y2all",
                                              "vec_startx", "vec_starty"))))
   
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints)*2
-  res <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj), 
-                              bool_traj_y = T, verbose = F)
+  res <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj), verbose = F)
 })
 
 ##########################
@@ -186,4 +184,8 @@ test_that(".bernoulli_xgiveny gives meaningful answers under constant vectors", 
   expect_true(all(res[1,] == 0))
   expect_true(all(res[2,] == 0.9))
 })
+
+#########################
+
+
 

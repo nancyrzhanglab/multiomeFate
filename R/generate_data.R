@@ -1,13 +1,33 @@
-# some inputs: obj_nextcell, the initial point, max_cells
-# to add in future: non-uniform density of cells along time
-#
-# some outputs: data frame of cells [uncorrupted atac and rna] as well as its branch and psuedotime,
-# true datapoint mother
-# and another data of simply cells with the noisy data
+#' Generating data
+#' 
+#' Notes to self: 1) Currently, the function does not add technical noise.
+#' 2) It currently only generates data for Modality 1 as Bernoullis and for Modality 2 as Poissons.
+#'
+#' @param obj_next returned by \code{prepare_obj_nextcell}
+#' @param max_n positive integer, for maximum number of cells for each of the \code{number_runs} runs
+#' @param number_runs positive integer, for number of times we start at \code{obj_next$vec_startx} and follow that cell's trajectory
+#' @param sample_perc number between \code{0} and \code{1}, denoting what percentage of cells we've generated in this simulation
+#' are returned in the final output. Here, \code{1} means all the cells generated are returned.
+#' @param time_tol positive integer between  \code{0} and \code{1}, typically close to \code{0},
+#' denoting the stopping criteria for each of the \code{number_runs} runs. A run
+#' stops when it generates a cell whose pseudotime (as dictated in \code{obj_next})
+#' is larger than \code{1-time_tol}.
+#' @param verbose boolean
+#'
+#' @return object of class \code{mf_simul} with the following components: 
+#' \code{df_x} (the data frame from \code{obj_next} containing information of Modality 1),
+#' \code{df_y} (the data frame from \code{obj_next} containing information of Modality 2),
+#' \code{obs_x} (the observed data matrix where each row is a cell and each column is one of \code{nrow(df_x)} variables),
+#' \code{obs_y} (the observed data matrix where each row is a cell and each column is one of \code{nrow(df_y)} variables),
+#' \code{true_x} (the true data matrix, which is \code{obs_x} without the technical noise),
+#' \code{true_y} (the true data matrix, which is \code{obs_y} without the technical noise), and
+#' \code{df_info} (the data frame with the same number of rows as \code{obs_x} and \code{obs_y}, where each row
+#' contains meta-information about the cell)
+#' @export
 generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs = 5,
                           sample_perc = 1,
                           time_tol = 0.01, verbose = T){
-  stopifnot(sample_perc > 0, sample_perc <= 1)
+  stopifnot(sample_perc > 0, sample_perc <= 1, class(obj_next) == "mf_obj_next")
   list_out <- lapply(1:number_runs, function(i){
     .generate_data_single(obj_next, max_n, time_tol, verbose)
   })
@@ -18,10 +38,10 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
   res <- .merge_run_outputs(list_out, idx)
   
   # prepare output
-  list(df_x = obj_next$df_x, df_y = obj_next$df_y,
+  structure(list(df_x = obj_next$df_x, df_y = obj_next$df_y,
        obs_x = res$obs_x, obs_y = res$obs_y, 
        true_x = res$true_x, true_y = res$true_y, 
-       df_info = res$df_info)
+       df_info = res$df_info), class = "mf_simul")
 }
 
 ################
@@ -80,7 +100,7 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
 }
 
 .generate_ygivenx <- function(obj_next, x){
-  stopifnot(class(obj_next) == "obj_next")
+  stopifnot(class(obj_next) == "mf_obj_next")
   
   # generate y from x
   y <- .possion_ygivenx(x, obj_next$mat_g)
@@ -93,7 +113,7 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
 }
 
 .generate_xgiveny <- function(obj_next, y){
-  stopifnot(class(obj_next) == "obj_next")
+  stopifnot(class(obj_next) == "mf_obj_next")
   
   # find the nearest neighbor 
   # [note: in the future, replace this with an exposed C++ obj from RANN: https://github.com/jefferislab/RANN/blob/master/R/nn.R]
