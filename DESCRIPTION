@@ -1,6 +1,6 @@
-Package: multiomefate
+Package: multiomeFate
 Title: Kevin Lin and Chi-Yun Wu
-Version: 1.0.0.0000
+Version: 0.0.0.0002
 Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
 Description: A package to house useful functions that are tested and maintained.
 Depends:
@@ -10,8 +10,12 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     MASS,
-    RSpectra,
-    irlba
+    hash,
+    igraph,
+    glmnet,
+    Seurat,
+    clplite,
+    RANN
 Suggests:
     testthat
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1
