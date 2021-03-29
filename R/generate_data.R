@@ -1,5 +1,7 @@
 #' Generating data
 #' 
+#' This is under development
+#' 
 #' Notes to self: 1) Currently, the function does not add technical noise.
 #' 2) It currently only generates data for Modality 1 as Bernoullis and for Modality 2 as Poissons.
 #'
