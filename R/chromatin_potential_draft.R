@@ -113,3 +113,14 @@
 # ##! multiple fates
 # 
 # 
+
+### example codes for plotting segments
+# umap_sub$umap1 is the starting x coordinate and umap_delta_sub$umap1 is the delta_x
+# umap_sub$umap2 is the starting y coordinate and umap_delta_sub$umapy is the delta_y
+# library(ggplot2)
+# pp=ggplot(df, aes(x=UMAP1, y=UMAP2)) +
+#   geom_point(aes( color=celltype), size=0.5, alpha=0.3)+
+#   geom_segment(aes(xend = umap_sub$umap1+umap_delta_sub$umap1, yend =umap_sub$umap2+umap_delta_sub$umap2),
+#                arrow = arrow(length = unit(0.1, "cm")))
+# pp
+
