@@ -1,7 +1,34 @@
-.estimate_g <- function(mat_x1, mat_y2, df_x, df_y, est_options){
+.estimate_g <- function(mat_x1, mat_y2, df_y, est_options){
   stopifnot(est_options[["method"]] == "glmnet")
+  if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
-  # check to see if enforce_cis 
+  p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)
+  res_g <- lapply(1:p2, function(j){
+    
+    if(est_options$enforce_cis){
+      ## find the region around each peak
+      idx_x <- est_options$ht_map[[as.character(j)]]
+    } else {
+      #[[note to self: I think there's a cleaner way to write this]]
+      idx_x <- 1:p1
+    }
+    if(length(idx_x) == 0) next() #[[note to self: do I need to handle this better?]]
+    
+    idx_y <- j
+  
+    ## apply glmnet
+    lis <- .glmnet_fancy(mat_x1[,idx_x,drop = F], mat_y2[,idx_y],
+                         family = est_options$family, 
+                         switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
+                         alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
+                         cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice)
+    
+    lis
+  })
+
+  if(length(colnames(mat_y2)) != 0) names(res_g) <- colnames(mat_y2)
+  
+  res_g
 }
 
 .glmnet_fancy <- function(x, y, family, 

@@ -27,7 +27,8 @@
 
   if(est_method == "glmnet"){
     
-    list_default <- list(family = "poisson", enforce_cis = T, 
+    list_default <- list(family = "poisson", 
+                         enforce_cis = T, cis_window = 200,
                          switch = T, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = T,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se")
@@ -86,4 +87,20 @@
   }
   
   res
+}
+
+# assumes x is peak, y is gene
+.gene_peak_map <- function(df_x, df_y, est_options){
+  stopifnot(est_options$cis_window > 0)
+  n <- nrow(df_y)
+  
+  ht_map <- hash::hash()
+  for(i in 1:n){
+    loc <- df_y$location[i]
+    idx <- which(abs(df_x$location - loc) <= est_options$cis_window)
+    ht_map[[as.character(i)]] <- idx
+  }
+  
+  est_options$ht_map <- ht_map
+  est_options
 }

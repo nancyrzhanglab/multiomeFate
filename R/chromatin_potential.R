@@ -25,18 +25,21 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   ht_neighbor <- .init_chrom_ht(list_end)
   counter <- 1
+  if(est_options$enforce_cis){
+    est_options <- .gene_peak_map(df_x, df_y, est_options)
+  }
   
   # while:
   while(length(ht) < n){
     ## estimate res_g
-    res_g <- .estimate_g(mat_x1, mat_y2, df_x, df_y, est_options)
+    res_g <- .estimate_g(mat_x1, mat_y2, df_y, est_options)
     
     ## construct candidate set
     vec_cand <- .candidate_set(mat_x, mat_y, df_res, cand_options)
     df_res <- .update_chrom_df_cand(df_res, vec_cand)
     
     ## recruit an element from the candidate set
-    rec <- .recruit_next(mat_x[vec_cand,,drop = F], mat_y1, res_g, rec_options)
+    rec <- .recruit_next(mat_x[vec_cand,,drop = F], mat_y1, res_g, rec_options, est_options)
     
     ## update
     tmp <- .update_estimation_matrices(mat_x1, mat_y1, mat_y2, rec, form_options)
@@ -78,6 +81,10 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   
   ht_neighbor
 }
+
+
+
+########################3
 
 # ## fate prediction model
 # library(glmnet)
