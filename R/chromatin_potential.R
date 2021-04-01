@@ -1,12 +1,12 @@
 # output: mat_g, dataframe of when each row got recruited, # of times it was a candidate, order of recruitment, and 
 # hash table of who its nearest neighbors are
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
-                                forming_method = "literal", estimation_method = "glmnet",
-                                candidate_method = "nn", recruit_method = "singleton", 
+                                form_method = "literal", est_method = "glmnet",
+                                cand_method = "nn", rec_method = "singleton", 
                                 options = list(),
                                 verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y))
-  n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y)
+  n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
   stopifnot(all(vec_start > 0), all(vec_start %% 1 == 0), all(vec_start <= n))
   for(i in 1:length(list_end)){
     stopifnot(all(list_end[[i]] > 0), all(list_end[[i]] %% 1 == 0), all(list_end[[i]] <= n))
@@ -15,22 +15,19 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   stopifnot(length(unique(tmp)) == length(tmp))
   
   # check all the options
-  tmp <- .chromatin_options(forming_method, estimation_method, candidate_method, recruit_method, options)
+  tmp <- .chrom_options(form_method, est_method, cand_method, rec_method, options)
   form_options <- tmp$form_options; est_options <- tmp$est_options
   cand_options <- tmp$cand_options; rec_options <- tmp$rec_options
   
   # initialize
-  df_res <- .initialize_chrom_df(n, vec_start, list_end)
-  ht_neighbor <- .initialize_chrom_ht(vec_start, list_end)
+  tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
+  mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
+  df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
+  ht_neighbor <- .init_chrom_ht(list_end)
   counter <- 1
   
   # while:
   while(length(ht) < n){
-    ## construct the two matrices
-    tmp <- .form_estimation_matrices(mat_x, mat_y, ht_neighbor, 
-                                     form_options)
-    mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
-    
     ## estimate res_g
     res_g <- .estimate_g(mat_x1, mat_y2, df_x, df_y, est_options)
     
@@ -39,9 +36,13 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     df_res <- .update_chrom_df_cand(df_res, vec_cand)
     
     ## recruit an element from the candidate set
-    res <- .recruit_next(mat_x[vec_cand,,drop = F], mat_y1, res_g, rec_options)
-    ht_neighbor <- .update_chrom_ht(res$vec_from, res$list_to)
-    df_res <- .update_chrom_df_rec(df_res, res$vec_from)
+    rec <- .recruit_next(mat_x[vec_cand,,drop = F], mat_y1, res_g, rec_options)
+    
+    ## update
+    tmp <- .update_estimation_matrices(mat_x1, mat_y1, mat_y2, rec, form_options)
+    mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
+    ht_neighbor <- .update_chrom_ht(rec$vec_from, rec$list_to)
+    df_res <- .update_chrom_df_rec(df_res, rec$vec_from)
     
     counter <- counter+1
   }
@@ -54,12 +55,28 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 
 # columns: steady-state (neg for initial, pos for end, or NA)
 # num times was a candidate, and order of recruitment
-.initialize_chrom_df <- function(n, vec_start, list_end){
-
+.init_chrom_df <- function(n, vec_start, list_end, cell_name){
+  df_res <- data.frame(idx = 1:n, init_state = rep(NA, n), num_cand = rep(0, n),
+                       order_rec = rep(NA, n))
+  if(length(cell_name) == n) rownames(df_res) <- cell_name
+  
+  df_res$init_state[vec_start] <- -1
+  for(i in 1:length(list_end)){
+    df_res$init_state[list_end[[i]]] <- i
+    df_res$order_rec[list_end[[i]]] <- 0
+  }
+  
+  df_res
 }
 
-.initialize_chrom_ht <- function(vec_start, list_end){
+.init_chrom_ht <- function(list_end){
+  ht_neighbor <- hash::hash()
+  vec <- unlist(list_end)
+  for(i in vec){
+    ht_neighbor[[as.character(i)]] <- c(neighbor = i)
+  }
   
+  ht_neighbor
 }
 
 # ## fate prediction model

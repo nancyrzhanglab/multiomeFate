@@ -1,116 +1,86 @@
 # function to check all the options are there, and reformulate
-.chromatin_options <- function(forming_method, estimation_method, 
-                                    candidate_method, recruit_method, options){
-  stopifnot(forming_method %in% c("literal"))
-  stopifnot(estimation_method %in% c("glmnet"))
-  stopifnot(candidate_method %in% c("nn"))
-  stopifnot(recruit_method %in% c("singleton"))
+.chrom_options <- function(form_method, est_method, cand_method, rec_method, 
+                           options){
+  stopifnot(form_method %in% c("literal"))
+  stopifnot(est_method %in% c("glmnet"))
+  stopifnot(cand_method %in% c("nn"))
+  stopifnot(rec_method %in% c("singleton"))
   
-  form_options <- .forming_options(forming_method, options)
-  est_options <- .estimation_options(estimation_method, options)
-  cand_options <- .candidate_options(candidate_method, options)
-  rec_options <- .recruit_options(recruit_method, options)
+  ## [note to self: I should check the type (num,char,bool) of all the options]
+  form_options <- .forming_options(form_method, options)
+  est_options <- .estimation_options(est_method, options)
+  cand_options <- .candidate_options(cand_method, options)
+  rec_options <- .recruit_options(rec_method, options)
   
   list(form_options = form_options, est_options = est_options,
        cand_options = cand_options, rec_options = rec_options)
 }
 
-.forming_options <- function(forming_method, options){
+.forming_options <- function(form_method, options){
   form_options <- vector("list", 0)
-  form_options$method <- forming_method
+  form_options$method <- form_method
   form_options
 }
 
-.estimation_options <- function(estimation_method, options){
-  est_options <- vector("list", 0)
-  est_options$method <- estimation_method
-  
-  if(est_options$method == "glmnet"){
-    # family
-    if(!is.null(options$est_family)){
-      est_options$family <- options$est_family
-    } else {
-      est_options$family <- "poisson"
-    }
+.estimation_options <- function(est_method, options){
+  prefix <- "est"
+
+  if(est_method == "glmnet"){
     
-    # standardize T/F
-    if(!is.null(options$est_standardize)){
-      est_options$standardize <- options$est_standardize
-    } else {
-      est_options$standardize <- F
-    }
-    
-    # intercept T/F
-    if(!is.null(options$est_intercept)){
-      est_options$intercept <- options$est_intercept
-    } else {
-      est_options$intercept <- T
-    }
-    
-    # alpha
-    if(!is.null(options$est_alpha)){
-      est_options$alpha <- options$est_alpha
-    } else {
-      est_options$alpha <- 1
-    }
-    
-    # cv T/F
-    if(!is.null(options$est_cv)){
-      est_options$cv <- options$est_cv
-    } else {
-      est_options$cv <- T
-    }
-    
-    # cv num.folds
-    if(!is.null(options$est_nfolds)){
-      est_options$nfolds <- options$est_nfolds
-    } else {
-      est_options$nfolds <- 5
-    }
+    list_default <- list(family = "poisson", enforce_cis = T, 
+                         switch = T, switch_cutoff = 10,
+                         standardize = F, intercept = T, alpha = 1,
+                         cv = T, nfolds = 5)
+    est_options <- .fill_options(options, list_default, prefix)
   }
   
+  est_options$method <- est_method
   est_options
 }
 
-.candidate_options <- function(candidate_method, options){
-  cand_options <- vector("list", 0)
-  cand_options$method <- candidate_method
+.candidate_options <- function(cand_method, options){
+  prefix <- "cand"
   
-  if(cand_options$method == "nn"){
-    # number of nn
-    if(!is.null(options$candidate_nn)){
-      cand_options$nn <- options$candidate_nn
-    } else {
-      cand_options$nn <- 10
-    }
-    
-    # distance metric
-    if(!is.null(options$candidate_metric)){
-      cand_options$metric <- options$candidate_metric
-      ## [note to self: seems like there's no metric in RANN]
-      stopifnot(cand_options$metric == "euclidean")
-    } else {
-      cand_options$metric <- "euclidean"
-    }
+  if(cand_method == "nn"){
+    list_default <- list(nn = 10, metric = "euclidean")
+    cand_options <- .fill_options(options, list_default, prefix)
   }
   
+  ## [note to self: seems like there's no metric in RANN]
+  stopifnot(cand_options$metric == "euclidean")
+  
+  cand_options$method <- cand_method
   cand_options
 }
 
-.recruit_options <- function(recruit_method, options){
-  rec_options <- vector("list", 0)
-  rec_options$method <- recruit_method
+.recruit_options <- function(rec_method, options){
+  prefix <- "rec"
   
-  if(rec_options$method == "singleton"){
-    # distance metric
-    if(!is.null(options$rec_metric)){
-      rec_options$metric <- options$rec_metric
-      ## [note to self: seems like there's no metric in RANN]
-      stopifnot(rec_options$metric == "euclidean")
+  if(rec_method == "singleton"){
+    list_default <- list(metric = "euclidean")
+    rec_options <- .fill_options(options, list_default, prefix)
+  }
+  
+  ## [note to self: seems like there's no metric in RANN]
+  stopifnot(rec_options$metric == "euclidean")
+  
+  rec_options$method <- rec_method
+  rec_options
+}
+
+########################
+
+.fill_options <- function(options, list_default, prefix){
+  org_name <- names(list_default)
+  target_name <- paste0(prefix, "_", org_name)
+  res <- vector("list", 0)
+  for(i in 1:length(list_default)){
+    if(!is.null(options[[target_name[i]]])){
+      res[[org_name[i]]] <- options[[target_name[i]]]
     } else {
-      rec_options$metric <- "euclidean"
+      res[[org_name[i]]] <- list_default[[org_name[i]]]
     }
   }
   
-  rec_options
+  res
 }
