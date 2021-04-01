@@ -35,7 +35,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     res_g <- .estimate_g(mat_x1, mat_y2, df_y, est_options)
     
     ## construct candidate set
-    vec_cand <- .candidate_set(mat_x, mat_y, df_res, cand_options)
+    vec_cand <- .candidate_set(mat_x, df_res, cand_options)
     df_res <- .update_chrom_df_cand(df_res, vec_cand)
     
     ## recruit an element from the candidate set
@@ -80,6 +80,11 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   }
   
   ht_neighbor
+}
+
+.update_chrom_df_cand <- function(df_res, vec_cand){
+  df_res$num_cand[vec_cand] <-  df_res$num_cand[vec_cand]+1
+  df_res
 }
 
 
