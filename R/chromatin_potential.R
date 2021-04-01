@@ -5,28 +5,62 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                                 candidate_method = "nn", recruit_method = "singleton", 
                                 options = list(),
                                 verbose = T){
+  stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y))
+  n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y)
+  stopifnot(all(vec_start > 0), all(vec_start %% 1 == 0), all(vec_start <= n))
+  for(i in 1:length(list_end)){
+    stopifnot(all(list_end[[i]] > 0), all(list_end[[i]] %% 1 == 0), all(list_end[[i]] <= n))
+  }
+  tmp <- c(vec_start, unlist(list_end))
+  stopifnot(length(unique(tmp)) == length(tmp))
+  
   # check all the options
+  tmp <- .chromatin_options(forming_method, estimation_method, candidate_method, recruit_method, options)
+  form_options <- tmp$form_options; est_options <- tmp$est_options
+  cand_options <- tmp$cand_options; rec_options <- tmp$rec_options
   
   # initialize
+  df_res <- .initialize_chrom_df(n, vec_start, list_end)
+  ht_neighbor <- .initialize_chrom_ht(vec_start, list_end)
+  counter <- 1
   
   # while:
-  
-  ## construct the two matrices
-  
-  ## estimate mat_g
-  
-  ## construct candidate set
-  
-  ## recruit an element from the candidate set
-  
-  ## update 
-  
+  while(length(ht) < n){
+    ## construct the two matrices
+    tmp <- .form_estimation_matrices(mat_x, mat_y, ht_neighbor, 
+                                     form_options)
+    mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
+    
+    ## estimate res_g
+    res_g <- .estimate_g(mat_x1, mat_y2, df_x, df_y, est_options)
+    
+    ## construct candidate set
+    vec_cand <- .candidate_set(mat_x, mat_y, df_res, cand_options)
+    df_res <- .update_chrom_df_cand(df_res, vec_cand)
+    
+    ## recruit an element from the candidate set
+    res <- .recruit_next(mat_x[vec_cand,,drop = F], mat_y1, res_g, rec_options)
+    ht_neighbor <- .update_chrom_ht(res$vec_from, res$list_to)
+    df_res <- .update_chrom_df_rec(df_res, res$vec_from)
+    
+    counter <- counter+1
+  }
+
   # output
+  list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor)
 }
 
 #########################
 
+# columns: steady-state (neg for initial, pos for end, or NA)
+# num times was a candidate, and order of recruitment
+.initialize_chrom_df <- function(n, vec_start, list_end){
 
+}
+
+.initialize_chrom_ht <- function(vec_start, list_end){
+  
+}
 
 # ## fate prediction model
 # library(glmnet)
