@@ -29,10 +29,13 @@
     
     list_default <- list(family = "poisson", enforce_cis = T, 
                          switch = T, switch_cutoff = 10,
-                         standardize = F, intercept = T, alpha = 1,
-                         cv = T, nfolds = 5)
+                         alpha = 1, standardize = F, intercept = T,
+                         cv = T, nfolds = 5, cv_choice = "lambda.1se")
     est_options <- .fill_options(options, list_default, prefix)
   }
+  
+  stopifnot(!est_options$standardize) # [[note to self: I should eventually code this up although it'll be quite a hassle...]]
+  stopifnot(est_options$nfolds >= 3, est_options$cv_choice %in% c("lambda.1se", "lambda.min")) # requirement by glmnet
   
   est_options$method <- est_method
   est_options
