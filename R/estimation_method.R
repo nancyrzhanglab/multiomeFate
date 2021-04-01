@@ -3,7 +3,7 @@
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)
-  res_g <- lapply(1:p2, function(j){
+  lis_res <- lapply(1:p2, function(j){
     
     if(est_options$enforce_cis){
       ## find the region around each peak
@@ -26,7 +26,15 @@
     lis
   })
 
-  if(length(colnames(mat_y2)) != 0) names(res_g) <- colnames(mat_y2)
+  ## [[note to self: This really should be a sparse matrix class]]
+  res_g <- .transform_est_matrix(lis_res, est_options, p1)
+  
+  if(length(colnames(mat_y2)) != 0) {
+    colnames(res_g$mat_g) <- colnames(mat_y2)
+  }
+  if(length(colnames(mat_x1)) != 0) {
+    rownames(res_g$mat_g) <- colnames(mat_x1)
+  }
   
   res_g
 }
@@ -40,31 +48,54 @@
   if(switch & n > p*switch_cutoff){
     # use glm
     if(intercept) x <- cbind(x,1)
-    res <- stats::glm.fit(x, y, intercept = F)
-    vec_coef <- res[1:p]
+    if(family == "poisson") {
+      family_func <- stats::poisson()
+    } else {
+      stop("family not found")
+    }
+    res <- stats::glm.fit(x, y, family = family_func, intercept = F)
+    vec_coef <- res$coefficients[1:p]
     val_int <- ifelse(intercept, vec_coef[p+1], 0)
     
   } else {
     if(cv & n > 10*nfolds){
       # use cv.glmnet
-      res <- glmnet::cv.glmnet(x, y, nfolds = nfolds, alpha = alpha,
+      res <- glmnet::cv.glmnet(x, y, family = family, nfolds = nfolds, alpha = alpha,
                                standardize = standardize, intercept = intercept)
       lambda <- res[[cv_choice]]
-      res <- glmnet::glmnet(x, y, alpha = alpha,
+      res <- glmnet::glmnet(x, y, family = family, alpha = alpha,
                             standardize = standardize, intercept = intercept)
-      tmp <- as.numeric(stats::coef(res, s = lambda))
-      vec_coef <- tmp[-1]; val_int <- tmp[1]
-      
     } else {
       # use glmnet and pick the densest solution
-      res <- glmnet::glmnet(x, y, alpha = alpha,
+      res <- glmnet::glmnet(x, y, family = family, alpha = alpha,
                             standardize = standardize, intercept = intercept)
       tmp <- res$lambda; len <- length(tmp); stopifnot(len > 1)
       lambda <- mean(tmp[c(len-1,len)])
-      tmp <- as.numeric(stats::coef(res, s = lambda))
-      vec_coef <- tmp[-1]; val_int <- tmp[1]
     }
+    
+    tmp <- as.numeric(stats::coef(res, s = lambda))
+    vec_coef <- tmp[-1]; val_int <- tmp[1]
   }
   
   list(val_int = val_int, vec_coef = vec_coef)
+}
+
+.transform_est_matrix <- function(lis_res, est_options, p1){
+  p2 <- length(lis_res)
+  
+  mat_g <- matrix(0, nrow = p1, ncol = p2)
+  vec_g <- rep(0, length = p2)
+  
+  for(j in 1:p2){
+    vec_g[j] <- lis_res[[j]]$val_int
+  
+    if(est_options$enforce_cis){
+      idx_x <- est_options$ht_map[[as.character(j)]]
+      mat_g[idx_x,j] <- lis_res[[j]]$vec_coef
+    } else {
+      mat_g[,j] <- lis_res[[j]]$vec_coef
+    }
+  }
+  
+  list(mat_g = mat_g, vec_g = vec_g)
 }

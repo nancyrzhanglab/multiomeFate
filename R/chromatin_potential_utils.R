@@ -30,7 +30,7 @@
     list_default <- list(family = "poisson", 
                          enforce_cis = T, cis_window = 200,
                          switch = T, switch_cutoff = 10,
-                         alpha = 1, standardize = F, intercept = T,
+                         alpha = 1, standardize = F, intercept = F,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se")
     est_options <- .fill_options(options, list_default, prefix)
   }

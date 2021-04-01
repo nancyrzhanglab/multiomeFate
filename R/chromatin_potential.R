@@ -22,6 +22,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   # initialize
   tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
   mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
+  idx1 <- tmp$idx1
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   ht_neighbor <- .init_chrom_ht(list_end)
   counter <- 1
@@ -39,11 +40,14 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     df_res <- .update_chrom_df_cand(df_res, vec_cand)
     
     ## recruit an element from the candidate set
-    rec <- .recruit_next(mat_x[vec_cand,,drop = F], mat_y1, res_g, rec_options, est_options)
+    rec <- .recruit_next(mat_x, vec_cand, mat_y1, idx1,
+                         res_g, rec_options)
     
     ## update
-    tmp <- .update_estimation_matrices(mat_x1, mat_y1, mat_y2, rec, form_options)
+    tmp <- .update_estimation_matrices(mat_x1, mat_y1, mat_y2, idx1,
+                                       rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
+    idx1 <- tmp$idx1
     ht_neighbor <- .update_chrom_ht(rec$vec_from, rec$list_to)
     df_res <- .update_chrom_df_rec(df_res, rec$vec_from)
     
