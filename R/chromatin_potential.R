@@ -1,15 +1,32 @@
 # output: mat_g, dataframe of when each row got recruited, # of times it was a candidate, order of recruitment, and 
 # hash table of who its nearest neighbors are
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
-                                candidate_method = "nn",
-                                recruit_method = "singleton", 
-                                estimation_method = "glmnet",
+                                forming_method = "literal", estimation_method = "glmnet",
+                                candidate_method = "nn", recruit_method = "singleton", 
                                 options = list(),
                                 verbose = T){
+  # check all the options
   
+  # initialize
+  
+  # while:
+  
+  ## construct the two matrices
+  
+  ## estimate mat_g
+  
+  ## construct candidate set
+  
+  ## recruit an element from the candidate set
+  
+  ## update 
+  
+  # output
 }
 
 #########################
+
+
 
 # ## fate prediction model
 # library(glmnet)
