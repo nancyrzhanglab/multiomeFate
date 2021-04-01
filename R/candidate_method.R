@@ -12,5 +12,5 @@
   # find the free points that are nearest neighbors to any of the recruited points
   res <- RANN::nn2(mat_x[idx_free,,drop = F], query = mat_x[idx_rec,,drop = F], k = cand_options$nn)
   
-  sort(unique(as.numeric(res$nn.idx)))
+  idx_free[sort(unique(as.numeric(res$nn.idx)))]
 }

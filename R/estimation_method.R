@@ -36,6 +36,8 @@
     rownames(res_g$mat_g) <- colnames(mat_x1)
   }
   
+  stopifnot(all(!is.na(res_g$mat_g)))
+  
   res_g
 }
 
@@ -55,6 +57,7 @@
     }
     res <- stats::glm.fit(x, y, family = family_func, intercept = F)
     vec_coef <- res$coefficients[1:p]
+    vec_coef[is.na(vec_coef)] <- 0
     val_int <- ifelse(intercept, vec_coef[p+1], 0)
     
   } else {

@@ -76,6 +76,7 @@ plot_heatmap <- function(dat, mode = 1, reorder = T, ...){
 #' \code{dat$true_x} and/or \code{dat$true_y} is plotted, and \code{FALSE}
 #' means information from \code{dat$obs_x} and/or \code{dat$obs_y} is plotted
 #' @param k positive numeric for the number of principal scores extracted
+#' @param only_coords boolean. If \code{TRUE}, do not make the plot but instead return the UMAP coordinates
 #' @param reorder boolean. If \code{TRUE}, color the cells by their pseudotime.
 #' If \code{FALSE}, ccolor the cells by the order they appear in simulation
 #' @param num_col positive numeric, for the number of distinct colors used
@@ -84,7 +85,7 @@ plot_heatmap <- function(dat, mode = 1, reorder = T, ...){
 #' @return nothing. A plot is made
 #' @export
 plot_umap <- function(dat, mode_x = T, mode_y = T, noiseless = T, k = 10,
-                      reorder = T, num_col = 10, ...){
+                      only_coords = F, reorder = T, num_col = 10, ...){
   stopifnot(class(dat) == "mf_simul", mode_x | mode_y)
   
   # [note to self: currently noiseless does nothing]
@@ -111,6 +112,8 @@ plot_umap <- function(dat, mode_x = T, mode_y = T, noiseless = T, k = 10,
   
   # extract embedding
   embedding <- Seurat::RunUMAP(mat, verbose = F)@cell.embeddings
+  
+  if(only_coords) return(embedding)
   
   # extract color
   if(reorder){
