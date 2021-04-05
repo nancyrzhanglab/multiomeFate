@@ -1,10 +1,16 @@
 # function to check all the options are there, and reformulate
 .chrom_options <- function(form_method, est_method, cand_method, rec_method, 
-                           options){
+                           options = list()){
   stopifnot(form_method %in% c("literal"))
   stopifnot(est_method %in% c("glmnet"))
   stopifnot(cand_method %in% c("nn"))
   stopifnot(rec_method %in% c("singleton"))
+  stopifnot(is.list(options))
+  
+  idx <- grep("^form_*|^est_*|^cand_*|^rec_*", names(options))
+  if(length(idx) != length(options)){
+    warning("Option ", paste0(names(options)[-idx], collapse = " and "), " not used.")
+  }
   
   ## [note to self: I should check the type (num,char,bool) of all the options]
   form_options <- .forming_options(form_method, options)
@@ -37,6 +43,8 @@
   
   stopifnot(!est_options$standardize) # [[note to self: I should eventually code this up although it'll be quite a hassle...]]
   stopifnot(est_options$nfolds >= 3, est_options$cv_choice %in% c("lambda.1se", "lambda.min")) # requirement by glmnet
+  stopifnot(est_options$cis_window > 0)
+  
   
   est_options$method <- est_method
   est_options
@@ -77,6 +85,16 @@
 .fill_options <- function(options, list_default, prefix){
   org_name <- names(list_default)
   target_name <- paste0(prefix, "_", org_name)
+  
+  # do a warning check
+  idx <- grep(paste0("^", prefix, "_*"), names(options))
+  if(length(idx) > 0){
+    idx2 <- which(!names(options)[idx] %in% target_name)
+    if(length(idx2) > 0){
+      warning("Option ", paste0(names(options)[idx[idx2]], collapse = " and "), " not used.")
+    }
+  }
+  
   res <- vector("list", 0)
   for(i in 1:length(list_default)){
     if(!is.null(options[[target_name[i]]])){

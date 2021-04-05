@@ -61,7 +61,9 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   }
 
   # output
-  list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor)
+  list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor, 
+       options = list(form_options = form_options, est_options = est_options,
+                      cand_options = cand_options, rec_options = rec_options))
 }
 
 #########################
