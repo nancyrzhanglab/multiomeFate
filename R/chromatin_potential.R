@@ -5,7 +5,8 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                                 cand_method = "nn", rec_method = "singleton", 
                                 options = list(),
                                 verbose = T){
-  stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y))
+  stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
+            is.list(options))
   n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
   stopifnot(all(vec_start > 0), all(vec_start %% 1 == 0), all(vec_start <= n))
   for(i in 1:length(list_end)){
@@ -32,6 +33,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   
   # while:
   while(length(ht_neighbor) < n){
+    # [[note to self: put a better statement here]]
     if(verbose) print(paste0("Iteration ", iter, ": Recruited percentage (", 
                              round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
     ## estimate res_g

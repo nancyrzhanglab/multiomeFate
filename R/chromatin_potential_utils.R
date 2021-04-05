@@ -1,6 +1,6 @@
 # function to check all the options are there, and reformulate
 .chrom_options <- function(form_method, est_method, cand_method, rec_method, 
-                           options = list()){
+                           options){
   stopifnot(form_method %in% c("literal"))
   stopifnot(est_method %in% c("glmnet"))
   stopifnot(cand_method %in% c("nn"))
