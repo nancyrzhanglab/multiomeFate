@@ -1,10 +1,22 @@
 .recruit_next <- function(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options){
-  stopifnot(rec_options[["method"]] == "singleton")
   stopifnot(all(idx1 <= nrow(mat_x)), length(idx1) == nrow(mat_y1))
   
+  if(rec_options[["method"]] == "singleton"){
+    res <- .recruit_next_singleton(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
+  } else {
+    stop("Recruit method not found")
+  }
+
+  res
+}
+
+###################
+
+.recruit_next_singleton <- function(mat_x, vec_cand, mat_y1, idx1, res_g, 
+                                    rec_options){
   # apply mat_g to mat_x
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
-
+  
   # see which prediction is closest to mat_y1
   # [note to self: can probably query only the unique elements to make this faster]
   res <- RANN::nn2(mat_y1, query = pred_y, k = 1)
@@ -13,8 +25,6 @@
   vec_from <- vec_cand[idx]; vec_to <- idx1[res$nn.idx[idx,1]]
   list(vec_from = vec_from, list_to = list(vec_to))
 }
-
-###################
 
 # [[note to self: I'm not sure about this function name, also, Poisson hard-coded right now]]
 .predict_yfromx <- function(mat_x, res_g){
