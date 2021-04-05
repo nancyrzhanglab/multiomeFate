@@ -1,6 +1,18 @@
 .candidate_set <- function(mat_x, df_res, cand_options){
-  stopifnot(cand_options[["method"]] == "nn")
+  if(cand_options[["method"]] == "nn"){
+    res <- .candidate_set_nn(mat_x, mat_y,
+                             mat_x1, mat_y1, mat_y2, idx1,
+                             rec, form_options)
+  } else {
+    stop("Candidate method not found")
+  }
   
+  res
+}
+
+#######################
+
+.candidate_set_nn <- function(mat_x, df_res, cand_options){
   # extract the indices already recruited
   n <- nrow(df_res)
   idx_free <- which(is.na(df_res$order_rec))
@@ -10,7 +22,8 @@
   if(length(idx_free) <= cand_options$nn) return(idx_free)
   
   # find the free points that are nearest neighbors to any of the recruited points
-  res <- RANN::nn2(mat_x[idx_free,,drop = F], query = mat_x[idx_rec,,drop = F], k = cand_options$nn)
+  res <- RANN::nn2(mat_x[idx_free,,drop = F], query = mat_x[idx_rec,,drop = F], 
+                   k = cand_options$nn)
   
   idx_free[sort(unique(as.numeric(res$nn.idx)))]
 }
