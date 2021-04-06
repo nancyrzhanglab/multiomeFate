@@ -1,10 +1,10 @@
 # function to check all the options are there, and reformulate
 .chrom_options <- function(form_method, est_method, cand_method, rec_method, 
                            options){
-  stopifnot(form_method %in% c("literal"))
+  stopifnot(form_method %in% c("literal", "average"))
   stopifnot(est_method %in% c("glmnet"))
   stopifnot(cand_method %in% c("nn"))
-  stopifnot(rec_method %in% c("singleton"))
+  stopifnot(rec_method %in% c("nn"))
   stopifnot(is.list(options))
   
   idx <- grep("^form_*|^est_*|^cand_*|^rec_*", names(options))
@@ -68,8 +68,8 @@
 .recruit_options <- function(rec_method, options){
   prefix <- "rec"
   
-  if(rec_method == "singleton"){
-    list_default <- list(metric = "euclidean")
+  if(rec_method == "nn"){
+    list_default <- list(nn = 10, num_rec = 10, metric = "euclidean")
     rec_options <- .fill_options(options, list_default, prefix)
   }
   

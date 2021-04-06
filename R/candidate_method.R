@@ -1,8 +1,6 @@
 .candidate_set <- function(mat_x, df_res, cand_options){
   if(cand_options[["method"]] == "nn"){
-    res <- .candidate_set_nn(mat_x, mat_y,
-                             mat_x1, mat_y1, mat_y2, idx1,
-                             rec, form_options)
+    res <- .candidate_set_nn(mat_x, df_res, cand_options)
   } else {
     stop("Candidate method not found")
   }

@@ -41,6 +41,10 @@
     res <- .update_estimation_literal(mat_x, mat_y,
                                       mat_x1, mat_y1, mat_y2, idx1,
                                       rec, form_options)
+  } else if(form_options[["method"]] == "average"){
+    res <- .update_estimation_average(mat_x, mat_y,
+                                      mat_x1, mat_y1, mat_y2, idx1,
+                                      rec, form_options)
   } else {
     stop("Forming method not found")
   }
@@ -75,4 +79,27 @@
   
   list(mat_x1 = mat_x1, mat_y1 = mat_y1, mat_y2 = mat_y2, 
        idx1 = idx1)
+}
+
+.update_estimation_average <- function(mat_x, mat_y,
+                                       mat_x1, mat_y1, mat_y2, idx1,
+                                       rec, form_options){
+  # p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
+  # 
+  # # for mat_x1 and mat_y2
+  # idx_from <- unlist(lapply(1:length(rec$list_to), function(i){
+  #   rep(rec$vec_from, length = length(rec$list_to[[i]]))
+  # }))
+  # idx_to <- unlist(rec$list_to)
+  # stopifnot(length(idx_from) == length(idx_to))
+  # mat_x1 <- rbind(mat_x1, mat_x[idx_from,,drop = F])
+  # mat_y2 <- rbind(mat_y2, mat_y[idx_to,,drop = F])
+  # 
+  # # for mat_y1
+  # n_org2 <- nrow(mat_y1)
+  # mat_y1 <- rbind(mat_y1, mat_y[rec$vec_from,,drop = F])
+  # idx1 <- c(idx1, rec$vec_from)
+  # 
+  # list(mat_x1 = mat_x1, mat_y1 = mat_y1, mat_y2 = mat_y2, 
+  #      idx1 = idx1)
 }

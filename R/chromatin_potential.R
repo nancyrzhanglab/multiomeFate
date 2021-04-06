@@ -2,7 +2,7 @@
 # hash table of who its nearest neighbors are
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                                 form_method = "literal", est_method = "glmnet",
-                                cand_method = "nn", rec_method = "singleton", 
+                                cand_method = "nn", rec_method = "nn", 
                                 options = list(),
                                 verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),

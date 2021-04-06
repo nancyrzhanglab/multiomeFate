@@ -5,8 +5,10 @@
             length(vec_cand) == length(unique(vec_cand)))
   stopifnot(!any(vec_cand %in% idx1))
   
-  if(rec_options[["method"]] == "singleton"){
-    res <- .recruit_next_singleton(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
+  if(length(vec_cand) == 1) return(vec_cand[1])
+  
+  if(rec_options[["method"]] == "nn"){
+    res <- .recruit_next_nn(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
   } else {
     stop("Recruit method not found")
   }
@@ -16,19 +18,24 @@
 
 ###################
 
-.recruit_next_singleton <- function(mat_x, vec_cand, mat_y1, idx1, res_g, 
+.recruit_next_nn <- function(mat_x, vec_cand, mat_y1, idx1, res_g, 
                                     rec_options){
+  num_rec <- min(rec_options$num_rec, length(vec_cand))
+  nn <- min(c(rec_options$nn, ceiling(nrow(mat_y1)/2)))
+  
   # apply mat_g to mat_x
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
   
   # see which prediction is closest to mat_y1
-  # [note to self: can probably query only the unique elements to make this faster]
-  res <- RANN::nn2(mat_y1, query = pred_y, k = 1)
-  idx <- which.min(res$nn.dists[,1])
+  res <- RANN::nn2(mat_y1, query = pred_y, k = nn)
+  idx <- order(apply(res$nn.dist, 1, mean), decreasing = F)[1:num_rec]
   
-  vec_from <- vec_cand[idx]; vec_to <- idx1[res$nn.idx[idx,1]]
-  list(vec_from = vec_from, list_to = list(vec_to))
+  vec_from <- vec_cand[idx]
+  list_to <- lapply(idx, function(i){idx1[res$nn.idx[i,]]})
+  list(vec_from = vec_from, list_to = list_to)
 }
+
+#########################
 
 # [[note to self: I'm not sure about this function name, also, Poisson hard-coded right now]]
 .predict_yfromx <- function(mat_x, res_g){

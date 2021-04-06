@@ -28,7 +28,7 @@ test_that(".init_est_matrices works", {
 test_that(".update_estimation_literal works", {
   set.seed(10)
   options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn", rec_method = "singleton",
+                            cand_method = "nn", rec_method = "nn",
                             options = list())
   n <- 100; p1 <- 10; p2 <- 5
   mat_x <- matrix(runif(n*p1), n, p1)

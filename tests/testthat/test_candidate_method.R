@@ -9,7 +9,7 @@ test_that(".candidate_set_nn works", {
   df_res <- data.frame(init_state = rep(NA, n), 
                        order_rec = sample(c(1, NA), size = n, prob = c(1,2), replace = T))
   options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn", rec_method = "singleton",
+                            cand_method = "nn", rec_method = "nn",
                             options = list())
   
   res <- .candidate_set_nn(mat_x, df_res, options$cand_options)
