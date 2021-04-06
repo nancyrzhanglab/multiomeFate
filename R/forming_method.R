@@ -88,7 +88,13 @@
 
   # for mat_x1 and mat_y2
   tmp <- t(sapply(rec$list_to, function(idx){
-    colMeans(mat_y[idx,,drop = F])
+    if(form_options$average == "mean"){
+      apply(mat_y[idx,,drop = F], 2, mean)
+    } else if(form_options$average == "median") {
+      apply(mat_y[idx,,drop = F], 2, median)
+    } else {
+      stop("Forming method (option: 'average') not found")
+    }
   }))
   stopifnot(nrow(tmp) == length(rec$vec_from))
   mat_x1 <- rbind(mat_x1, mat_x[rec$vec_from,,drop = F])

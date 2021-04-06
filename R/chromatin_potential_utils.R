@@ -23,7 +23,16 @@
 }
 
 .forming_options <- function(form_method, options){
-  form_options <- vector("list", 0)
+  prefix <- "form"
+  
+  if(form_method == "literal"){
+    form_options <- vector(list, length = 0)
+  } else if(form_method == "average"){
+    list_default <- list(average = "median")
+    form_options <- .fill_options(options, list_default, prefix)
+  }
+  stopifnot(form_options$average %in% c("mean", "median"))
+  
   form_options$method <- form_method
   form_options
 }
