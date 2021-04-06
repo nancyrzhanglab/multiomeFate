@@ -5,8 +5,6 @@
             length(vec_cand) == length(unique(vec_cand)))
   stopifnot(!any(vec_cand %in% idx1))
   
-  if(length(vec_cand) == 1) return(vec_cand[1])
-  
   if(rec_options[["method"]] == "nn"){
     res <- .recruit_next_nn(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
   } else {

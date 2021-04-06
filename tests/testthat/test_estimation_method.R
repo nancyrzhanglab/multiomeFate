@@ -67,7 +67,7 @@ test_that(".transform_est_matrix works", {
   set.seed(10)
   p1 <- 20; p2 <- 5; genome_length <- 1000
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
-  options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
+  options <- .chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
                             cand_method = "nn", rec_method = "nn",
                             options = list())
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
@@ -90,14 +90,14 @@ test_that(".transform_est_matrix works", {
 
 #333333################3
 
-## .estimate_g_glmnet is correct
+## .estimate_g_glmnet_yonly is correct
 
-test_that(".estimate_g_glmnet works", {
+test_that(".estimate_g_glmnet_yonly works", {
   set.seed(11)
   p1 <- 25; p2 <- 6; genome_length <- 1000
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
   n <- 100
-  options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
+  options <- .chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
                             cand_method = "nn", rec_method = "nn",
                             options = list())
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
@@ -105,7 +105,7 @@ test_that(".estimate_g_glmnet works", {
   mat_x1 <- matrix(sample(c(0,1), n*p1, replace = T), n, p1)
   mat_y2 <- matrix(rpois(n*p2, lambda = 3), n, p2)
   
-  res <- .estimate_g_glmnet(mat_x1, mat_y2, df$df_y, est_options)
+  res <- .estimate_g_glmnet_yonly(mat_x1, mat_y2, df$df_y, est_options)
   
   expect_true(all(sort(names(res)) == sort(c("mat_g", "vec_g"))))
   expect_true(all(dim(res$mat_g) == c(p1, p2)))

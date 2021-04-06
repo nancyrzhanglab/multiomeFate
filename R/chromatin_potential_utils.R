@@ -2,7 +2,7 @@
 .chrom_options <- function(form_method, est_method, cand_method, rec_method, 
                            options){
   stopifnot(form_method %in% c("literal", "average"))
-  stopifnot(est_method %in% c("glmnet"))
+  stopifnot(est_method %in% c("glmnet_yonly"))
   stopifnot(cand_method %in% c("nn"))
   stopifnot(rec_method %in% c("nn"))
   stopifnot(is.list(options))
@@ -31,7 +31,7 @@
 .estimation_options <- function(est_method, options){
   prefix <- "est"
 
-  if(est_method == "glmnet"){
+  if(est_method == "glmnet_yonly"){
     
     list_default <- list(family = "poisson", 
                          enforce_cis = T, cis_window = 200,

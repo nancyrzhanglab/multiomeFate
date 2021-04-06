@@ -1,8 +1,8 @@
 .estimate_g <- function(mat_x1, mat_y2, df_y, est_options){
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
-  if(est_options[["method"]] == "glmnet"){
-    res_g <- .estimate_g_glmnet(mat_x1, mat_y2, df_y, est_options)
+  if(est_options[["method"]] == "glmnet_yonly"){
+    res_g <- .estimate_g_glmnet_yonly(mat_x1, mat_y2, df_y, est_options)
   } else {
     stop("Estimation method not found")
   }
@@ -22,7 +22,7 @@
 
 ##############################
 
-.estimate_g_glmnet <- function(mat_x1, mat_y2, df_y, est_options){
+.estimate_g_glmnet_yonly <- function(mat_x1, mat_y2, df_y, est_options){
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)
@@ -50,6 +50,7 @@
   .transform_est_matrix(list_res, est_options, p1)
 }
 
+# [[note to self: turn off error if y is not integer]]
 .glmnet_fancy <- function(x, y, family, 
                           switch, switch_cutoff,
                           alpha, standardize, intercept,

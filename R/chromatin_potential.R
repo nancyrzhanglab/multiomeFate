@@ -1,7 +1,7 @@
 # output: mat_g, dataframe of when each row got recruited, # of times it was a candidate, order of recruitment, and 
 # hash table of who its nearest neighbors are
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
-                                form_method = "literal", est_method = "glmnet",
+                                form_method = "average", est_method = "glmnet_yonly",
                                 cand_method = "nn", rec_method = "nn", 
                                 options = list(),
                                 verbose = T){
