@@ -1,5 +1,9 @@
 .recruit_next <- function(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options){
-  stopifnot(all(idx1 <= nrow(mat_x)), length(idx1) == nrow(mat_y1))
+  stopifnot(all(idx1 <= nrow(mat_x)), length(idx1) == nrow(mat_y1), length(idx1) == length(unique(idx1)),
+            all(idx1 %% 1 == 0), all(idx1 > 0), all(idx1 <= nrow(mat_x)))
+  stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
+            length(vec_cand) == length(unique(vec_cand)))
+  stopifnot(!any(vec_cand %in% idx1))
   
   if(rec_options[["method"]] == "singleton"){
     res <- .recruit_next_singleton(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
@@ -28,6 +32,8 @@
 
 # [[note to self: I'm not sure about this function name, also, Poisson hard-coded right now]]
 .predict_yfromx <- function(mat_x, res_g){
+  stopifnot(c("vec_g", "mat_g") %in% names(res_g))
+  
   p2 <- ncol(res_g$mat_g)
   nat_param <- mat_x %*% res_g$mat_g
   
