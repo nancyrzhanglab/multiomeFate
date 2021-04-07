@@ -124,3 +124,13 @@
 #                arrow = arrow(length = unit(0.1, "cm")))
 # pp
 
+## example codes for plotting arrows and streams--metR
+# ggplot+
+# metR::geom_vector(data = uv.se, aes(x = lon, y = lat, dx = u, dy = v), 
+#                     arrow.angle = 30, arrow.type = "open", arrow.length = .5, 
+#                     pivot = 0,preserve.dir = TRUE, direction = "ccw")+
+
+# ggplot+
+# metR::geom_streamline(data = uv.se, 
+# aes(x = lon, y = lat, dx = u, dy = v),
+# L = 1.75, res = .9, n = 40, jitter = 4)
