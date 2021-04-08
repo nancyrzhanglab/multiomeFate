@@ -62,9 +62,9 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
   
   # check all the options
-  tmp <- .chrom_options(form_method, est_method, cand_method, rec_method, options)
-  form_options <- tmp$form_options; est_options <- tmp$est_options
-  cand_options <- tmp$cand_options; rec_options <- tmp$rec_options
+  full_options <- .chrom_options(form_method, est_method, cand_method, rec_method, options)
+  form_options <- full_options$form_options; est_options <- full_options$est_options
+  cand_options <- full_options$cand_options; rec_options <- full_options$rec_options
   
   # initialize
   tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
@@ -110,8 +110,8 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 
   # output
   structure(list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor, 
-       options = list(form_options = form_options, est_options = est_options,
-                      cand_options = cand_options, rec_options = rec_options)),
+                 mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,
+                 options = full_options),
        class = "chromatin_potential")
 }
 

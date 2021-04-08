@@ -7,7 +7,7 @@
 #' 
 #' The options are:
 #' \itemize{
-#' \item \code{nn_xonly}: Find the candidates based only one which
+#' \item \code{nn_xonly}: Find the candidates based only on which
 #' unrecruited cells are one of the \code{cand_options$nn} nearest neighbors
 #' to any previously-recruited cells in Modality 1
 #' \item \code{all}: All the unrecruited cells are considered as candidates

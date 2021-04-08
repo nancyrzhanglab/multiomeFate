@@ -89,7 +89,8 @@ test_that("chromatin potential works", {
   n <- nrow(dat$obs_x)
   expect_true(class(res) == "chromatin_potential")
   expect_true(is.list(res))
-  expect_true(all(sort(names(res)) == sort(c("res_g", "df_res", "ht_neighbor", "options"))))
+  expect_true(all(sort(names(res)) == sort(c("res_g", "df_res", "ht_neighbor", "options",
+                                             "mat_x", "mat_y", "df_x", "df_y"))))
   expect_true(is.matrix(res$res_g$mat_g))
   expect_true(all(dim(res$res_g$mat_g) == c(p1,p2)))
   expect_true(length(res$res_g$vec_g) == p2)

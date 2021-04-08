@@ -46,7 +46,7 @@
 #' \item \code{literal}: If \code{rec$list_to[[i]]} matches many cells from a single cell in \code{rec$vec_from[i]},
 #' form one row in \code{mat_y2} for each matched cell in \code{rec$list_to[[i]]} (and 
 #' duplicate the cell in \code{rec$vec_from[i]} in \code{mat_x1} as many times as needed)
-#' \item \code{average}:If \code{rec$list_to[[i]]} matches many cells from a single cell in \code{rec$vec_from[i]},
+#' \item \code{average}: If \code{rec$list_to[[i]]} matches many cells from a single cell in \code{rec$vec_from[i]},
 #' average all the variables among the matched cell in \code{rec$list_to[[i]]} based on
 #' \code{form_options$average} to form one row in \code{mat_y2} (and one row in 
 #' \code{mat_x1} for \code{rec$vec_from[i]})
