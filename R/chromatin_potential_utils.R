@@ -16,7 +16,7 @@
                            options){
   stopifnot(form_method %in% c("literal", "average"))
   stopifnot(est_method %in% c("glmnet"))
-  stopifnot(cand_method %in% c("nn_xonly"))
+  stopifnot(cand_method %in% c("nn_xonly", "all"))
   stopifnot(rec_method %in% c("nn_yonly"))
   stopifnot(is.list(options))
   
@@ -80,10 +80,10 @@
   if(cand_method == "nn_xonly"){
     list_default <- list(nn = 10, metric = "euclidean")
     cand_options <- .fill_options(options, list_default, prefix)
+    
+    ## [note to self: seems like there's no metric in RANN]
+    stopifnot(cand_options$metric == "euclidean")
   }
-  
-  ## [note to self: seems like there's no metric in RANN]
-  stopifnot(cand_options$metric == "euclidean")
   
   cand_options$method <- cand_method
   cand_options
@@ -93,12 +93,14 @@
   prefix <- "rec"
   
   if(rec_method == "nn_yonly"){
-    list_default <- list(nn = 10, num_rec = 10, metric = "euclidean")
+    list_default <- list(nn = 10, num_rec = 10, metric = "euclidean",
+                         average = "mean")
     rec_options <- .fill_options(options, list_default, prefix)
+    
+    ## [note to self: seems like there's no metric in RANN]
+    stopifnot(rec_options$metric == "euclidean")
+    stopifnot(rec_options$average %in% c("mean", "median"))
   }
-  
-  ## [note to self: seems like there's no metric in RANN]
-  stopifnot(rec_options$metric == "euclidean")
   
   rec_options$method <- rec_method
   rec_options

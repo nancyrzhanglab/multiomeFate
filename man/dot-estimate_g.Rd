@@ -28,4 +28,10 @@ If \code{est_options$enforce_cis} is \code{TRUE}, this function
 will assume \code{est_options$ht_map} is a code{hash} object
 already populated with all the variables in Modality 1 that 
 are associated with Modality 2
+
+The options are:
+\itemize{
+\item \code{glmnet}: Estimate the link from \code{mat_x1} to \code{mat_y2}
+using \code{glmnet::glmnet}
+}
 }

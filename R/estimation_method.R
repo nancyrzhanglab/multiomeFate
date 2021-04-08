@@ -7,7 +7,13 @@
 #' will assume \code{est_options$ht_map} is a code{hash} object
 #' already populated with all the variables in Modality 1 that 
 #' are associated with Modality 2
-#'
+#' 
+#' The options are:
+#' \itemize{
+#' \item \code{glmnet}: Estimate the link from \code{mat_x1} to \code{mat_y2}
+#' using \code{glmnet::glmnet}
+#' }
+#' 
 #' @param mat_x1 Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
 #' the data for Modality 1
 #' @param mat_y2 Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
