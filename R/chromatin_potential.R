@@ -1,6 +1,6 @@
 #' Main function to estimate chromatin potential
 #' 
-#' \code{.init_est_matrices} forms 3 different matrices and 1 vector
+#' \code{.init_est_matrices} forms 2 different matrices and 1 vector
 #' that this function updates every iteration (via \code{.update_estimation_matrices}):
 #' \itemize{
 #' \item \code{mat_x1}: This is the matrix about Modality 1
@@ -15,26 +15,16 @@
 #' rows as \code{mat_x1}, but the \code{i}th row in
 #' \code{mat_x1} might represent a different cell than the
 #' \code{i}th row in \code{mat_y2}
-#' \item \code{mat_y1}: This is the matrix about Modality 2
-#' (i.e., has \code{ncol(mat_y)} variables) where each row
-#' is the a previously-recruited cell, grabbed
-#' from \code{mat_y}. This matrix might not
-#' necessarily have the same cells as those represented in 
-#' \code{mat_x1} since \code{mat_x1} also is initialized
-#' to include the cells
-#' in the initial start state (dictated by \code{vec_start}),
-#' whereas these generally will not be in \code{mat_y1} until they
-#' are recruited.
-#' \item \code{idx1}: A vector of indicies between 1 and \code{nrow(mat_x)}
-#' that denotes which cells are represented in \code{mat_y1}.
+#' \item \code{vec_matched}: This vector keeps track of which
+#' cells have been previously-recruited.
 #' }
 #' In short, \code{mat_x1} and \code{mat_y2} always have the same number
 #' of rows (but might represent different cells), and these two matrices
 #' are used for \code{.estimate_g} to estimate the link from Modality 1 
-#' to Modality 2. On the other hand, \code{mat_y1} is a matrix 
-#' with the same length as \code{idx1}, and this matrix is used
+#' to Modality 2. On the other hand, \code{vec_matched} is vector
+#' of indices (not necessarily the same as \code{nrow(mat_x1)}), which is used
 #' to determine which of the candidate cells (selected via \code{.candidate_set})
-#' should be recruited to be matched to cells in \code{mat_y1}
+#' should be recruited to be matched to cells in \code{mat_y[vec_matched,]}
 #' via \code{.recruit_next}.
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
@@ -68,8 +58,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   
   # initialize
   tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
-  mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
-  idx1 <- tmp$idx1
+  mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2; vec_matched <- tmp$vec_matched
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   ht_neighbor <- .init_chrom_ht(list_end)
   list_diagnos <- list()
@@ -89,12 +78,12 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     ## construct candidate set
     vec_cand <- .candidate_set(mat_x, df_res, cand_options)
     df_res <- .update_chrom_df_cand(df_res, vec_cand)
-    stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(vec_cand %in% idx1))
+    stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(vec_cand %in% vec_matched))
     
     ## recruit an element from the candidate set
     res <- .recruit_next(mat_x, mat_y, vec_cand, vec_matched,
                          res_g, df_res, rec_options)
-    stopifnot(all(is.na(df_res$order_rec[res$rec$vec_from])), !any(res$rec$vec_from %in% idx1))
+    stopifnot(all(is.na(df_res$order_rec[res$rec$vec_from])), !any(res$rec$vec_from %in% vec_matched))
     
     
     ## update
@@ -112,6 +101,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   # output
   structure(list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor, 
                  mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,
+                 list_diagnos = list_diagnos,
                  options = full_options),
        class = "chromatin_potential")
 }

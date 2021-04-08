@@ -21,11 +21,10 @@
   list(mat_x1 = mat_x1, mat_y2 = mat_y2, vec_matched = vec_onlyend)
 }
 
-# [[note to self: design a lot of tests for this]]
 #' Update the matrices for estimation later
 #' 
 #' Using the output of \code{.recruit_next} (in \code{rec}), update
-#' \code{mat_x1}, \code{mat_y1}, \code{mat_y2}, \code{idx1} by grabbing
+#' \code{mat_x1}, \code{mat_y2}, and \code{vec_matched} by grabbing
 #' the appropriate cells in \code{mat_x} and \code{mat_y} based on the
 #' options in \code{form_options}
 #' 
@@ -43,14 +42,13 @@
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
 #' @param mat_x1 previous \code{mat_x1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
-#' @param mat_y1 previous \code{mat_y1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
 #' @param mat_y2 previous \code{mat_y2}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
-#' @param idx1  previous \code{idx1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
+#' @param vec_matched previous \code{vec_matched}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
 #' @param rec output \code{rec} from \code{.recruit_next}
 #' @param form_options one of the outputs from \code{.chrom_options}
 #'
-#' @return list of 3 matrices, \code{mat_x1} and \code{mat_y1} and \code{mat_y2}, as
-#' well as vector of indices \code{idx1}
+#' @return list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
+#' well as vector of indices \code{vec_matched}
 .update_estimation_matrices <- function(mat_x, mat_y,
                                         mat_x1, mat_y2, vec_matched,
                                         rec, form_options){

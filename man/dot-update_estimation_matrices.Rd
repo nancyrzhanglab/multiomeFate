@@ -8,9 +8,8 @@
   mat_x,
   mat_y,
   mat_x1,
-  mat_y1,
   mat_y2,
-  idx1,
+  vec_matched,
   rec,
   form_options
 )
@@ -22,23 +21,21 @@
 
 \item{mat_x1}{previous \code{mat_x1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
 
-\item{mat_y1}{previous \code{mat_y1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
-
 \item{mat_y2}{previous \code{mat_y2}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
 
-\item{idx1}{previous \code{idx1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
+\item{vec_matched}{previous \code{vec_matched}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
 
-\item{rec}{output from \code{.recruit_next}}
+\item{rec}{output \code{rec} from \code{.recruit_next}}
 
 \item{form_options}{one of the outputs from \code{.chrom_options}}
 }
 \value{
-list of 3 matrices, \code{mat_x1} and \code{mat_y1} and \code{mat_y2}, as
-well as vector of indices \code{idx1}
+list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
+well as vector of indices \code{vec_matched}
 }
 \description{
 Using the output of \code{.recruit_next} (in \code{rec}), update
-\code{mat_x1}, \code{mat_y1}, \code{mat_y2}, \code{idx1} by grabbing
+\code{mat_x1}, \code{mat_y2}, and \code{vec_matched} by grabbing
 the appropriate cells in \code{mat_x} and \code{mat_y} based on the
 options in \code{form_options}
 }

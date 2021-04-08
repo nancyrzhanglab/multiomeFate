@@ -16,8 +16,8 @@
 \item{list_end}{list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states}
 }
 \value{
-list of 3 matrices, \code{mat_x1} and \code{mat_y1} and \code{mat_y2}, as
-well as vector of indices \code{idx1}
+list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
+well as vector of indices \code{vec_matched}
 }
 \description{
 Initialize the matrices for estimation later
