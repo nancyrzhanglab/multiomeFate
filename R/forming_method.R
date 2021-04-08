@@ -2,8 +2,8 @@
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
-#' @param vec_start integers between 0 and \code{nrow(mat_x)} to denote the cells at the start state
-#' @param list_end integers between 0 and \code{nrow(mat_x)} to denote the cells any of the end states
+#' @param vec_start vector of integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state
+#' @param list_end list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states
 #'
 #' @return list of 3 matrices, \code{mat_x1} and \code{mat_y1} and \code{mat_y2}, as
 #' well as vector of indices \code{idx1}

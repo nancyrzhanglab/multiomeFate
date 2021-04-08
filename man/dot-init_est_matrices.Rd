@@ -11,9 +11,9 @@
 
 \item{mat_y}{full data for Modality 2, where each row is a cell and each column is a variable}
 
-\item{vec_start}{integers between 0 and \code{nrow(mat_x)} to denote the cells at the start state}
+\item{vec_start}{vector of integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state}
 
-\item{list_end}{integers between 0 and \code{nrow(mat_x)} to denote the cells any of the end states}
+\item{list_end}{list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states}
 }
 \value{
 list of 3 matrices, \code{mat_x1} and \code{mat_y1} and \code{mat_y2}, as

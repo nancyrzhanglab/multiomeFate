@@ -87,6 +87,7 @@ test_that("chromatin potential works", {
                              vec_start, list_end, verbose = F)
   
   n <- nrow(dat$obs_x)
+  expect_true(class(res) == "chromatin_potential")
   expect_true(is.list(res))
   expect_true(all(sort(names(res)) == sort(c("res_g", "df_res", "ht_neighbor", "options"))))
   expect_true(is.matrix(res$res_g$mat_g))

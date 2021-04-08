@@ -1,5 +1,57 @@
-# output: mat_g, dataframe of when each row got recruited, # of times it was a candidate, order of recruitment, and 
-# hash table of who its nearest neighbors are
+#' Main function to estimate chromatin potential
+#' 
+#' \code{.init_est_matrices} forms 3 different matrices and 1 vector
+#' that this function updates every iteration (via \code{.update_estimation_matrices}):
+#' \itemize{
+#' \item \code{mat_x1}: This is the matrix about Modality 1
+#' (i.e., has \code{ncol(mat_x)} variables)
+#' where each row is a cell that has been previously-recruited, grabbed
+#' from \code{mat_x}
+#' \item \code{mat_y2}: This is the matrix about Modality 2
+#' (i.e., has \code{ncol(mat_y)} variables)
+#' where each row is the "future" cell matched
+#' to the corresponding cell in \code{mat_x1}, grabbed
+#' from \code{mat_y}. That is, this matrix has the same number of 
+#' rows as \code{mat_x1}, but the \code{i}th row in
+#' \code{mat_x1} might represent a different cell than the
+#' \code{i}th row in \code{mat_y2}
+#' \item \code{mat_y1}: This is the matrix about Modality 2
+#' (i.e., has \code{ncol(mat_y)} variables) where each row
+#' is the a previously-recruited cell, grabbed
+#' from \code{mat_y}. This matrix might not
+#' necessarily have the same cells as those represented in 
+#' \code{mat_x1} since \code{mat_x1} also is initialized
+#' to include the cells
+#' in the initial start state (dictated by \code{vec_start}),
+#' whereas these generally will not be in \code{mat_y1} until they
+#' are recruited.
+#' \item \code{idx1}: A vector of indicies between 1 and \code{nrow(mat_x)}
+#' that denotes which cells are represented in \code{mat_y1}.
+#' }
+#' In short, \code{mat_x1} and \code{mat_y2} always have the same number
+#' of rows (but might represent different cells), and these two matrices
+#' are used for \code{.estimate_g} to estimate the link from Modality 1 
+#' to Modality 2. On the other hand, \code{mat_y1} is a matrix 
+#' with the same length as \code{idx1}, and this matrix is used
+#' to determine which of the candidate cells (selected via \code{.candidate_set})
+#' should be recruited to be matched to cells in \code{mat_y1}
+#' via \code{.recruit_next}.
+#'
+#' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
+#' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
+#' @param df_x the data frame containing information of Modality 1
+#' @param df_y the data frame containing information of Modality 2
+#' @param vec_start integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state
+#' @param list_end list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states
+#' @param form_method string
+#' @param est_method string
+#' @param cand_method string
+#' @param rec_method string
+#' @param options list
+#' @param verbose boolean
+#'
+#' @return object of class \code{chromatin_potential}
+#' @export
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                                 form_method = "average", est_method = "glmnet",
                                 cand_method = "nn_xonly", rec_method = "nn_yonly", 
@@ -57,9 +109,10 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   }
 
   # output
-  list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor, 
+  structure(list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor, 
        options = list(form_options = form_options, est_options = est_options,
-                      cand_options = cand_options, rec_options = rec_options))
+                      cand_options = cand_options, rec_options = rec_options)),
+       class = "chromatin_potential")
 }
 
 #########################

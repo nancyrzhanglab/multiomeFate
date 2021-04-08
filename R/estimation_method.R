@@ -11,7 +11,16 @@
 #' The options are:
 #' \itemize{
 #' \item \code{glmnet}: Estimate the link from \code{mat_x1} to \code{mat_y2}
-#' using \code{glmnet::glmnet}
+#' using \code{glmnet::glmnet}. The options \code{est_options$family}, \code{est_options$alpha}, 
+#' \code{est_options$standardize}, and \code{est_options$intercept} are the arguments
+#' for \code{glmnet::glmnet}. If \code{est_options$cv} is \code{TRUE}, then
+#' \code{glmnet::cv.glmnet} is used to select the regularization parameter
+#' using \code{est_options$nfolds} folds via \code{est_options$cv_choice}.
+#' If \code{est_options$cv} is \code{FALSE}, use the densest solution.
+#' \code{est_options$switch} is a boolean that automatically switches 
+#' from \code{glmnet::glmnet} to \code{stats::glm} if there are 
+#' \code{est_options$switch_cutoff} times more cells in \code{mat_x1} than variables
+#' in \code{mat_x1}. 
 #' }
 #' 
 #' @param mat_x1 Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
