@@ -1,4 +1,17 @@
-# function to check all the options are there, and reformulate
+#' Check all the options for chromatin potential
+#' 
+#' This function checks all that options in \code{options} are appropriate
+#' for the method specified in \code{form_method}, \code{est_method}, \code{cand_method}
+#' and \code{rec_method},
+#' and fills in the default values for any options not present in \code{options}
+#'
+#' @param form_method string
+#' @param est_method string
+#' @param cand_method string
+#' @param rec_method string
+#' @param options list
+#'
+#' @return list of 4 lists
 .chrom_options <- function(form_method, est_method, cand_method, rec_method, 
                            options){
   stopifnot(form_method %in% c("literal", "average"))
@@ -47,14 +60,15 @@
                          enforce_cis = T, cis_window = 200,
                          switch = T, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = F,
-                         cv = T, nfolds = 5, cv_choice = "lambda.1se")
+                         cv = T, nfolds = 5, cv_choice = "lambda.1se",
+                         bool_round = T)
     est_options <- .fill_options(options, list_default, prefix)
   }
   
+  if(est_options$family == "poisson") stopifnot(est_options$bool_round) # [[note to self: glmnet seems to be not handle non-integers for poisson glm...]]
   stopifnot(!est_options$standardize) # [[note to self: I should eventually code this up although it'll be quite a hassle...]]
   stopifnot(est_options$nfolds >= 3, est_options$cv_choice %in% c("lambda.1se", "lambda.min")) # requirement by glmnet
   stopifnot(est_options$cis_window > 0)
-  
   
   est_options$method <- est_method
   est_options

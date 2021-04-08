@@ -1,8 +1,26 @@
-.estimate_g <- function(mat_x1, mat_y2, df_y, est_options){
+#' Estimate the GLM that links the two modalities
+#' 
+#' Estimate the GLM for each variable of \code{mat_y2} onto
+#' all the variables in \code{mat_x1}. 
+#' 
+#' If \code{est_options$enforce_cis} is \code{TRUE}, this function
+#' will assume \code{est_options$ht_map} is a code{hash} object
+#' already populated with all the variables in Modality 1 that 
+#' are associated with Modality 2
+#'
+#' @param mat_x1 Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
+#' the data for Modality 1
+#' @param mat_y2 Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
+#' the data for Modality 2
+#' @param est_options one of the outputs from \code{.chrom_options}
+#'
+#' @return a list of a matrix \code{mat_g} (of dimensions \code{ncol(mat_x1)} by \code{ncol(mat_y2)})
+#' and a vector \code{vec_g} (of length \code{ncol(mat_y2)})
+.estimate_g <- function(mat_x1, mat_y2, est_options){
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   if(est_options[["method"]] == "glmnet"){
-    res_g <- .estimate_g_glmnet(mat_x1, mat_y2, df_y, est_options)
+    res_g <- .estimate_g_glmnet(mat_x1, mat_y2, est_options)
   } else {
     stop("Estimation method not found")
   }
@@ -22,7 +40,7 @@
 
 ##############################
 
-.estimate_g_glmnet <- function(mat_x1, mat_y2, df_y, est_options){
+.estimate_g_glmnet <- function(mat_x1, mat_y2, est_options){
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)
@@ -45,21 +63,18 @@
                   switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
                   alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
                   cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice,
-                  bool_round = ifelse(est_options$family == "gaussian", F, T))
+                  bool_round = est_options$bool_round)
   })
   
   .transform_est_matrix(list_res, est_options, p1)
 }
 
-# [[note to self: change so non-integers are handled more smoothly, instead of rounding]]
 .glmnet_fancy <- function(x, y, family, 
                           switch, switch_cutoff,
                           alpha, standardize, intercept,
                           cv, nfolds, cv_choice, bool_round){
   n <- length(y); p <- ncol(x)
-  if(family != "gaussian" & bool_round){
-    y <- round(y)
-  }
+  if(bool_round) y <- round(y)
   
   if(switch & n > p*switch_cutoff){
     # use glm

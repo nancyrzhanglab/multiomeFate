@@ -31,7 +31,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     if(verbose) print(paste0("Iteration ", iter, ": Recruited percentage (", 
                              round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
     ## estimate res_g
-    res_g <- .estimate_g(mat_x1, mat_y2, df_y, est_options)
+    res_g <- .estimate_g(mat_x1, mat_y2, est_options)
     
     ## construct candidate set
     vec_cand <- .candidate_set(mat_x, df_res, cand_options)

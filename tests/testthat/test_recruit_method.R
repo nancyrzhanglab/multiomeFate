@@ -13,7 +13,7 @@ test_that(".predict_yfromx works", {
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
   mat_x1 <- matrix(sample(c(0,1), n*p1, replace = T), n, p1)
   mat_y2 <- matrix(rpois(n*p2, lambda = 3), n, p2)
-  res_g <- .estimate_g_glmnet(mat_x1, mat_y2, df$df_y, est_options)
+  res_g <- .estimate_g_glmnet(mat_x1, mat_y2, est_options)
   
   res <- .predict_yfromx(mat_x1, res_g)
   
