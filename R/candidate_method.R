@@ -19,11 +19,12 @@
 #' }
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
+#' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
 #' @param df_res data frame recording the current results, generated within \code{chromatin_potential}
 #' @param cand_options one of the outputs from \code{.chrom_options}
 #'
 #' @return a vector of integers between 1 and \code{nrow(mat_x)}
-.candidate_set <- function(mat_x, df_res, cand_options){
+.candidate_set <- function(mat_x, mat_y, df_res, cand_options){
   if(cand_options[["method"]] == "nn_xonly_any"){
     res <- .candidate_set_nn_xonly_any(mat_x, df_res, cand_options)
   } else if(cand_options[["method"]] == "nn_xonly_avg"){

@@ -18,13 +18,13 @@
   # fill in steady-states
   mat_x1 <- mat_x[vec,,drop = F]; mat_y2 <- mat_y[vec,,drop = F]
   
-  list(mat_x1 = mat_x1, mat_y2 = mat_y2, vec_matched = vec_onlyend)
+  list(mat_x1 = mat_x1, mat_y2 = mat_y2)
 }
 
 #' Update the matrices for estimation later
 #' 
 #' Using the output of \code{.recruit_next} (in \code{rec}), update
-#' \code{mat_x1}, \code{mat_y2}, and \code{vec_matched} by grabbing
+#' \code{mat_x1}, \code{mat_y2} by grabbing
 #' the appropriate cells in \code{mat_x} and \code{mat_y} based on the
 #' options in \code{form_options}
 #' 
@@ -43,30 +43,23 @@
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
 #' @param mat_x1 previous \code{mat_x1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
 #' @param mat_y2 previous \code{mat_y2}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
-#' @param vec_matched previous \code{vec_matched}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
 #' @param rec output \code{rec} from \code{.recruit_next}
 #' @param form_options one of the outputs from \code{.chrom_options}
 #'
-#' @return list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
-#' well as vector of indices \code{vec_matched}
+#' @return list of 2 matrices, \code{mat_x1} and \code{mat_y2}
 .update_estimation_matrices <- function(mat_x, mat_y,
-                                        mat_x1, mat_y2, vec_matched,
+                                        mat_x1, mat_y2,
                                         rec, form_options){
   p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
   stopifnot(c("vec_from", "list_to") %in% names(rec))
   stopifnot(ncol(mat_x1) == p1, ncol(mat_y2) == p2,
             nrow(mat_y) == n, nrow(mat_x1) == nrow(mat_y2))
-  stopifnot(all(vec_matched <= n), all(vec_matched > 0), all(vec_matched %% 1 == 0),
-            length(vec_matched) == length(unique(vec_matched)))
-  stopifnot(!any(rec$vec_from %in% vec_matched), all(unlist(rec$list_to) %in% vec_matched))
   
   if(form_options[["method"]] == "literal"){
-    res <- .update_estimation_literal(mat_x, mat_y,
-                                      mat_x1, mat_y2, vec_matched,
+    res <- .update_estimation_literal(mat_x, mat_y, mat_x1, mat_y2, 
                                       rec, form_options)
   } else if(form_options[["method"]] == "average"){
-    res <- .update_estimation_average(mat_x, mat_y,
-                                      mat_x1, mat_y2, vec_matched,
+    res <- .update_estimation_average(mat_x, mat_y, mat_x1, mat_y2, 
                                       rec, form_options)
   } else {
     stop("Forming method not found")
@@ -77,8 +70,7 @@
 
 ########################
 
-.update_estimation_literal <- function(mat_x, mat_y,
-                                       mat_x1, mat_y2, vec_matched,
+.update_estimation_literal <- function(mat_x, mat_y, mat_x1, mat_y2, 
                                        rec, form_options){
   p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
   
@@ -91,13 +83,10 @@
   mat_x1 <- rbind(mat_x1, mat_x[idx_from,,drop = F])
   mat_y2 <- rbind(mat_y2, mat_y[idx_to,,drop = F])
   
-  vec_matched <- sort(c(vec_matched, rec$vec_from))
-  
-  list(mat_x1 = mat_x1, mat_y2 = mat_y2, vec_matched = vec_matched)
+  list(mat_x1 = mat_x1, mat_y2 = mat_y2)
 }
 
-.update_estimation_average <- function(mat_x, mat_y,
-                                       mat_x1, mat_y2, vec_matched,
+.update_estimation_average <- function(mat_x, mat_y, mat_x1, mat_y2,
                                        rec, form_options){
   p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
 
@@ -116,7 +105,5 @@
   mat_x1 <- rbind(mat_x1, mat_x[rec$vec_from,,drop = F])
   mat_y2 <- rbind(mat_y2, tmp)
 
-  vec_matched <- sort(c(vec_matched, rec$vec_from))
-
-  list(mat_x1 = mat_x1, mat_y2 = mat_y2, vec_matched = vec_matched)
+  list(mat_x1 = mat_x1, mat_y2 = mat_y2)
 }

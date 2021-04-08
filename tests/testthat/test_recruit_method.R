@@ -32,16 +32,20 @@ test_that(".recruit_next_nn_yonly works", {
   df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
   mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
   res_g <- list(mat_g = mat_g, vec_g = rep(0, p2))
-  timepoints <- 100
+  timepoints <- 100; n <- timepoints
   mat_x <- generate_traj_cascading(df$df_x, timepoints = timepoints)
   mat_y <- .predict_yfromx(mat_x, res_g)
-  vec_matched <- 90:100
+  vec_start <- 1:10
+  list_end <- list(90:100)
+  tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
+  mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
+  df_res <- .init_chrom_df(n, vec_start, list_end, paste0("n", 1:n))
   vec_cand <- 80:89
   options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
                             cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
                             options = list())
   
-  res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, vec_matched, res_g, 
+  res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, res_g, df_res,
                                  options$rec_options)
   
   expect_true(is.list(res))

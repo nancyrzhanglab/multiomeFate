@@ -4,10 +4,10 @@
 #' we are saying that \code{vec_matched} are cells that have previously been
 #' recruited already, and \code{vec_cand} are the currently-selected
 #' candidates that we are hoping to recruit and match to one of the
-#' previously-recruited cells in \code{vec_matched}. This 
+#' previously-recruited cells acccording to \code{df_res}. This 
 #' matching is done by using our estimation function \code{res_g}
 #' on the candidate cell's Modality 1 expression in \code{mat_x}
-#' and seeing if it's close to any \code{vec_matched}'s Modality 2 expressions
+#' and seeing if it's close to any prreviously-recruited cells's Modality 2 expressions
 #' in \code{mat_y}.
 #' 
 #' The options are:
@@ -22,8 +22,6 @@
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
 #' @param vec_cand output of \code{.candidate_set}
-#' @param vec_matched output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
-#' the data for Modality 1
 #' @param res_g output of \code{.estimate_g}
 #' @param df_res data frame recording the current results, generated within \code{chromatin_potential}
 #' @param rec_options one of the outputs from \code{.chrom_options}
@@ -32,17 +30,16 @@
 #' a  vector of integers \code{vec_from} and a list
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
-.recruit_next <- function(mat_x, mat_y, vec_cand, vec_matched, res_g, df_res, 
+.recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
                           rec_options){
-  stopifnot(all(vec_matched <= nrow(mat_x)), length(vec_matched) == length(unique(vec_matched)),
-            all(vec_matched %% 1 == 0), all(vec_matched > 0))
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
+  vec_matched <- which(!is.na(df_res$order_rec))
   stopifnot(!any(vec_cand %in% vec_matched))
   stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(is.na(df_res$order_rec[vec_matched])))
   
   if(rec_options[["method"]] == "nn_yonly"){
-    res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, vec_matched, res_g, rec_options)
+    res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, res_g, df_res, rec_options)
   } else {
     stop("Recruit method not found")
   }
@@ -52,8 +49,9 @@
 
 ###################
 
-.recruit_next_nn_yonly <- function(mat_x, mat_y, vec_cand, vec_matched, res_g, 
+.recruit_next_nn_yonly <- function(mat_x, mat_y, vec_cand, res_g, df_res,
                                     rec_options){
+  vec_matched <- which(!is.na(df_res$order_rec))
   num_rec <- min(rec_options$num_rec, length(vec_cand))
   nn <- min(c(rec_options$nn, ceiling(length(vec_matched)/2)))
   

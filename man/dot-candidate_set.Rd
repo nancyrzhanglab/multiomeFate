@@ -4,10 +4,12 @@
 \alias{.candidate_set}
 \title{Find candidate cells}
 \usage{
-.candidate_set(mat_x, df_res, cand_options)
+.candidate_set(mat_x, mat_y, df_res, cand_options)
 }
 \arguments{
 \item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
+
+\item{mat_y}{full data for Modality 2, where each row is a cell and each column is a variable}
 
 \item{df_res}{data frame recording the current results, generated within \code{chromatin_potential}}
 
