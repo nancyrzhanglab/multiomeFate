@@ -12,13 +12,11 @@ test_that(".init_est_matrices works", {
   
   res <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
   
-  expect_true(all(sort(names(res)) == sort(c("mat_x1", "mat_y1", "mat_y2", "idx1"))))
+  expect_true(all(sort(names(res)) == sort(c("mat_x1", "mat_y2", "vec_matched"))))
   len <- length(c(vec_start, unlist(list_end)))
   expect_true(all(dim(res$mat_x1) == c(len, p1)))
   expect_true(all(dim(res$mat_y2) == c(len, p2)))
-  expect_true(all(dim(res$mat_y1) == c(length(unlist(list_end)), p2)))
-  
-  expect_true(sum(abs(mat_y[res$idx1,] - res$mat_y1)) <= 1e-6)
+  expect_true(length(res$vec_matched) == length(unlist(list_end)))
 })
 
 #######
@@ -35,19 +33,18 @@ test_that(".update_estimation_literal works", {
   mat_y <- matrix(runif(n*p2), n, p2)
   mat_x1 <- mat_x[c(11:20, 1:10),]
   mat_y2 <- mat_y[c(1:10, 1:10),]
-  mat_y1 <- mat_y[11:20,]
+  vec_matched <- 11:20
   idx1 <- 11:20
   rec <- list(vec_from = 21:30, list_to = lapply(11:20,function(x){x}))
   
   res <- .update_estimation_literal(mat_x, mat_y,
-                                    mat_x1, mat_y1, mat_y2, idx1,
+                                    mat_x1, mat_y2, vec_matched,
                                     rec, options$form_options)
   
-  expect_true(all(sort(names(res)) == sort(c("mat_x1", "mat_y1", "mat_y2", "idx1"))))
-  expect_true(length(res$idx1) == nrow(res$mat_y1))
+  expect_true(all(sort(names(res)) == sort(c("mat_x1", "mat_y2", "vec_matched"))))
   expect_true(all(dim(res$mat_x1) == c(nrow(mat_x1) + length(rec$vec_from), ncol(mat_x1))))
   expect_true(all(dim(res$mat_y2) == c(nrow(mat_y2) + length(rec$vec_from), ncol(mat_y2))))
-  expect_true(all(dim(res$mat_y1) == c(nrow(mat_y1) + length(rec$vec_from), ncol(mat_y1))))
+  expect_true(length(res$vec_matched) == length(vec_matched) + length(rec$vec_from))
 })
 
 ## .update_estimation_average is correct
@@ -61,22 +58,22 @@ test_that(".update_estimation_average works", {
   timepoints <- 100
   mat_x <- generate_traj_cascading(df$df_x, timepoints = timepoints)
   mat_y <- .predict_yfromx(mat_x, res_g)
-  idx1 <- 81:100; mat_y1 <- mat_y[idx1,]; mat_x1 <- mat_x[idx1,]
+  vec_matched <- 81:100; mat_x1 <- mat_x[vec_matched,]
   mat_y2 <- mat_y[c(91:100, 91:100),]
   vec_cand <- 60:80
   options <- .chrom_options(form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
                             options = list())
-  rec <- .recruit_next_nn_yonly(mat_x, vec_cand, mat_y1, idx1, res_g, 
+  res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, vec_matched, res_g, 
                           options$rec_options)
+  rec <- res$rec
   
   res <- .update_estimation_average(mat_x, mat_y,
-                                    mat_x1, mat_y1, mat_y2, idx1,
-                                    rec, options$form_options)
+                                    mat_x1, mat_y2, vec_matched,
+                                    res$rec, options$form_options)
   
-  expect_true(all(sort(names(res)) == sort(c("mat_x1", "mat_y1", "mat_y2", "idx1"))))
-  expect_true(length(res$idx1) == nrow(res$mat_y1))
+  expect_true(all(sort(names(res)) == sort(c("mat_x1", "mat_y2", "vec_matched"))))
   expect_true(all(dim(res$mat_x1) == c(nrow(mat_x1) + length(rec$vec_from), ncol(mat_x1))))
   expect_true(all(dim(res$mat_y2) == c(nrow(mat_y2) + length(rec$vec_from), ncol(mat_y2))))
-  expect_true(all(dim(res$mat_y1) == c(nrow(mat_y1) + length(rec$vec_from), ncol(mat_y1))))
+  expect_true(length(res$vec_matched) == length(vec_matched) + length(rec$vec_from))
 })

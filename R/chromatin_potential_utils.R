@@ -101,7 +101,7 @@
   
   if(rec_method == "nn_yonly"){
     list_default <- list(nn = 10, num_rec = 10, metric = "euclidean",
-                         average = "mean")
+                         average = "mean", run_diagnostic = T)
     rec_options <- .fill_options(options, list_default, prefix)
     
     ## [note to self: seems like there's no metric in RANN]

@@ -72,6 +72,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   idx1 <- tmp$idx1
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   ht_neighbor <- .init_chrom_ht(list_end)
+  list_diagnos <- list()
   iter <- 1
   if(est_options$enforce_cis){
     est_options <- .gene_peak_map(df_x, df_y, est_options)
@@ -91,19 +92,19 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(vec_cand %in% idx1))
     
     ## recruit an element from the candidate set
-    rec <- .recruit_next(mat_x, vec_cand, mat_y1, idx1,
+    res <- .recruit_next(mat_x, mat_y, vec_cand, vec_matched,
                          res_g, df_res, rec_options)
-    stopifnot(all(is.na(df_res$order_rec[rec$vec_from])), !any(rec$vec_from %in% idx1))
+    stopifnot(all(is.na(df_res$order_rec[res$rec$vec_from])), !any(res$rec$vec_from %in% idx1))
     
     
     ## update
     tmp <- .update_estimation_matrices(mat_x, mat_y,
-                                       mat_x1, mat_y1, mat_y2, idx1,
-                                       rec, form_options)
-    mat_x1 <- tmp$mat_x1; mat_y1 <- tmp$mat_y1; mat_y2 <- tmp$mat_y2
-    idx1 <- tmp$idx1
-    ht_neighbor <- .update_chrom_ht(ht_neighbor, rec$vec_from, rec$list_to)
-    df_res <- .update_chrom_df_rec(df_res, rec$vec_from, iter)
+                                       mat_x1, mat_y2, vec_matched,
+                                       res$rec, form_options)
+    mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2; vec_matched <- tmp$vec_matched
+    ht_neighbor <- .update_chrom_ht(ht_neighbor, res$rec$vec_from, res$rec$list_to)
+    df_res <- .update_chrom_df_rec(df_res, res$rec$vec_from, iter)
+    list_diagnos[[as.character(iter)]] <- res$diagnostic
     
     iter <- iter+1
   }

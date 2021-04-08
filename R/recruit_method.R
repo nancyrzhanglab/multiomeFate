@@ -31,17 +31,17 @@
 #'
 #' @return a list of vector of integers \code{vec_from} and a list
 #' of integers \code{list_to}
-.recruit_next <- function(mat_x, vec_cand, mat_y1, idx1, res_g, df_res, 
+.recruit_next <- function(mat_x, mat_y, vec_cand, vec_matched, res_g, df_res, 
                           rec_options){
-  stopifnot(all(idx1 <= nrow(mat_x)), length(idx1) == nrow(mat_y1), length(idx1) == length(unique(idx1)),
-            all(idx1 %% 1 == 0), all(idx1 > 0), all(idx1 <= nrow(mat_x)))
+  stopifnot(all(vec_matched <= nrow(mat_x)), length(vec_matched) == length(unique(vec_matched)),
+            all(vec_matched %% 1 == 0), all(vec_matched > 0))
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
-  stopifnot(!any(vec_cand %in% idx1))
-  stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(is.na(df_res$order_rec[idx1])))
+  stopifnot(!any(vec_cand %in% vec_matched))
+  stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(is.na(df_res$order_rec[vec_matched])))
   
   if(rec_options[["method"]] == "nn_yonly"){
-    res <- .recruit_next_nn_yonly(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
+    res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, vec_matched, res_g, rec_options)
   } else {
     stop("Recruit method not found")
   }
@@ -51,17 +51,17 @@
 
 ###################
 
-.recruit_next_nn_yonly <- function(mat_x, vec_cand, mat_y1, idx1, res_g, 
+.recruit_next_nn_yonly <- function(mat_x, mat_y, vec_cand, vec_matched, res_g, 
                                     rec_options){
   num_rec <- min(rec_options$num_rec, length(vec_cand))
-  nn <- min(c(rec_options$nn, ceiling(nrow(mat_y1)/2)))
+  nn <- min(c(rec_options$nn, ceiling(length(vec_matched)/2)))
   
   # apply mat_g to mat_x
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
   
-  # see which prediction is closest to mat_y1
+  # see which prediction is closest to mat_y[vec_matched,]
   # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
-  res <- RANN::nn2(mat_y1, query = pred_y, k = nn)
+  res <- RANN::nn2(mat_y[vec_matched,], query = pred_y, k = nn)
   if(rec_options$average == "mean"){
     func <- mean
   } else if(rec_options$average == "median"){
@@ -72,9 +72,16 @@
   
   idx <- order(apply(res$nn.dist, 1, func), decreasing = F)[1:num_rec]
   
+  # run the diagnostic
+  list_diagnos <- list()
+  if(rec_options$run_diagnostic){
+    # [[note to self: put diagnostics here]]
+  }
+  
   vec_from <- vec_cand[idx]
-  list_to <- lapply(idx, function(i){idx1[res$nn.idx[i,]]})
-  list(vec_from = vec_from, list_to = list_to)
+  list_to <- lapply(idx, function(i){vec_matched[res$nn.idx[i,]]})
+  list(rec = list(vec_from = vec_from, list_to = list_to),
+       diagnostic = list_diagnos)
 }
 
 #########################
