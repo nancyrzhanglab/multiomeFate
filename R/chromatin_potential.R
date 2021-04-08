@@ -54,7 +54,7 @@
 #' @export
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                                 form_method = "average", est_method = "glmnet",
-                                cand_method = "nn_xonly", rec_method = "nn_yonly", 
+                                cand_method = "nn_xonly_avg", rec_method = "nn_yonly", 
                                 options = list(),
                                 verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),

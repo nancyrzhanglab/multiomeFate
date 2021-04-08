@@ -13,7 +13,7 @@ chromatin_potential(
   list_end,
   form_method = "average",
   est_method = "glmnet",
-  cand_method = "nn_xonly",
+  cand_method = "nn_xonly_avg",
   rec_method = "nn_yonly",
   options = list(),
   verbose = T

@@ -8,7 +8,7 @@ test_that(".predict_yfromx works", {
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
   n <- 100
   options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn_xonly", rec_method = "nn_yonly",
+                            cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
                             options = list())
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
   mat_x1 <- matrix(sample(c(0,1), n*p1, replace = T), n, p1)
@@ -38,7 +38,7 @@ test_that(".recruit_next_nn_yonly works", {
   idx1 <- 90:100; mat_y1 <- mat_y[idx1,]
   vec_cand <- 80:89
   options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn_xonly", rec_method = "nn_yonly",
+                            cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
                             options = list())
   
   res <- .recruit_next_nn_yonly(mat_x, vec_cand, mat_y1, idx1, res_g, 

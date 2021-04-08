@@ -28,7 +28,7 @@ test_that(".init_est_matrices works", {
 test_that(".update_estimation_literal works", {
   set.seed(10)
   options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn_xonly", rec_method = "nn_yonly",
+                            cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
                             options = list())
   n <- 100; p1 <- 10; p2 <- 5
   mat_x <- matrix(runif(n*p1), n, p1)
@@ -65,7 +65,7 @@ test_that(".update_estimation_average works", {
   mat_y2 <- mat_y[c(91:100, 91:100),]
   vec_cand <- 60:80
   options <- .chrom_options(form_method = "average", est_method = "glmnet", 
-                            cand_method = "nn_xonly", rec_method = "nn_yonly",
+                            cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
                             options = list())
   rec <- .recruit_next_nn_yonly(mat_x, vec_cand, mat_y1, idx1, res_g, 
                           options$rec_options)
