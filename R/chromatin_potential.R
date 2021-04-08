@@ -64,8 +64,6 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 
 #########################
 
-# columns: steady-state (neg for initial, pos for end, or NA)
-# num times was a candidate, and order of recruitment
 .init_chrom_df <- function(n, vec_start, list_end, cell_name){
   stopifnot(all(vec_start %% 1 == 0), all(vec_start > 0), all(vec_start <= n))
   stopifnot(all(sapply(list_end, function(vec){all(vec %% 1 == 0) & all(vec > 0) & all(vec <= n)})))
@@ -108,7 +106,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 
 .update_chrom_ht <- function(ht_neighbor, vec_from, list_to){
   tmp <- as.character(unlist(list_to))
-  expect_true(all(tmp %in% hash::keys(ht_neighbor)))
+  stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
   
   for(i in 1:length(vec_from)){
     ht_neighbor[[as.character(vec_from[i])]] <- list_to[[i]]

@@ -1,3 +1,12 @@
+#' Initialize the matrices for estimation later
+#'
+#' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
+#' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
+#' @param vec_start integers between 0 and \code{nrow(mat_x)} to denote the cells at the start state
+#' @param list_end integers between 0 and \code{nrow(mat_x)} to denote the cells any of the end states
+#'
+#' @return list of 3 matrices, \code{mat_x1} and \code{mat_y1} and \code{mat_y2}, as
+#' well as vector of indices \code{idx1}
 .init_est_matrices <- function(mat_x, mat_y, vec_start, list_end){
   stopifnot(nrow(mat_x) == nrow(mat_y))
   n <- nrow(mat_x)
@@ -25,6 +34,35 @@
 }
 
 # [[note to self: design a lot of tests for this]]
+#' Update the matrices for estimation later
+#' 
+#' Using the output of \code{.recruit_next} (in \code{rec}), update
+#' \code{mat_x1}, \code{mat_y1}, \code{mat_y2}, \code{idx1} by grabbing
+#' the appropriate cells in \code{mat_x} and \code{mat_y} based on the
+#' options in \code{form_options}
+#' 
+#' The options are:
+#' \itemize{
+#' \item \code{literal}: If \code{rec$list_to[[i]]} matches many cells from a single cell in \code{rec$vec_from[i]},
+#' form one row in \code{mat_y2} for each matched cell in \code{rec$list_to[[i]]} (and 
+#' duplicate the cell in \code{rec$vec_from[i]} in \code{mat_x1} as many times as needed)
+#' \item \code{average}:If \code{rec$list_to[[i]]} matches many cells from a single cell in \code{rec$vec_from[i]},
+#' average all the variables among the matched cell in \code{rec$list_to[[i]]} based on
+#' \code{form_options$average} to form one row in \code{mat_y2} (and one row in 
+#' \code{mat_x1} for \code{rec$vec_from[i]})
+#' }
+#'
+#' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
+#' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
+#' @param mat_x1 previous \code{mat_x1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
+#' @param mat_y1 previous \code{mat_y1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
+#' @param mat_y2 previous \code{mat_y2}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
+#' @param idx1  previous \code{idx1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
+#' @param rec output from \code{.recruit_next}
+#' @param form_options one of the outputs from \code{.chrom_options}
+#'
+#' @return list of 3 matrices, \code{mat_x1} and \code{mat_y1} and \code{mat_y2}, as
+#' well as vector of indices \code{idx1}
 .update_estimation_matrices <- function(mat_x, mat_y,
                                         mat_x1, mat_y1, mat_y2, idx1,
                                         rec, form_options){
