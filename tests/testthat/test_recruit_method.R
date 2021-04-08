@@ -35,17 +35,18 @@ test_that(".recruit_next_nn_yonly works", {
   timepoints <- 100
   mat_x <- generate_traj_cascading(df$df_x, timepoints = timepoints)
   mat_y <- .predict_yfromx(mat_x, res_g)
-  idx1 <- 90:100; mat_y1 <- mat_y[idx1,]
+  vec_matched <- 90:100
   vec_cand <- 80:89
   options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
                             cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
                             options = list())
   
-  res <- .recruit_next_nn_yonly(mat_x, vec_cand, mat_y1, idx1, res_g, 
+  res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, vec_matched, res_g, 
                                  options$rec_options)
   
   expect_true(is.list(res))
-  expect_true(all(sort(names(res)) == sort(c("vec_from", "list_to"))))
-  expect_true(length(res$vec_from) == length(res$list_to))
-  expect_true(is.list(res$list_to))
+  expect_true(all(sort(names(res)) == sort(c("rec", "diagnostic"))))
+  expect_true(all(sort(names(res$rec)) == sort(c("vec_from", "list_to"))))
+  expect_true(length(res$rec$vec_from) == length(res$rec$list_to))
+  expect_true(is.list(res$rec$list_to))
 })
