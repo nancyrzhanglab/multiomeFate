@@ -2,9 +2,9 @@
 .chrom_options <- function(form_method, est_method, cand_method, rec_method, 
                            options){
   stopifnot(form_method %in% c("literal", "average"))
-  stopifnot(est_method %in% c("glmnet_yonly"))
-  stopifnot(cand_method %in% c("nn"))
-  stopifnot(rec_method %in% c("nn"))
+  stopifnot(est_method %in% c("glmnet"))
+  stopifnot(cand_method %in% c("nn_xonly"))
+  stopifnot(rec_method %in% c("nn_yonly"))
   stopifnot(is.list(options))
   
   idx <- grep("^form_*|^est_*|^cand_*|^rec_*", names(options))
@@ -26,12 +26,13 @@
   prefix <- "form"
   
   if(form_method == "literal"){
-    form_options <- vector(list, length = 0)
+    form_options <- list()
   } else if(form_method == "average"){
     list_default <- list(average = "median")
     form_options <- .fill_options(options, list_default, prefix)
+    
+    stopifnot(form_options$average %in% c("mean", "median"))
   }
-  stopifnot(form_options$average %in% c("mean", "median"))
   
   form_options$method <- form_method
   form_options
@@ -40,7 +41,7 @@
 .estimation_options <- function(est_method, options){
   prefix <- "est"
 
-  if(est_method == "glmnet_yonly"){
+  if(est_method == "glmnet"){
     
     list_default <- list(family = "poisson", 
                          enforce_cis = T, cis_window = 200,
@@ -62,7 +63,7 @@
 .candidate_options <- function(cand_method, options){
   prefix <- "cand"
   
-  if(cand_method == "nn"){
+  if(cand_method == "nn_xonly"){
     list_default <- list(nn = 10, metric = "euclidean")
     cand_options <- .fill_options(options, list_default, prefix)
   }
@@ -77,7 +78,7 @@
 .recruit_options <- function(rec_method, options){
   prefix <- "rec"
   
-  if(rec_method == "nn"){
+  if(rec_method == "nn_yonly"){
     list_default <- list(nn = 10, num_rec = 10, metric = "euclidean")
     rec_options <- .fill_options(options, list_default, prefix)
   }

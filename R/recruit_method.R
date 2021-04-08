@@ -1,12 +1,12 @@
-.recruit_next <- function(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options){
+.recruit_next <- function(mat_x, vec_cand, mat_y1, idx1, res_g, df_res, rec_options){
   stopifnot(all(idx1 <= nrow(mat_x)), length(idx1) == nrow(mat_y1), length(idx1) == length(unique(idx1)),
             all(idx1 %% 1 == 0), all(idx1 > 0), all(idx1 <= nrow(mat_x)))
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
   stopifnot(!any(vec_cand %in% idx1))
   
-  if(rec_options[["method"]] == "nn"){
-    res <- .recruit_next_nn(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
+  if(rec_options[["method"]] == "nn_yonly"){
+    res <- .recruit_next_nn_yonly(mat_x, vec_cand, mat_y1, idx1, res_g, rec_options)
   } else {
     stop("Recruit method not found")
   }
@@ -16,7 +16,7 @@
 
 ###################
 
-.recruit_next_nn <- function(mat_x, vec_cand, mat_y1, idx1, res_g, 
+.recruit_next_nn_yonly <- function(mat_x, vec_cand, mat_y1, idx1, res_g, 
                                     rec_options){
   num_rec <- min(rec_options$num_rec, length(vec_cand))
   nn <- min(c(rec_options$nn, ceiling(nrow(mat_y1)/2)))

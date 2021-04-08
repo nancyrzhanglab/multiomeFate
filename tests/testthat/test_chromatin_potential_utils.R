@@ -3,8 +3,8 @@ context("Test chromatin protential utility functions")
 ## .chrom_options is correct
 
 test_that(".chrom_options works", {
-  res <- .chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
-                        cand_method = "nn", rec_method = "nn",
+  res <- .chrom_options(form_method = "literal", est_method = "glmnet", 
+                        cand_method = "nn_xonly", rec_method = "nn_yonly",
                         options = list())
   
   expect_true(is.list(res))
@@ -12,8 +12,8 @@ test_that(".chrom_options works", {
 })
 
 test_that(".chrom_options works with custom options", {
-  res <- .chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
-                        cand_method = "nn", rec_method = "nn",
+  res <- .chrom_options(form_method = "literal", est_method = "glmnet", 
+                        cand_method = "nn_xonly", rec_method = "nn_yonly",
                         options = list(est_family = "bernoulli", est_switch = FALSE, 
                                        cand_nn = 20))
   
@@ -25,16 +25,16 @@ test_that(".chrom_options works with custom options", {
 })
 
 test_that(".chrom_options can throw warnings", {
-  expect_warning(.chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
-                        cand_method = "nn", rec_method = "nn",
+  expect_warning(.chrom_options(form_method = "literal", est_method = "glmnet", 
+                                cand_method = "nn_xonly", rec_method = "nn_yonly",
                         options = list(est_family = "poisson", asdf = F, random = 10)))
   
-  expect_warning(.chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
-                                cand_method = "nn", rec_method = "nn",
+  expect_warning(.chrom_options(form_method = "literal", est_method = "glmnet", 
+                                cand_method = "nn_xonly", rec_method = "nn_yonly",
                                 options = list(est_family = "poisson", asdf = F, random = 10, est_asdf = 50)))
   
-  expect_warning(.chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
-                                cand_method = "nn", rec_method = "nn",
+  expect_warning(.chrom_options(form_method = "literal", est_method = "glmnet", 
+                                cand_method = "nn_xonly", rec_method = "nn_yonly",
                                 options = list(est_asdf = 50)))
 })
 
@@ -46,8 +46,8 @@ test_that(".gene_peak_map works", {
   set.seed(10)
   p1 <- 20; p2 <- 5; genome_length <- 1000
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
-  options <- .chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
-                        cand_method = "nn", rec_method = "nn",
+  options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
+                            cand_method = "nn_xonly", rec_method = "nn_yonly",
                         options = list())
   
   res <- .gene_peak_map(df$df_x, df$df_y, options$est_options)

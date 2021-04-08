@@ -1,8 +1,8 @@
 # output: mat_g, dataframe of when each row got recruited, # of times it was a candidate, order of recruitment, and 
 # hash table of who its nearest neighbors are
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
-                                form_method = "average", est_method = "glmnet_yonly",
-                                cand_method = "nn", rec_method = "nn", 
+                                form_method = "average", est_method = "glmnet",
+                                cand_method = "nn_xonly", rec_method = "nn_yonly", 
                                 options = list(),
                                 verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
@@ -40,7 +40,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     
     ## recruit an element from the candidate set
     rec <- .recruit_next(mat_x, vec_cand, mat_y1, idx1,
-                         res_g, rec_options)
+                         res_g, df_res, rec_options)
     stopifnot(all(is.na(df_res$order_rec[rec$vec_from])), !any(rec$vec_from %in% idx1))
     
     
@@ -67,6 +67,11 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 # columns: steady-state (neg for initial, pos for end, or NA)
 # num times was a candidate, and order of recruitment
 .init_chrom_df <- function(n, vec_start, list_end, cell_name){
+  stopifnot(all(vec_start %% 1 == 0), all(vec_start > 0), all(vec_start <= n))
+  stopifnot(all(sapply(list_end, function(vec){all(vec %% 1 == 0) & all(vec > 0) & all(vec <= n)})))
+  tmp <- c(vec_start, unlist(list_end))
+  stopifnot(length(tmp) == length(unique(tmp)))
+  
   df_res <- data.frame(idx = 1:n, init_state = rep(NA, n), num_cand = rep(0, n),
                        order_rec = rep(NA, n))
   if(length(cell_name) == n) rownames(df_res) <- cell_name
@@ -91,11 +96,18 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 }
 
 .update_chrom_df_cand <- function(df_res, vec_cand){
+  stopifnot(all(is.na(df_res$order_rec[vec_cand])), all(is.na(df_res$init_state[vec_cand])))
+  stopifnot(all(vec_cand <= nrow(df_res)), all(vec_cand %% 1 == 0), all(vec_cand > 0),
+            length(vec_cand) == length(unique(vec_cand)))
+  
   df_res$num_cand[vec_cand] <-  df_res$num_cand[vec_cand]+1
   df_res
 }
 
 .update_chrom_ht <- function(ht_neighbor, vec_from, list_to){
+  tmp <- as.character(unlist(list_to))
+  expect_true(all(tmp %in% hash::keys(ht_neighbor)))
+  
   for(i in 1:length(vec_from)){
     ht_neighbor[[as.character(vec_from[i])]] <- list_to[[i]]
   }
@@ -103,8 +115,10 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   ht_neighbor
 }
 
+# [[note to self: currently does not check that iter is the latest/largest iteration in df_res]]
 .update_chrom_df_rec <- function(df_res, vec_from, iter){
+  stopifnot(all(is.na(df_res$order_rec[vec_from])))
+  
   df_res$order_rec[vec_from] <- iter
-
   df_res
 }

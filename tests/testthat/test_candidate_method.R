@@ -1,18 +1,18 @@
 context("Test candidate method")
 
-## .candidate_set_nn is correct
+## .candidate_set_nn_xonly is correct
 
-test_that(".candidate_set_nn works", {
+test_that(".candidate_set_nn_xonly works", {
   set.seed(10)
   n <- 100; p1 <- 20
   mat_x <- matrix(runif(n*p1), n, p1)
   df_res <- data.frame(init_state = rep(NA, n), 
                        order_rec = sample(c(1, NA), size = n, prob = c(1,2), replace = T))
-  options <- .chrom_options(form_method = "literal", est_method = "glmnet_yonly", 
-                            cand_method = "nn", rec_method = "nn",
+  options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
+                            cand_method = "nn_xonly", rec_method = "nn_yonly",
                             options = list())
   
-  res <- .candidate_set_nn(mat_x, df_res, options$cand_options)
+  res <- .candidate_set_nn_xonly(mat_x, df_res, options$cand_options)
   
   expect_true(is.numeric(res))
   expect_true(all(res %% 1 == 0))
@@ -25,7 +25,7 @@ test_that(".candidate_set_nn works", {
   mat_x <- t(sapply(1:n, function(x){runif(p1)+x}))
   df_res <- data.frame(init_state = rep(NA, n), 
                        order_rec = c(rep(1, n/2), rep(NA, n/2)))
-  res2 <- .candidate_set_nn(mat_x, df_res, options$cand_options)
+  res2 <- .candidate_set_nn_xonly(mat_x, df_res, options$cand_options)
   
   expect_true(is.numeric(res))
   expect_true(all(res %% 1 == 0))

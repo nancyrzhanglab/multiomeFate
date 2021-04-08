@@ -1,6 +1,6 @@
 .candidate_set <- function(mat_x, df_res, cand_options){
-  if(cand_options[["method"]] == "nn"){
-    res <- .candidate_set_nn(mat_x, df_res, cand_options)
+  if(cand_options[["method"]] == "nn_xonly"){
+    res <- .candidate_set_nn_xonly(mat_x, df_res, cand_options)
   } else {
     stop("Candidate method not found")
   }
@@ -10,7 +10,7 @@
 
 #######################
 
-.candidate_set_nn <- function(mat_x, df_res, cand_options){
+.candidate_set_nn_xonly <- function(mat_x, df_res, cand_options){
   # extract the indices already recruited
   n <- nrow(df_res)
   idx_free <- which(is.na(df_res$order_rec))

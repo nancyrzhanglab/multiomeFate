@@ -91,7 +91,7 @@
     if(form_options$average == "mean"){
       apply(mat_y[idx,,drop = F], 2, mean)
     } else if(form_options$average == "median") {
-      apply(mat_y[idx,,drop = F], 2, median)
+      apply(mat_y[idx,,drop = F], 2, stats::median)
     } else {
       stop("Forming method (option: 'average') not found")
     }
