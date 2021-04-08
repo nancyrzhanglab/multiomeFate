@@ -44,18 +44,22 @@
                   family = est_options$family, 
                   switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
                   alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
-                  cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice)
+                  cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice,
+                  bool_round = ifelse(est_options$family == "gaussian", F, T))
   })
   
   .transform_est_matrix(list_res, est_options, p1)
 }
 
-# [[note to self: turn off error if y is not integer]]
+# [[note to self: change so non-integers are handled more smoothly, instead of rounding]]
 .glmnet_fancy <- function(x, y, family, 
                           switch, switch_cutoff,
                           alpha, standardize, intercept,
-                          cv, nfolds, cv_choice){
+                          cv, nfolds, cv_choice, bool_round){
   n <- length(y); p <- ncol(x)
+  if(family != "gaussian" & bool_round){
+    y <- round(y)
+  }
   
   if(switch & n > p*switch_cutoff){
     # use glm

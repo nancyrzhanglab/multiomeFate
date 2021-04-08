@@ -12,7 +12,8 @@ test_that(".glmnet_fancy works", {
   set.seed(10)
   res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se")
+                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
+                       bool_round = T)
   expect_true(all(sort(names(res)) == c("val_int", "vec_coef")))
   expect_true(all(sapply(res, is.numeric)))
   expect_true(length(res$val_int) == 1)
@@ -29,13 +30,15 @@ test_that(".glmnet_fancy respects intercept", {
   set.seed(10)
   res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se")
+                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
+                       bool_round = T)
   expect_true(abs(res$val_int) <= 1e-6)
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se")
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
+                       bool_round = T)
   expect_true(abs(res$val_int) >= 1e-6)
 })
 
@@ -49,13 +52,15 @@ test_that(".glmnet_fancy respects switch", {
   set.seed(10)
   res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se")
+                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
+                       bool_round = T)
   expect_true(any(abs(res$vec_coef) <= 1e-6))
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, family = "poisson", switch = T, 
                        switch_cutoff = 2, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se")
+                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
+                       bool_round = T)
   expect_true(all(abs(res$vec_coef) >= 1e-6))
 })
 

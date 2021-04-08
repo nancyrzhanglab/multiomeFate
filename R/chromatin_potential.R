@@ -96,7 +96,9 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 }
 
 .update_chrom_df_cand <- function(df_res, vec_cand){
-  stopifnot(all(is.na(df_res$order_rec[vec_cand])), all(is.na(df_res$init_state[vec_cand])))
+  stopifnot(all(is.na(df_res$order_rec[vec_cand])))
+  tmp <- df_res$init_state[vec_cand]; tmp <- tmp[!is.na(tmp)]
+  if(length(tmp) > 0) stopifnot(all(tmp < 0))
   stopifnot(all(vec_cand <= nrow(df_res)), all(vec_cand %% 1 == 0), all(vec_cand > 0),
             length(vec_cand) == length(unique(vec_cand)))
   
