@@ -16,7 +16,7 @@
 #' whose predicted Modality 2 expression has the smallest average
 #' (for example, mean, or in general, depending on what \code{rec_options$average}
 #' is set to) distance to its \code{rec_options$nn} previously-recruited
-#' nearest neighbors based on \code{mat_y1}
+#' nearest neighbors (dictated by the information in \code{df_res})
 #' }
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable

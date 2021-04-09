@@ -65,11 +65,12 @@
   
   if(length(idx_free) == 0) return(numeric(0))
   if(length(idx_free) <= cand_options$num_cand) return(idx_free)
+  nn <- min(cand_options$nn, length(idx_rec))
   
   # find the free points that are nearest neighbors to any of the recruited points
   # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
   res <- RANN::nn2(mat_x[idx_rec,,drop = F], query = mat_x[idx_free,,drop = F], 
-                   k = cand_options$nn)
+                   k = nn)
   
   if(cand_options$average == "mean"){
     func <- mean
