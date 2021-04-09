@@ -20,7 +20,7 @@ plot_arrow_iteration <- function(res, vec_time, jitter = T,
   
   for(i in 1:length(key_vec)){
     vec_from[i] <- vec_time[as.numeric(key_vec[i])]
-    vec_to[i] <- vec_time[res$ht_neighbor[[key_vec[i]]][1]]
+    vec_to[i] <- mean(vec_time[res$ht_neighbor[[key_vec[i]]]])
   }
   
   graphics::plot(NA, xlim = c(1,n), ylim = range(vec_time), ...)

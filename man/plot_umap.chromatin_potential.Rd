@@ -9,9 +9,13 @@
   mode_x = T,
   mode_y = T,
   k = 10,
+  multiple_to = "ghost",
+  col_vec = NA,
   percent_arrows = 0.3,
   arrow_length = 0.05,
-  col_vec = NA,
+  col_arrows_by = "order_rec",
+  num_col_arrows = NA,
+  vec_time = NA,
   ...
 )
 }
@@ -24,11 +28,27 @@
 
 \item{k}{positive numeric for the number of principal scores extracted}
 
+\item{multiple_to}{string (\code{"ghost"} where we make "ghost" samples
+prior to using the UMAP, or \code{"umap_avg"} where we simply average
+among the resulting UMAP coordinates)}
+
+\item{col_vec}{\code{NA} or pre-specified vector of colors for the cells}
+
 \item{percent_arrows}{numeric}
 
 \item{arrow_length}{numeric}
 
-\item{col_vec}{\code{NA} or vector of colors}
+\item{col_arrows_by}{string, either \code{"order_rec"} to color arrows
+by the recruitment order, or \code{"direction"} to color arrows 
+based on whether they are point forward in time or backward in time}
+
+\item{num_col_arrows}{if \code{NA}, color all the arrows black. If numeric,
+then color from red to blue, where Here, red denotes matches made in the later-iterations
+of the algorithm and blue denotes matches made in the earlier-iterations.
+This is only used if \code{col_arrows_by="order_rec"}}
+
+\item{vec_time}{\code{NA} or numeric vector of pseudotimes, with length \code{nrow(obj$mat_x)}.
+This is only used if \code{col_arrows_by="direction"} (in which case, this input cannot be \code{NA})}
 
 \item{...}{additional graphical parameters}
 }

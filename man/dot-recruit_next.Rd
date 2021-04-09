@@ -4,7 +4,7 @@
 \alias{.recruit_next}
 \title{Based on the candidate cells, recruit a specific cell}
 \usage{
-.recruit_next(mat_x, mat_y, vec_cand, vec_matched, res_g, df_res, rec_options)
+.recruit_next(mat_x, mat_y, vec_cand, res_g, df_res, rec_options)
 }
 \arguments{
 \item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
@@ -12,9 +12,6 @@
 \item{mat_y}{full data for Modality 2, where each row is a cell and each column is a variable}
 
 \item{vec_cand}{output of \code{.candidate_set}}
-
-\item{vec_matched}{output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
-the data for Modality 1}
 
 \item{res_g}{output of \code{.estimate_g}}
 
@@ -33,10 +30,10 @@ Here, \code{mat_x} are all the cells in our dataset, among which
 we are saying that \code{vec_matched} are cells that have previously been
 recruited already, and \code{vec_cand} are the currently-selected
 candidates that we are hoping to recruit and match to one of the
-previously-recruited cells in \code{vec_matched}. This 
+previously-recruited cells acccording to \code{df_res}. This 
 matching is done by using our estimation function \code{res_g}
 on the candidate cell's Modality 1 expression in \code{mat_x}
-and seeing if it's close to any \code{vec_matched}'s Modality 2 expressions
+and seeing if it's close to any prreviously-recruited cells's Modality 2 expressions
 in \code{mat_y}.
 }
 \details{

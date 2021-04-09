@@ -4,15 +4,7 @@
 \alias{.update_estimation_matrices}
 \title{Update the matrices for estimation later}
 \usage{
-.update_estimation_matrices(
-  mat_x,
-  mat_y,
-  mat_x1,
-  mat_y2,
-  vec_matched,
-  rec,
-  form_options
-)
+.update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, rec, form_options)
 }
 \arguments{
 \item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
@@ -23,19 +15,16 @@
 
 \item{mat_y2}{previous \code{mat_y2}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
 
-\item{vec_matched}{previous \code{vec_matched}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
-
 \item{rec}{output \code{rec} from \code{.recruit_next}}
 
 \item{form_options}{one of the outputs from \code{.chrom_options}}
 }
 \value{
-list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
-well as vector of indices \code{vec_matched}
+list of 2 matrices, \code{mat_x1} and \code{mat_y2}
 }
 \description{
 Using the output of \code{.recruit_next} (in \code{rec}), update
-\code{mat_x1}, \code{mat_y2}, and \code{vec_matched} by grabbing
+\code{mat_x1}, \code{mat_y2} by grabbing
 the appropriate cells in \code{mat_x} and \code{mat_y} based on the
 options in \code{form_options}
 }

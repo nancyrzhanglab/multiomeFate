@@ -10,6 +10,8 @@
   mode_y = T,
   noiseless = F,
   k = 10,
+  ghost_neighbor = NA,
+  col_vec = NA,
   reorder = T,
   num_col = 10,
   ...
@@ -28,10 +30,16 @@ means information from \code{dat$obs_x} and/or \code{dat$obs_y} is plotted}
 
 \item{k}{positive numeric for the number of principal scores extracted}
 
-\item{reorder}{boolean. If \code{TRUE}, color the cells by their pseudotime.
-If \code{FALSE}, ccolor the cells by the order they appear in simulation}
+\item{ghost_neighbor}{\code{NA} or a \code{hash} object from \code{chromatin_potential}
+that denotes which cells are matched to which other cells}
 
-\item{num_col}{positive numeric, for the number of distinct colors used}
+\item{col_vec}{\code{NA} or pre-specified vector of colors}
+
+\item{reorder}{boolean. If \code{TRUE} and \code{all(is.na(col_vec))}, color the cells by their pseudotime.
+If \code{FALSE}, color the cells by the order they appear in simulation}
+
+\item{num_col}{positive numeric where if \code{all(is.na(col_vec))}, 
+denotes the number of distinct colors used}
 
 \item{...}{additional graphical parameters}
 }
@@ -39,5 +47,5 @@ If \code{FALSE}, ccolor the cells by the order they appear in simulation}
 nothing. A plot is made
 }
 \description{
-Plot UMAP embedding (for \code{mf_simul})
+Here, red denotes younger cells and blue denotes older cells.
 }
