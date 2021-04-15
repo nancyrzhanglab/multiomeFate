@@ -27,6 +27,8 @@
 #' @param df_y the data frame containing information of Modality 2
 #' @param vec_start integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state
 #' @param list_end list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states
+#' @param mat_g_init (optional) initial estimate of the matrix of coefficients linking Modality 1 to Modality 2
+#' @param vec_g_init (optional) initial estimate of the vector of intercepts linking Modality 1 to Modality 2
 #' @param form_method string
 #' @param est_method string
 #' @param cand_method string
@@ -37,6 +39,7 @@
 #' @return object of class \code{chromatin_potential}
 #' @export
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
+                                mat_g_init = NA, vec_g_init = NA,
                                 form_method = "average", est_method = "glmnet",
                                 cand_method = "nn_xonly_avg", rec_method = "nn_yonly", 
                                 options = list(),
@@ -70,23 +73,23 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     res_g <- .estimate_g(mat_x1, mat_y2, est_options)
     
     ## construct candidate set
-    vec_cand <- .candidate_set(mat_x, mat_y, df_res, cand_options)
-    df_res <- .update_chrom_df_cand(df_res, vec_cand)
-    stopifnot(all(is.na(df_res$order_rec[vec_cand])))
+    res_cand <- .candidate_set(mat_x, mat_y, res_g, df_res, cand_options)
+    df_res <- .update_chrom_df_cand(df_res, res_cand$vec_cand)
+    stopifnot(all(is.na(df_res$order_rec[res_cand$vec_cand])))
+    list_diagnos[[as.character(iter)]]$candidate <- res_cand$diagnostic
     
     ## recruit an element from the candidate set
-    res <- .recruit_next(mat_x, mat_y, vec_cand, 
+    res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, 
                          res_g, df_res, rec_options)
-    stopifnot(all(is.na(df_res$order_rec[res$rec$vec_from])))
-    
+    stopifnot(all(is.na(df_res$order_rec[res_rec$rec$vec_from])))
+    list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
     ## update
     tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
-                                       res$rec, form_options)
+                                       res_rec$rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-    ht_neighbor <- .update_chrom_ht(ht_neighbor, res$rec$vec_from, res$rec$list_to)
-    df_res <- .update_chrom_df_rec(df_res, res$rec$vec_from, iter)
-    list_diagnos[[as.character(iter)]] <- res$diagnostic
+    ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec$vec_from, res_rec$rec$list_to)
+    df_res <- .update_chrom_df_rec(df_res, res_rec$rec$vec_from, iter)
     
     iter <- iter+1
   }

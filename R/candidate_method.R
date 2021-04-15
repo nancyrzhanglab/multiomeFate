@@ -20,19 +20,26 @@
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
+#' @param res_g output of \code{.estimate_g}
 #' @param df_res data frame recording the current results, generated within \code{chromatin_potential}
 #' @param cand_options one of the outputs from \code{.chrom_options}
 #'
-#' @return a vector of integers between 1 and \code{nrow(mat_x)}
-.candidate_set <- function(mat_x, mat_y, df_res, cand_options){
+#' @return a list containing \code{vec_cand} (vector of integers between 1 and \code{nrow(mat_x)})
+#' and a list \code{diagnostic} for possible diagnostics
+.candidate_set <- function(mat_x, mat_y, res_g, df_res, cand_options){
   if(cand_options[["method"]] == "nn_xonly_any"){
     res <- .candidate_set_nn_xonly_any(mat_x, df_res, cand_options)
   } else if(cand_options[["method"]] == "nn_xonly_avg"){
     res <- .candidate_set_nn_xonly_avg(mat_x, df_res, cand_options)
   } else if(cand_options[["method"]] == "all"){
-    res <- .candidate_set_all(df_res)
+    res <- .candidate_set_all(df_res, cand_options)
   } else {
     stop("Candidate method not found")
+  }
+  
+  if(cand_options$run_diagnostic){
+    # currently nothing here
+    res$diagnostic$postprocess <- NA
   }
   
   res
@@ -46,15 +53,22 @@
   idx_free <- which(is.na(df_res$order_rec))
   idx_rec <- which(!is.na(df_res$order_rec))
   
-  if(length(idx_free) == 0) return(numeric(0))
-  if(length(idx_free) <= cand_options$nn) return(idx_free)
+  if(length(idx_free) == 0) return(list(vec_cand = numeric(0), diagnostic = list()))
+  if(length(idx_free) <= cand_options$num_cand) return(list(vec_cand = idx_free, diagnostic = list()))
   
   # find the free points that are nearest neighbors to any of the recruited points
   # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
   res <- RANN::nn2(mat_x[idx_free,,drop = F], query = mat_x[idx_rec,,drop = F], 
                    k = cand_options$nn)
   
-  idx_free[sort(unique(as.numeric(res$nn.idx)))]
+  # run the diagnostic
+  list_diagnos <- list() 
+  if(cand_options$run_diagnostic){
+    # nothing currently here
+  }
+  
+  list(vec_cand = idx_free[sort(unique(as.numeric(res$nn.idx)))],
+       diagnostic = list_diagnos)
 }
 
 .candidate_set_nn_xonly_avg <- function(mat_x, df_res, cand_options){
@@ -63,8 +77,8 @@
   idx_free <- which(is.na(df_res$order_rec))
   idx_rec <- which(!is.na(df_res$order_rec))
   
-  if(length(idx_free) == 0) return(numeric(0))
-  if(length(idx_free) <= cand_options$num_cand) return(idx_free)
+  if(length(idx_free) == 0) return(list(vec_cand = numeric(0), diagnostic = list()))
+  if(length(idx_free) <= cand_options$num_cand) return(list(vec_cand = idx_free, diagnostic = list()))
   nn <- min(cand_options$nn, length(idx_rec))
   
   # find the free points that are nearest neighbors to any of the recruited points
@@ -82,9 +96,23 @@
   
   idx <- order(apply(res$nn.dist, 1, func), decreasing = F)[1:cand_options$num_cand]
   
-  idx_free[idx]
+  # run the diagnostic
+  list_diagnos <- list() 
+  if(cand_options$run_diagnostic){
+    # nothing currently here
+  }
+  
+  list(vec_cand = idx_free[idx], diagnostic = list_diagnos)
 }
 
-.candidate_set_all <- function(df_res){
-  sort(which(is.na(df_res$order_rec)))
+.candidate_set_all <- function(df_res, cand_options){
+  vec_cand <- sort(which(is.na(df_res$order_rec)))
+  
+  # run the diagnostic
+  list_diagnos <- list() 
+  if(cand_options$run_diagnostic){
+    # nothing currently here
+  }
+  
+  list(vec_cand = vec_cand, diagnostic = list_diagnos)
 }

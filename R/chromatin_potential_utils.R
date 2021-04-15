@@ -22,7 +22,11 @@
   
   idx <- grep("^form_*|^est_*|^cand_*|^rec_*", names(options))
   if(length(idx) != length(options)){
-    warning("Option ", paste0(names(options)[-idx], collapse = " and "), " not used.")
+    if(length(idx) == 0){
+      warning("Option ", paste0(names(options), collapse = " and "), " not used.")
+    } else {
+      warning("Option ", paste0(names(options)[-idx], collapse = " and "), " not used.")
+    }
   }
   
   ## [note to self: I should check the type (num,char,bool) of all the options]
@@ -61,7 +65,7 @@
                          switch = T, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = F,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
-                         bool_round = T)
+                         bool_round = T, run_diagnostic = T)
     est_options <- .fill_options(options, list_default, prefix)
   }
   
@@ -78,18 +82,23 @@
   prefix <- "cand"
   
   if(cand_method == "nn_xonly_any"){
-    list_default <- list(nn = 10, metric = "euclidean")
+    list_default <- list(nn = 10, metric = "euclidean", run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
     
     ## [note to self: seems like there's no metric in RANN]
     stopifnot(cand_options$metric == "euclidean")
+    
   } else if(cand_method == "nn_xonly_avg"){
     list_default <- list(nn = 10, num_cand = 30, metric = "euclidean",
-                         average = "mean")
+                         average = "mean", run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
     
     ## [note to self: seems like there's no metric in RANN]
     stopifnot(cand_options$metric == "euclidean")
+    
+  } else if(cand_method == "all"){
+    list_default <- list(run_diagnostic = T)
+    cand_options <- .fill_options(options, list_default, prefix)
   }
   
   cand_options$method <- cand_method

@@ -4,19 +4,22 @@
 \alias{.candidate_set}
 \title{Find candidate cells}
 \usage{
-.candidate_set(mat_x, mat_y, df_res, cand_options)
+.candidate_set(mat_x, mat_y, res_g, df_res, cand_options)
 }
 \arguments{
 \item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
 
 \item{mat_y}{full data for Modality 2, where each row is a cell and each column is a variable}
 
+\item{res_g}{output of \code{.estimate_g}}
+
 \item{df_res}{data frame recording the current results, generated within \code{chromatin_potential}}
 
 \item{cand_options}{one of the outputs from \code{.chrom_options}}
 }
 \value{
-a vector of integers between 1 and \code{nrow(mat_x)}
+a list containing \code{vec_cand} (vector of integers between 1 and \code{nrow(mat_x)})
+and a list \code{diagnostic} for possible diagnostics
 }
 \description{
 Based on the cells previously recruited (recorded in \code{df_res}),

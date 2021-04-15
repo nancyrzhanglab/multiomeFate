@@ -43,6 +43,31 @@
   } else {
     stop("Recruit method not found")
   }
+  
+  if(rec_options$run_diagnostic){
+    vec_matched <- which(!is.na(df_res$order_rec))
+    pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
+    
+    nn <- min(c(rec_options$nn, nrow(mat_y)-1))
+    nn_res <- RANN::nn2(mat_y, query = pred_y, k = nn+1)
+    
+    mat_diag <- sapply(1:length(vec_cand), function(i){
+      tmp <- nn_res$nn.idx[i,]
+      tmp <- tmp[tmp != vec_cand[i]] # ignore loops to itself
+      stopifnot(length(tmp) > 0)
+      foward_num <- length(which(tmp %in% vec_matched))
+      current_num <- length(which(tmp %in% res$vec_cand))
+      backward_num <- length(tmp) - foward_num - current_num
+      
+      c(foward_num = foward_num, current_num = current_num, backward_num = backward_num)
+    })
+    
+    df_diag <- data.frame(idx = vec_cand, foward_num = mat_diag["foward_num",],
+                          current_num = mat_diag["current_num",], 
+                          backward_num = mat_diag["backward_num",])
+    
+    res$diagnostic$postprocess <- df_diag
+  }
 
   res
 }
@@ -52,6 +77,7 @@
 .recruit_next_nn_yonly <- function(mat_x, mat_y, vec_cand, res_g, df_res,
                                     rec_options){
   vec_matched <- which(!is.na(df_res$order_rec))
+  stopifnot(length(intersect(vec_matched, vec_cand)) == 0)
   num_rec <- min(rec_options$num_rec, length(vec_cand))
   nn <- min(c(rec_options$nn, ceiling(length(vec_matched)/2)))
   
@@ -72,9 +98,9 @@
   idx <- order(apply(res$nn.dist, 1, func), decreasing = F)[1:num_rec]
   
   # run the diagnostic
-  list_diagnos <- list()
+  list_diagnos <- list() 
   if(rec_options$run_diagnostic){
-    # [[note to self: put diagnostics here]]
+    # nothing currently here
   }
   
   vec_from <- vec_cand[idx]
