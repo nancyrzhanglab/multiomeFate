@@ -56,7 +56,7 @@
       tmp <- tmp[tmp != vec_cand[i]] # ignore loops to itself
       stopifnot(length(tmp) > 0)
       foward_num <- length(which(tmp %in% vec_matched))
-      current_num <- length(which(tmp %in% res$vec_cand))
+      current_num <- length(which(tmp %in% vec_cand))
       backward_num <- length(tmp) - foward_num - current_num
       
       c(foward_num = foward_num, current_num = current_num, backward_num = backward_num)
