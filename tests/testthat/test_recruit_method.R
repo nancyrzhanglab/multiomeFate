@@ -85,5 +85,5 @@ test_that(".recruit_next works", {
   expect_true("postprocess" %in% names(res$diagnostic))
   expect_true(is.data.frame(res$diagnostic$postprocess))
   expect_true(nrow(res$diagnostic$postprocess) == length(vec_cand))
-  expect_true(all(sort(colnames(res$diagnostic$postprocess)) == sort(c("idx", "foward_num", "current_num", "backward_num"))))
+  expect_true(all(sort(colnames(res$diagnostic$postprocess)) == sort(c("idx", "foward_num", "current_num", "backward_num", "selected"))))
 })

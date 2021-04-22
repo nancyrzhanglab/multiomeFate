@@ -61,10 +61,12 @@
       
       c(foward_num = foward_num, current_num = current_num, backward_num = backward_num)
     })
-    
+
+    selected <- vec_cand %in% res$rec$vec_from
     df_diag <- data.frame(idx = vec_cand, foward_num = mat_diag["foward_num",],
                           current_num = mat_diag["current_num",], 
-                          backward_num = mat_diag["backward_num",])
+                          backward_num = mat_diag["backward_num",],
+                          selected = selected)
     
     res$diagnostic$postprocess <- df_diag
   }
