@@ -83,7 +83,7 @@
   prefix <- "cand"
   
   if(cand_method == "nn_xonly_any"){
-    list_default <- list(nn = 10, metric = "euclidean", run_diagnostic = T)
+    list_default <- list(num_cand = 10, metric = "euclidean", run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
     
     ## [note to self: seems like there's no metric in RANN]

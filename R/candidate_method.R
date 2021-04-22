@@ -52,6 +52,7 @@
   n <- nrow(df_res)
   idx_free <- which(is.na(df_res$order_rec))
   idx_rec <- which(!is.na(df_res$order_rec))
+  nn <- min(cand_options$nn, length(idx_free))
   
   if(length(idx_free) == 0) return(list(vec_cand = numeric(0), diagnostic = list()))
   if(length(idx_free) <= cand_options$num_cand) return(list(vec_cand = idx_free, diagnostic = list()))
@@ -59,7 +60,7 @@
   # find the free points that are nearest neighbors to any of the recruited points
   # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
   res <- RANN::nn2(mat_x[idx_free,,drop = F], query = mat_x[idx_rec,,drop = F], 
-                   k = cand_options$nn)
+                   k = nn)
   
   # run the diagnostic
   list_diagnos <- list() 
