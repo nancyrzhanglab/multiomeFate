@@ -45,9 +45,9 @@
   }
   
   if(rec_options$run_diagnostic){
-    df_diag <- .recruit_diagnostic_global(mat_x, mat_y, vec_cand, res_g, 
+    res_diag <- .recruit_diagnostic_global(mat_x, mat_y, vec_cand, res_g, 
                                           df_res, res, rec_options)
-    res$diagnostic$postprocess <- df_diag
+    res$diagnostic$postprocess <- res_diag
   }
 
   res
@@ -109,11 +109,19 @@
     c(forward_num = forward_num, current_num = current_num, backward_num = backward_num)
   })
   
+  lis_nn <- lapply(1:length(vec_cand), function(i){
+    tmp <- nn_res$nn.idx[i,]
+    tmp[tmp != vec_cand[i]] # ignore loops to itself
+  })
+  names(lis_nn) <- as.character(vec_cand)
+  
   selected <- vec_cand %in% res_rec$rec$vec_from
-  data.frame(idx = vec_cand, forward_num = mat_diag["forward_num",],
+  df_diag <- data.frame(idx = vec_cand, forward_num = mat_diag["forward_num",],
              current_num = mat_diag["current_num",], 
              backward_num = mat_diag["backward_num",],
              selected = selected)
+  
+  list(df_diag = df_diag, lis_nn = lis_nn)
   
 }
 

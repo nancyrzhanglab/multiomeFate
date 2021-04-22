@@ -65,7 +65,8 @@
                          switch = F, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = F,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
-                         bool_round = T, run_diagnostic = T)
+                         bool_round = T, run_diagnostic = T,
+                         hold_initial = F)
     est_options <- .fill_options(options, list_default, prefix)
   }
   

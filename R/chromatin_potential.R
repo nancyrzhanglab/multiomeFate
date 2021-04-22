@@ -39,7 +39,7 @@
 #' @return object of class \code{chromatin_potential}
 #' @export
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
-                                mat_g_init = NA, vec_g_init = NA,
+                                mat_g_init = NA, vec_g_init = rep(0, ncol(mat_y)),
                                 form_method = "average", est_method = "glmnet",
                                 cand_method = "nn_xonly_avg", rec_method = "nn_yonly", 
                                 options = list(),
@@ -70,8 +70,12 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     if(verbose) print(paste0("Iteration ", iter, ": Recruited percentage (", 
                              round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
     ## estimate res_g
-    res_g <- .estimate_g(mat_x1, mat_y2, est_options)
-    
+    if((iter == 1 | est_options$hold_initial) && !any(is.na(mat_g_init)) && !any(is.na(vec_g_init))){
+      res_g <- list(mat_g = mat_g_init, vec_g = vec_g_init)
+    } else {
+      res_g <- .estimate_g(mat_x1, mat_y2, est_options)
+    }
+   
     ## construct candidate set
     res_cand <- .candidate_set(mat_x, mat_y, res_g, df_res, cand_options)
     df_res <- .update_chrom_df_cand(df_res, res_cand$vec_cand)

@@ -83,9 +83,10 @@ test_that(".recruit_next works", {
   
   expect_true(all(sort(names(res)) == sort(c("rec", "diagnostic"))))
   expect_true("postprocess" %in% names(res$diagnostic))
-  expect_true(is.data.frame(res$diagnostic$postprocess))
-  expect_true(nrow(res$diagnostic$postprocess) == length(vec_cand))
-  expect_true(all(sort(colnames(res$diagnostic$postprocess)) == sort(c("idx", "forward_num", "current_num", "backward_num", "selected"))))
+  expect_true(is.data.frame(res$diagnostic$postprocess$df_diag))
+  expect_true(nrow(res$diagnostic$postprocess$df_diag) == length(vec_cand))
+  expect_true(all(sort(colnames(res$diagnostic$postprocess$df_diag)) == sort(c("idx", "forward_num", "current_num", "backward_num", "selected"))))
+  expect_true(length(res$diagnostic$postprocess$lis_nn) == length(vec_cand))
 })
 
 ###########################
@@ -117,9 +118,10 @@ test_that(".recruit_diagnostic_global works", {
   res <- .recruit_diagnostic_global(mat_x, mat_y, vec_cand, res_g, 
                                                df_res, res_rec, rec_options)
   
-  expect_true(is.data.frame(res))
-  expect_true(nrow(res) == length(vec_cand))
-  expect_true(all(sort(colnames(res)) == sort(c("idx", "forward_num", "current_num", "backward_num", "selected"))))
+  expect_true(is.data.frame(res$df_diag))
+  expect_true(length(res$lis_nn) == length(vec_cand))
+  expect_true(nrow(res$df_diag) == length(vec_cand))
+  expect_true(all(sort(colnames(res$df_diag)) == sort(c("idx", "forward_num", "current_num", "backward_num", "selected"))))
 })
 
 test_that(".recruit_diagnostic_global gives a sensible output", {
@@ -147,7 +149,7 @@ test_that(".recruit_diagnostic_global gives a sensible output", {
   res <- .recruit_diagnostic_global(mat_x, mat_y, vec_cand, res_g,
                                     df_res, res_rec, rec_options)
   
-  expect_true(all(res$backward_num[which(res$selected)] == 0))
+  expect_true(all(res$df_diag$backward_num[which(res$df_diag$selected)] == 0))
   
   ## now try with an aggressive g_function
   est_options <- options$est_options
@@ -156,6 +158,6 @@ test_that(".recruit_diagnostic_global gives a sensible output", {
   res_rec2 <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, res_g2, df_res, rec_options)
   res2 <- .recruit_diagnostic_global(mat_x, mat_y, vec_cand, res_g2,
                                     df_res, res_rec2, rec_options)
-  expect_true(all(res2$backward_num == 0))
+  expect_true(all(res2$df_diag$backward_num == 0))
 })
 
