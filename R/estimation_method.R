@@ -56,6 +56,7 @@
 ##############################
 
 .estimate_g_glmnet <- function(mat_x1, mat_y2, est_options){
+  stopifnot(nrow(mat_x1) == nrow(mat_y2))
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)

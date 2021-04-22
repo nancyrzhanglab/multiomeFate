@@ -45,29 +45,8 @@
   }
   
   if(rec_options$run_diagnostic){
-    vec_matched <- which(!is.na(df_res$order_rec))
-    pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
-    
-    nn <- min(c(rec_options$nn, nrow(mat_y)-1))
-    nn_res <- RANN::nn2(mat_y, query = pred_y, k = nn+1)
-    
-    mat_diag <- sapply(1:length(vec_cand), function(i){
-      tmp <- nn_res$nn.idx[i,]
-      tmp <- tmp[tmp != vec_cand[i]] # ignore loops to itself
-      stopifnot(length(tmp) > 0)
-      foward_num <- length(which(tmp %in% vec_matched))
-      current_num <- length(which(tmp %in% vec_cand))
-      backward_num <- length(tmp) - foward_num - current_num
-      
-      c(foward_num = foward_num, current_num = current_num, backward_num = backward_num)
-    })
-
-    selected <- vec_cand %in% res$rec$vec_from
-    df_diag <- data.frame(idx = vec_cand, foward_num = mat_diag["foward_num",],
-                          current_num = mat_diag["current_num",], 
-                          backward_num = mat_diag["backward_num",],
-                          selected = selected)
-    
+    df_diag <- .recruit_diagnostic_global(mat_x, mat_y, vec_cand, res_g, 
+                                          df_res, res, rec_options)
     res$diagnostic$postprocess <- df_diag
   }
 
@@ -109,6 +88,33 @@
   list_to <- lapply(idx, function(i){vec_matched[res$nn.idx[i,]]})
   list(rec = list(vec_from = vec_from, list_to = list_to),
        diagnostic = list_diagnos)
+}
+
+.recruit_diagnostic_global <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
+                                       res_rec, rec_options){
+  vec_matched <- which(!is.na(df_res$order_rec))
+  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
+  
+  nn <- min(c(rec_options$nn, nrow(mat_y)-1))
+  nn_res <- RANN::nn2(mat_y, query = pred_y, k = nn+1)
+  
+  mat_diag <- sapply(1:length(vec_cand), function(i){
+    tmp <- nn_res$nn.idx[i,]
+    tmp <- tmp[tmp != vec_cand[i]] # ignore loops to itself
+    stopifnot(length(tmp) > 0)
+    forward_num <- length(which(tmp %in% vec_matched))
+    current_num <- length(which(tmp %in% vec_cand))
+    backward_num <- length(tmp) - forward_num - current_num
+    
+    c(forward_num = forward_num, current_num = current_num, backward_num = backward_num)
+  })
+  
+  selected <- vec_cand %in% res_rec$rec$vec_from
+  data.frame(idx = vec_cand, forward_num = mat_diag["forward_num",],
+             current_num = mat_diag["current_num",], 
+             backward_num = mat_diag["backward_num",],
+             selected = selected)
+  
 }
 
 #########################
