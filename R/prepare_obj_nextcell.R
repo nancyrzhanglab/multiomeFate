@@ -134,7 +134,7 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat,
   structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, mat_y2all = mat_y2all,
                  vec_startx = vec_startx, vec_starty = vec_starty),
             class = "mf_obj_next")
-}
+} 
 
 ####################################
 
