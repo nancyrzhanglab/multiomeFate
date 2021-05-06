@@ -44,14 +44,6 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                                 cand_method = "nn_xonly_avg", rec_method = "nn_yonly", 
                                 options = list(),
                                 verbose = T){
-  stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
-            is.list(options))
-  n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
-  
-  # check all the options
-  full_options <- .chrom_options(form_method, est_method, cand_method, rec_method, options)
-  form_options <- full_options$form_options; est_options <- full_options$est_options
-  cand_options <- full_options$cand_options; rec_options <- full_options$rec_options
   
   # initialize
   tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)

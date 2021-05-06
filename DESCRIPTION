@@ -15,7 +15,8 @@ Imports:
     glmnet,
     Seurat,
     clplite,
-    RANN
+    RANN,
+    RcppAnnoy
 Suggests:
     testthat
 RoxygenNote: 7.1.1
