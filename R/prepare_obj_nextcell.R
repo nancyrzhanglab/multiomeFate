@@ -93,10 +93,12 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat,
     mat_y2all <- t(sapply(1:nrow(list_traj_mat[[1]]), function(i){
       .possion_ygivenx(list_traj_mat[[1]][i,], mat_g, max_val = max_y)
     })) 
+    obj_blueprint <- .create_blueprint(mat_x1all, modality = "x")
   } else {
     # if trajectory is for df_y
     mat_x1all <- .compute_xfromy(list_traj_mat, mat_g) #x1
     mat_y2all <- do.call(rbind, list_traj_mat) #y2
+    obj_blueprint <- .create_blueprint(mat_y2all, modality = "y")
   }
   n_total <- nrow(mat_y2all) # count how many unique rows there are
   list_time <- list(seq(0, 1, length.out = n_total)) # [note to self: currently hard-coded for linear trajectory]
@@ -131,9 +133,24 @@ prepare_obj_nextcell <- function(df_x, df_y, mat_g, list_traj_mat,
   # [note to self: make this more flexible]
   vec_startx <- mat_x1all[2,]
   vec_starty <- mat_y2all[2,]
-  structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, mat_y2all = mat_y2all,
+  structure(list(df_x = df_x, df_y = df_y, mat_g = mat_g, ht = ht, 
+                 obj_blueprint = obj_blueprint,
                  vec_startx = vec_startx, vec_starty = vec_starty),
             class = "mf_obj_next")
+} 
+
+####################################
+
+# [note to self: maybe export an C++ object instead in the future? Perhaps the RcppAnnoy?]
+.create_blueprint <- function(mat, modality){
+  stopifnot(modality %in% c("x","y"))
+  
+  # [note to self: use the more specialized functions for this in the future]
+  vec_colmean <- colMeans(mat)
+  vec_colsd <- apply(mat, 2, stats::sd)
+  mat <- scale(mat, center = T, scale = T)
+  
+  list(mat = mat, vec_colmean = vec_colmean, vec_colsd = vec_colsd, modality = modality)
 }
 
 ####################################

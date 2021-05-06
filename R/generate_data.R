@@ -55,15 +55,17 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
   # initialize
   p1 <- nrow(obj_next$df_x); p2 <- nrow(obj_next$df_y)
   init_row <- 10
-  mat_x <- matrix(NA, nrow = init_row, ncol = p1); colnames(mat_x) <- obj_next$df_x$name
-  mat_y <- matrix(NA, nrow = init_row, ncol = p2); colnames(mat_y) <- obj_next$df_y$name
+  mat_x_true <- matrix(NA, nrow = init_row, ncol = p1); colnames(mat_x_true) <- obj_next$df_x$name
+  mat_x_obs <- matrix(NA, nrow = init_row, ncol = p1); colnames(mat_x_obs) <- obj_next$df_x$name
+  mat_y_true <- matrix(NA, nrow = init_row, ncol = p2); colnames(mat_y_true) <- obj_next$df_y$name
+  mat_y_obs <- matrix(NA, nrow = init_row, ncol = p2); colnames(mat_y_obs) <- obj_next$df_y$name
   df_info <- data.frame(time = rep(NA, length = init_row), counter = rep(NA, length = init_row))
   
   n <- 1
-  tmp <- obj_next$vec_startx
-  mat_x[n,] <- stats::rbinom(length(tmp), size = 1, prob = tmp)
-  tmp <- obj_next$vec_starty
-  mat_y[n,] <- stats::rpois(length(tmp), lambda = tmp)
+  mat_x_true[n,] <- obj_next$vec_startx
+  mat_x_obs[n,] <- stats::rbinom(length(mat_x_true[n,]), size = 1, prob = mat_x_true[n,])
+  mat_y_true[n,] <- obj_next$vec_starty
+  mat_y_obs[n,] <- stats::rpois(length(mat_y_true[n,]), lambda = mat_y_true[n,])
   df_info[n,"time"] <- 0; df_info[n,"counter"] <- n
   
   # while loop
@@ -73,16 +75,20 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
     if(df_info[n,"time"] > 1-time_tol) break()
     
     ## generate next y, based on x
-    mat_y[n+1,] <- .generate_ygivenx(obj_next, mat_x[n,])
+    tmp <- .generate_ygivenx(obj_next, x_true = mat_x_true[n,], x_obs = mat_x_obs[n,])
+    mat_y_true[n+1,] <- tmp$y_true; mat_y_obs[n+1,] <- tmp$y_obs
+    idx_time <- tmp$idx_time
     
     ## based on the next y, generate that corresponding x
-    tmp <- .generate_xgiveny(obj_next, y = mat_y[n+1,])
-    mat_x[n+1,] <- tmp$x
-    df_info[n+1, "time"] <- tmp$time; df_info[n+1, "counter"] <- n+1
+    tmp <- .generate_xgiveny(obj_next, y_true = mat_y_true[n+1,], y_obs = mat_y_obs[n+1,], idx_time = idx_time)
+    mat_x_true[n+1,] <- tmp$x_true; mat_x_obs[n+1,] <- tmp$x_obs
+    df_info[n+1, "time"] <- tmp$time
+    df_info[n+1, "counter"] <- n+1
     
     ## expand the matrix if necessary
-    if(sum(is.na(mat_x[,1])) < 2){
-      mat_x <- .expand_matrix(mat_x); mat_y <- .expand_matrix(mat_y)
+    if(sum(is.na(mat_x_true[,1])) < 2){
+      mat_x_true <- .expand_matrix(mat_x_true); mat_x_obs <- .expand_matrix(mat_x_obs)
+      mat_y_true <- .expand_matrix(mat_y_true); mat_y_obs <- .expand_matrix(mat_y_obs)
       df_info <- .expand_df(df_info)
     }
     
@@ -90,50 +96,74 @@ generate_data <- function(obj_next, max_n = 2*length(obj_next$ht), number_runs =
   }
   
   # [note to self: df_info should contain who is the mother, what traj?]
-  idx <- which(is.na(mat_x[,1]))
+  idx <- which(is.na(mat_x_true[,1]))
   if(length(idx) > 0){
-    mat_x <- mat_x[-idx,]; mat_y <- mat_y[-idx,]; df_info <- df_info[-idx,]
+    mat_x_true <- mat_x_true[-idx,]; mat_x_obs <- mat_x_obs[-idx,]
+    mat_y_true <- mat_y_true[-idx,]; mat_y_obs <- mat_y_obs[-idx,]
+    df_info <- df_info[-idx,]
   }
-  # [note to self: need to add technical noise]
-  obs_x <- mat_x; obs_y <- mat_y
   
-  list(obs_x = obs_x, obs_y = obs_y, true_x = mat_x, true_y = mat_y, 
+  # [note to self: add more technical noise here]
+  
+  list(obs_x = mat_x_obs, obs_y = mat_y_obs, true_x = mat_x_true, true_y = mat_y_true, 
         df_info = df_info)
 }
 
-.generate_ygivenx <- function(obj_next, x){
+# modality refers to whether or not the blueprint is for x
+.generate_ygivenx <- function(obj_next, x_true, x_obs){
   stopifnot(class(obj_next) == "mf_obj_next")
   
   # generate y from x
-  y <- .possion_ygivenx(x, obj_next$mat_g)
+  y_true <- .possion_ygivenx(x_obs, obj_next$mat_g)
   
   # add the intercepts given by dat_y
-  y <- y + obj_next$df_y$baseline
+  y_true <- y_true + obj_next$df_y$baseline
   
   # generate poisson
-  stats::rpois(length(y), lambda = y)
+  y_obs <- stats::rpois(length(y_true), lambda = y_true)
+  
+  if(obj_next$obj_blueprint$modality == "x") {
+    idx_time <- .find_pseudotime_idx(x_true, obj_next$obj_blueprint)
+  } else {
+    idx_time <- NA
+  }
+  
+  list(y_true = y_true, y_obs = y_obs, idx_time = idx_time)
 }
 
-.generate_xgiveny <- function(obj_next, y){
-  stopifnot(class(obj_next) == "mf_obj_next")
-  
+.generate_xgiveny <- function(obj_next, y_true, y_obs, idx_time){
+  stopifnot(class(obj_next) == "mf_obj_next", length(y_true) == length(y_obs))
+
   # find the nearest neighbor 
-  # [note: in the future, replace this with an exposed C++ obj from RANN: https://github.com/jefferislab/RANN/blob/master/R/nn.R]
-  tmp <- matrix(y, nrow = 1, ncol = length(y))
-  idx <- RANN::nn2(obj_next$mat_y2all, query = tmp, k = 1)$nn.idx[1,1]
-  
+  # [note to self: in the future, replace this with an exposed C++ obj, perhaps from RcppAnnoy]
+  if(is.na(idx_time)){
+    stopifnot(obj_next$obj_blueprint$modality == "y")
+    
+    idx_time <- .find_pseudotime_idx(y_true, obj_next$obj_blueprint)
+  } else {
+    stopifnot(obj_next$obj_blueprint$modality == "x")
+  }
+
   # grab the information from the hash table
-  info <- obj_next$ht[[as.character(idx)]]
-  
-  # [to come: determine which traj to use]
+  info <- obj_next$ht[[as.character(idx_time)]]
+  # [note to self: determine which traj to use]
   
   # use logistic regression
-  x <- .bernoulli_xgiveny(y, info$list_coef$mat_coef, info$list_coef$vec_intercept)
-  x <- stats::rbinom(length(x), size = 1, prob = x)
+  x_true <- .bernoulli_xgiveny(y_obs, info$list_coef$mat_coef, info$list_coef$vec_intercept)
+  x_obs <- stats::rbinom(length(x_true), size = 1, prob = x_true)
   
   # prepare output (include the pseudotime from the hashtable)
-  # [should record trajectory in the future also]
-  list(x = x, time = info$time)
+  # [note to self: should record trajectory in the future also]
+  list(x_true = x_true, x_obs = x_obs, time = info$time)
+}
+
+.find_pseudotime_idx <- function(vec, obj_blueprint){
+  stopifnot(length(vec) == length(obj_blueprint$vec_colmean))
+  
+  vec <- (vec - obj_blueprint$vec_colmean)/obj_blueprint$vec_colsd
+  
+  tmp <- matrix(vec, nrow = 1, ncol = length(vec))
+  RANN::nn2(obj_blueprint$mat, query = tmp, k = 1)$nn.idx[1,1]
 }
 
 #############################

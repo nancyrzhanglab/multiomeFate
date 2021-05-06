@@ -1,5 +1,8 @@
 context("Test candidate method")
 
+##[[note to self: Need more tests here. for example, add tests of correct output format
+## when candidate function early terminates]]
+
 ## .candidate_set_nn_xonly_avg is correct
 
 test_that(".candidate_set_nn_xonly_avg works", {
@@ -14,11 +17,13 @@ test_that(".candidate_set_nn_xonly_avg works", {
   
   res <- .candidate_set_nn_xonly_avg(mat_x, df_res, options$cand_options)
   
-  expect_true(is.numeric(res))
-  expect_true(all(res %% 1 == 0))
-  expect_true(all(res > 0))
-  expect_true(all(res <= n))
-  expect_true(all(is.na(df_res$order_rec[res])))
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("vec_cand", "diagnostic"))))
+  expect_true(is.numeric(res$vec_cand))
+  expect_true(all(res$vec_cand %% 1 == 0))
+  expect_true(all(res$vec_cand > 0))
+  expect_true(all(res$vec_cand <= n))
+  expect_true(all(is.na(df_res$order_rec[res$vec_cand])))
   
   set.seed(10)
   n <- 100; p1 <- 20
@@ -27,10 +32,10 @@ test_that(".candidate_set_nn_xonly_avg works", {
                        order_rec = c(rep(1, n/2), rep(NA, n/2)))
   res2 <- .candidate_set_nn_xonly_avg(mat_x, df_res, options$cand_options)
   
-  expect_true(is.numeric(res))
-  expect_true(all(res %% 1 == 0))
-  expect_true(all(res > 0))
-  expect_true(all(res <= n))
-  expect_true(all(is.na(df_res$order_rec[res2])))
-  expect_true(length(res2) <= length(res))
+  expect_true(is.numeric(res2$vec_cand))
+  expect_true(all(res2$vec_cand %% 1 == 0))
+  expect_true(all(res2$vec_cand > 0))
+  expect_true(all(res2$vec_cand <= n))
+  expect_true(all(is.na(df_res$order_rec[res2$vec_cand])))
+  expect_true(length(res2$vec_cand) <= length(res$vec_cand))
 })

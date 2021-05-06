@@ -11,6 +11,8 @@ chromatin_potential(
   df_y,
   vec_start,
   list_end,
+  mat_g_init = NA,
+  vec_g_init = NA,
   form_method = "average",
   est_method = "glmnet",
   cand_method = "nn_xonly_avg",
@@ -31,6 +33,10 @@ chromatin_potential(
 \item{vec_start}{integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state}
 
 \item{list_end}{list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states}
+
+\item{mat_g_init}{(optional) initial estimate of the matrix of coefficients linking Modality 1 to Modality 2}
+
+\item{vec_g_init}{(optional) initial estimate of the vector of intercepts linking Modality 1 to Modality 2}
 
 \item{form_method}{string}
 
