@@ -1,8 +1,8 @@
 # assumes that mat_x and mat_y are normalized
-preparation <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
+chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                         dim_method = "pca", nn_method = "annoy",
                         form_method = "literal", est_method = "glmnet",
-                        cand_method = "nn_unmatched", rec_method = "distant_pearson", 
+                        cand_method = "nn_any", rec_method = "distant_pearson", 
                         options = list(), verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
             is.list(options))

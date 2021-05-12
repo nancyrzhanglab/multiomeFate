@@ -35,7 +35,7 @@ nearest_neighbor <- function(mat, nn_options){
   )
   
   nn_mat <- my_sapply(1:n, function(i){nn_obj$getNNsByItem(i-1, nn_options$nn+1)})
-  nn_mat <- t(nn_mat[-1,])
+  nn_mat <- t(nn_mat[-1,]+1) # since RcppAnnoy starts indexing with 0, and the entry itself is always included
   
   nn_mat
 }

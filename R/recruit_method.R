@@ -31,6 +31,7 @@
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
 .recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
+                          nn_mat, nn_obj, 
                           rec_options){
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
@@ -40,6 +41,9 @@
   
   if(rec_options[["method"]] == "nn_yonly"){
     res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, res_g, df_res, rec_options)
+  } else if(rec_options[["method"]] == "distant_pearson"){
+    res <- .recruit_next_distant_pearson(mat_x, mat_y, vec_cand, res_g, df_res, 
+                                         nn_mat, nn_obj, rec_options)
   } else {
     stop("Recruit method not found")
   }
@@ -63,7 +67,7 @@
   nn <- min(c(rec_options$nn, ceiling(length(vec_matched)/2)))
   
   # apply mat_g to mat_x
-  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
+  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
   # see which prediction is closest to mat_y[vec_matched,]
   # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
@@ -89,6 +93,55 @@
   list(rec = list(vec_from = vec_from, list_to = list_to),
        diagnostic = list_diagnos)
 }
+
+.recruit_next_distant_pearson <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
+                                          nn_mat, nn_obj, rec_options){
+  # apply mat_g to mat_x
+  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
+  
+  list_to <- lapply(1:length(vec_cand), function(i){
+    cell <- vec_cand[i]
+    nn_size <- ncol(nn_mat)
+    nn_cand <- nn_mat[cell, ]
+    nn_pred <- nn_obj$getNNsByVector(pred_y[i,], round(rec_options$inflation*nn_size)) + 1
+    
+    if(length(intersect(nn_pred[1:nn_size], nn_cand)) > 0) {
+      nn_pred <- nn_pred[1:nn_size]
+    }
+    
+    # find all nn's that aren't too close to cell itself
+    nn_pred <- intersect(nn_pred[1:nn_size], nn_cand)
+    stopifnot(length(nn_pred) > 0, !vec_cand[i] %in% nn_pred)
+    
+    # from this set of cells, find the ones with highest pearson
+    pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
+    pearson_vec <- sapply(nn_pred, function(j){
+      matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]
+      stats::cor(pred_diff, matched_diff, method = "pearson")
+    })
+    
+    idx <- nn_pred[which.max(pearson_vec)]
+    tmp <- intersect(nn_mat[idx, ], nn_cand)
+    if(length(tmp) >= rec_options$nn){
+      vec_to <- c(idx, tmp[1:rec_options$nn])
+    } else {
+      vec_to <- c(idx, tmp)
+    }
+   
+    vec_to
+  })
+  
+  # run the diagnostic
+  list_diagnos <- list() 
+  if(rec_options$run_diagnostic){
+    # nothing currently here
+  }
+  
+  list(rec = list(vec_from = vec_Cand, list_to = list_to),
+       diagnostic = list_diagnos)
+}
+
+##############################3
 
 .recruit_diagnostic_global <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
                                        res_rec, rec_options){
@@ -127,8 +180,8 @@
 
 #########################
 
-# [[note to self: I'm not sure about this function name, also, Poisson hard-coded right now]]
-.predict_yfromx <- function(mat_x, res_g){
+# [[note to self: I'm not sure about this function name]]
+.predict_yfromx <- function(mat_x, res_g, family){
   stopifnot(c("vec_g", "mat_g") %in% names(res_g))
   
   p2 <- ncol(res_g$mat_g)
@@ -139,5 +192,12 @@
     nat_param[,j] <- nat_param[,j] + res_g$vec_g[j]
   }
   
-  exp(nat_param)
+  if(family == "gaussian"){
+    nat_param
+  } else if(family == "poisson"){
+    exp(nat_param)
+  } else {
+    stop("family not found")
+  }
+  
 }

@@ -97,6 +97,8 @@
     if(intercept) x <- cbind(x,1)
     if(family == "poisson") {
       family_func <- stats::poisson()
+    } else if(family == "gaussian") {
+      family_func <- stats::gaussian()
     } else {
       stop("family not found")
     }

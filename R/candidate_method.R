@@ -26,11 +26,11 @@
 #'
 #' @return a list containing \code{vec_cand} (vector of integers between 1 and \code{nrow(mat_x)})
 #' and a list \code{diagnostic} for possible diagnostics
-.candidate_set <- function(mat_x, mat_y, res_g, df_res, cand_options){
-  if(cand_options[["method"]] == "nn_xonly_any"){
-    res <- .candidate_set_nn_xonly_any(mat_x, df_res, cand_options)
-  } else if(cand_options[["method"]] == "nn_xonly_avg"){
-    res <- .candidate_set_nn_xonly_avg(mat_x, df_res, cand_options)
+.candidate_set <- function(df_res, nn_mat, cand_options){
+  if(cand_options[["method"]] == "nn_any"){
+    res <- .candidate_set_nn_any(df_res, nn_mat, cand_options)
+  } else if(cand_options[["method"]] == "nn_freq"){
+    res <- .candidate_set_nn_freq(df_res, nn_mat, cand_options)
   } else if(cand_options[["method"]] == "all"){
     res <- .candidate_set_all(df_res, cand_options)
   } else {
@@ -47,20 +47,28 @@
 
 #######################
 
-.candidate_set_nn_xonly_any <- function(mat_x, df_res, cand_options){
-  # extract the indices already recruited
+.candidate_set_nn_any <- function(df_res, nn_mat, cand_options){
+  # extract the indices of cells recruited in the previous iteration
   n <- nrow(df_res)
   idx_free <- which(is.na(df_res$order_rec))
-  idx_rec <- which(!is.na(df_res$order_rec))
+  
+  if(cand_options$only_latest){
+    val <- max(df_res$order, na.rm = T)
+    idx_rec <- which(df_res$order_rec == val)
+  } else {
+    idx_rec <- which(!is.na(df_res$order_rec))
+  }
+ 
   nn <- min(cand_options$nn, length(idx_free))
   
   if(length(idx_free) == 0) return(list(vec_cand = numeric(0), diagnostic = list()))
   if(length(idx_free) <= cand_options$num_cand) return(list(vec_cand = idx_free, diagnostic = list()))
   
   # find the free points that are nearest neighbors to any of the recruited points
-  # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
-  res <- RANN::nn2(mat_x[idx_free,,drop = F], query = mat_x[idx_rec,,drop = F], 
-                   k = nn)
+  idx_nn <- unique(as.vector(nn_mat[idx_rec,]))
+  
+  vec_cand <- intersect(idx_nn, idx_free)
+  stopifnot(length(vec_cand) > 0)
   
   # run the diagnostic
   list_diagnos <- list() 
@@ -68,11 +76,10 @@
     # nothing currently here
   }
   
-  list(vec_cand = idx_free[sort(unique(as.numeric(res$nn.idx)))],
-       diagnostic = list_diagnos)
+  list(vec_cand = vec_cand, diagnostic = list_diagnos)
 }
 
-.candidate_set_nn_xonly_avg <- function(mat_x, df_res, cand_options){
+.candidate_set_nn_freq <- function(df_res, nn_mat, cand_options){
   # extract the indices already recruited
   n <- nrow(df_res)
   idx_free <- which(is.na(df_res$order_rec))
@@ -83,19 +90,10 @@
   nn <- min(cand_options$nn, length(idx_rec))
   
   # find the free points that are nearest neighbors to any of the recruited points
-  # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
-  res <- RANN::nn2(mat_x[idx_rec,,drop = F], query = mat_x[idx_free,,drop = F], 
-                   k = nn)
-  
-  if(cand_options$average == "mean"){
-    func <- mean
-  } else if(cand_options$average == "median"){
-    func <- stats::median
-  }else {
-    stop("Candidate method (option: 'average') not found")
-  }
-  
-  idx <- order(apply(res$nn.dist, 1, func), decreasing = F)[1:cand_options$num_cand]
+  res <- as.vector(nn_mat[idx_rec,])
+  res <- res[res %in% idx_free]
+  tab <- table(res); idx_order <- order(tab, decreasing = T)
+  vec_cand <- as.numeric(names(tab[idx_order][1:cand_options$num_cand]))
   
   # run the diagnostic
   list_diagnos <- list() 
@@ -103,7 +101,7 @@
     # nothing currently here
   }
   
-  list(vec_cand = idx_free[idx], diagnostic = list_diagnos)
+  list(vec_cand = vec_cand, diagnostic = list_diagnos)
 }
 
 .candidate_set_all <- function(df_res, cand_options){
