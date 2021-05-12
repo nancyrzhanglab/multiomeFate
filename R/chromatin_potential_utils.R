@@ -50,7 +50,7 @@
 .dim_options <- function(dim_method, options){
   prefix <- "dim"
   
-  if(form_method == "pca"){
+  if(dim_method == "pca"){
     list_default <- list(mean = T, sd = T, nlatent_x = 10, nlatent_y = 10)
     dim_options <- .fill_options(options, list_default, prefix)
   } 
@@ -62,7 +62,7 @@
 .nn_options <- function(nn_method, options){
   prefix <- "annoy"
   
-  if(form_method == "annoy"){
+  if(nn_method == "annoy"){
     list_default <- list(nn = 20, parallel = F, ntrees = 50, metric = "euclidean")
     nn_options <- .fill_options(options, list_default, prefix)
   } 

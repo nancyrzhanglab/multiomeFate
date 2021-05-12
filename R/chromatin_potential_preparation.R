@@ -49,3 +49,35 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
                  list_diagnos = list_diagnos, options = full_options),
             class = "chromatin_potential_prep")
 }
+
+#################################
+
+
+.init_chrom_df <- function(n, vec_start, list_end, cell_name){
+  stopifnot(all(vec_start %% 1 == 0), all(vec_start > 0), all(vec_start <= n))
+  stopifnot(all(sapply(list_end, function(vec){all(vec %% 1 == 0) & all(vec > 0) & all(vec <= n)})))
+  tmp <- c(vec_start, unlist(list_end))
+  stopifnot(length(tmp) == length(unique(tmp)))
+  
+  df_res <- data.frame(idx = 1:n, init_state = rep(NA, n), num_cand = rep(0, n),
+                       order_rec = rep(NA, n))
+  if(length(cell_name) == n) rownames(df_res) <- cell_name
+  
+  df_res$init_state[vec_start] <- -1
+  for(i in 1:length(list_end)){
+    df_res$init_state[list_end[[i]]] <- i
+    df_res$order_rec[list_end[[i]]] <- 0
+  }
+  
+  df_res
+}
+
+.init_chrom_ht <- function(list_end){
+  ht_neighbor <- hash::hash()
+  vec <- unlist(list_end)
+  for(i in vec){
+    ht_neighbor[[as.character(i)]] <- c(neighbor = i)
+  }
+  
+  ht_neighbor
+}
