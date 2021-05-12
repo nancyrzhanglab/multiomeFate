@@ -38,23 +38,25 @@
 #'
 #' @return object of class \code{chromatin_potential}
 #' @export
-chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
-                                mat_g_init = NA, vec_g_init = rep(0, ncol(mat_y)),
-                                form_method = "average", est_method = "glmnet",
-                                cand_method = "nn_xonly_avg", rec_method = "nn_yonly", 
-                                options = list(),
+chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, ncol(mat_y)),
                                 verbose = T){
+  # pull the appropriate objects for convenience
+  mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
+  df_x <- prep_obj$df_x; df_y <- prep_obj$df_y
+  df_res <- prep_obj$df_res; dim_reduc_obj <- prep_obj$dim_reduc_obj
+  ht_neighbor <- prep_obj$ht_neighbor
+  nn_mat <- prep_obj$nn_mat; nn_obj <- prep_obj$nn_obj
+  list_diagnos <- prep_obj$list_diagnos; options <- prep_obj$options
+  
+  dim_options <- options$dim_options; nn_options <- options$nn_options
+  form_options <- options$form_options; est_options <- options$est_options
+  cand_options <- options$cand_options; rec_options <- options$rec_options
   
   # initialize
-  tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
+  tmp <- .init_est_matrices(mat_x, mat_y, df_res)
   mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-  df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
-  ht_neighbor <- .init_chrom_ht(list_end)
   list_diagnos <- list()
   iter <- 1
-  if(est_options$enforce_cis){
-    est_options <- .gene_peak_map(df_x, df_y, est_options)
-  }
   
   # while:
   while(length(ht_neighbor) < n){
@@ -69,14 +71,14 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     }
    
     ## construct candidate set
-    res_cand <- .candidate_set(mat_x, mat_y, res_g, df_res, cand_options)
+    res_cand <- .candidate_set(mat_x, mat_y, df_res, nn_mat, cand_options)
     df_res <- .update_chrom_df_cand(df_res, res_cand$vec_cand)
     stopifnot(all(is.na(df_res$order_rec[res_cand$vec_cand])))
     list_diagnos[[as.character(iter)]]$candidate <- res_cand$diagnostic
     
     ## recruit an element from the candidate set
-    res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, 
-                         res_g, df_res, rec_options)
+    res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
+                             dim_reduc_obj, nn_mat, nn_obj, rec_options)
     stopifnot(all(is.na(df_res$order_rec[res_rec$rec$vec_from])))
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
@@ -84,7 +86,8 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
     tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
                                        res_rec$rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-    ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec$vec_from, res_rec$rec$list_to)
+    ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec$vec_from, 
+                                    res_rec$rec$list_to)
     df_res <- .update_chrom_df_rec(df_res, res_rec$rec$vec_from, iter)
     
     iter <- iter+1

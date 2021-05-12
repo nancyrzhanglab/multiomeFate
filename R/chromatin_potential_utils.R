@@ -38,7 +38,7 @@
   form_options <- .forming_options(form_method, options)
   est_options <- .estimation_options(est_method, options)
   cand_options <- .candidate_options(cand_method, options)
-  rec_options <- .recruit_options(rec_method, options)
+  rec_options <- .recruit_options(rec_method, est_options, options)
   
   list(dim_options = dim_options, nn_options = nn_options,
        form_options = form_options, est_options = est_options,
@@ -136,20 +136,26 @@
   cand_options
 }
 
-.recruit_options <- function(rec_method, options){
+.recruit_options <- function(rec_method, est_options, options){
   prefix <- "rec"
   
-  if(rec_method == "nn_yonly"){
-    list_default <- list(nn = 10, num_rec = 10, metric = "euclidean",
-                         average = "mean", run_diagnostic = T)
+  if(rec_method == "nn"){
+    list_default <- list(nn = 10, num_rec = 10, average = "mean", parallel = F, 
+                         run_diagnostic = T)
+    rec_options <- .fill_options(options, list_default, prefix)
+
+    stopifnot(rec_options$average %in% c("mean", "median"))
+    
+  } else if(rec_method == "distant_cor"){
+    list_default <- list(inflation = 1.5, method = "pearson", nn = 2, parallel = F, 
+                         run_diagnostic = T)
     rec_options <- .fill_options(options, list_default, prefix)
     
-    ## [note to self: seems like there's no metric in RANN]
-    stopifnot(rec_options$metric == "euclidean")
-    stopifnot(rec_options$average %in% c("mean", "median"))
-  }
+    stopifnot(rec_options$method %in% c("pearson", "spearman", "kendall"))
+  } 
   
   rec_options$method <- rec_method
+  rec_options$family <- est_options$family
   rec_options
 }
 

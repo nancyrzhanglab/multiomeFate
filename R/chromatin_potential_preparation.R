@@ -35,9 +35,17 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   # query each point's nn's
   nn_mat <- .query_nn(nn_obj, nn_options)
   
+  # initialize
+  df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
+  ht_neighbor <- .init_chrom_ht(list_end)
+  if(full_options$est_options$enforce_cis){
+    full_options$est_options <- .gene_peak_map(df_x, df_y, est_options)
+  }
+  
   structure(list(mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,
+                 df_res = df_res, ht_neighbor = ht_neighbor, 
                  dim_reduc_obj = dim_reduc_obj, 
-                 nn_obj = nn_obj, nn_mat = nn_mat,
-                 list_diagnos = list_diagnos),
+                 nn_mat = nn_mat, nn_obj = nn_obj, 
+                 list_diagnos = list_diagnos, options = full_options),
             class = "chromatin_potential_prep")
 }

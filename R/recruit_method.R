@@ -30,7 +30,7 @@
 #' a  vector of integers \code{vec_from} and a list
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
-.recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
+.recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, 
                           nn_mat, nn_obj, rec_options){
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
@@ -39,18 +39,17 @@
   stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(is.na(df_res$order_rec[vec_matched])))
   
   if(rec_options[["method"]] == "nn"){
-    res <- .recruit_next_nn(mat_x, vec_cand, res_g, df_res, nn_obj, rec_options)
+    res <- .recruit_next_nn(mat_x, vec_cand, res_g, df_res, dim_reduc_obj, nn_obj, 
+                            rec_options)
   } else if(rec_options[["method"]] == "distant_cor"){
     res <- .recruit_next_distant_cor(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                         nn_mat, nn_obj, rec_options)
+                                     dim_reduc_obj, nn_mat, nn_obj, rec_options)
   } else {
     stop("Recruit method not found")
   }
   
   if(rec_options$run_diagnostic){
-    res_diag <- .recruit_diagnostic_global(mat_x, mat_y, vec_cand, res_g, 
-                                          df_res, res, rec_options)
-    res$diagnostic$postprocess <- res_diag
+    res$diagnostic$postprocess <- NA
   }
 
   res
@@ -58,16 +57,26 @@
 
 ###################
 
-.recruit_next_nn <- function(mat_x, vec_cand, res_g, df_res, nn_obj, rec_options){
+.recruit_next_nn <- function(mat_x, vec_cand, res_g, df_res, dim_reduc_obj, nn_obj, 
+                             rec_options){
   num_rec <- min(rec_options$num_rec, length(vec_cand))
   nn <- min(c(rec_options$nn, ceiling(length(vec_target)/2)))
   
   # apply mat_g to mat_x
+  len <- length(vec_cand)
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
+  my_lapply <- ifelse(
+    test = !rec_options$parallel && future::nbrOfWorkers() == 1,
+    yes = pbapply::pblapply,
+    no = future.apply::future_lapply
+  )
+  
   # see which cells are closest to the prediction 
-  nn_res <- lapply(1:nrow(pred_y), function(i){
-    res <- nn_obj$getNNsByItemList(pred_y[i,], nn, search_k = -1, include_distances = T)
+  nn_res <- my_lapply(1:len, function(i){
+    vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
+             .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
+    res <- nn_obj$getNNsByItemList(vec, nn, search_k = -1, include_distances = T)
     res$item <- res$item+1
     
     if(i %in% res$item){
@@ -101,15 +110,25 @@
 }
 
 .recruit_next_distant_cor <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                          nn_mat, nn_obj, rec_options){
+                                      dim_reduc_obj, nn_mat, nn_obj, rec_options){
   # apply mat_g to mat_x
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
-  list_to <- lapply(1:length(vec_cand), function(i){
+  my_lapply <- ifelse(
+    test = !rec_options$parallel && future::nbrOfWorkers() == 1,
+    yes = pbapply::pblapply,
+    no = future.apply::future_lapply
+  )
+  
+  list_to <- my_lapply(1:length(vec_cand), function(i){
     cell <- vec_cand[i]
     nn_size <- ncol(nn_mat)
     nn_cand <- nn_mat[cell, ]
-    nn_pred <- nn_obj$getNNsByVector(pred_y[i,], round(rec_options$inflation*nn_size)) + 1
+  
+    vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
+             .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
+    
+    nn_pred <- nn_obj$getNNsByVector(vec, round(rec_options$inflation*nn_size)) + 1
     
     if(length(intersect(nn_pred[1:nn_size], nn_cand)) > 0) {
       nn_pred <- nn_pred[1:nn_size]
@@ -148,43 +167,6 @@
 }
 
 ##############################3
-
-.recruit_diagnostic_global <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                       res_rec, rec_options){
-  vec_matched <- which(!is.na(df_res$order_rec))
-  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
-  
-  nn <- min(c(rec_options$nn, nrow(mat_y)-1))
-  nn_res <- RANN::nn2(mat_y, query = pred_y, k = nn+1)
-  
-  mat_diag <- sapply(1:length(vec_cand), function(i){
-    tmp <- nn_res$nn.idx[i,]
-    tmp <- tmp[tmp != vec_cand[i]] # ignore loops to itself
-    stopifnot(length(tmp) > 0)
-    forward_num <- length(which(tmp %in% vec_matched))
-    current_num <- length(which(tmp %in% vec_cand))
-    backward_num <- length(tmp) - forward_num - current_num
-    
-    c(forward_num = forward_num, current_num = current_num, backward_num = backward_num)
-  })
-  
-  lis_nn <- lapply(1:length(vec_cand), function(i){
-    tmp <- nn_res$nn.idx[i,]
-    tmp[tmp != vec_cand[i]] # ignore loops to itself
-  })
-  names(lis_nn) <- as.character(vec_cand)
-  
-  selected <- vec_cand %in% res_rec$rec$vec_from
-  df_diag <- data.frame(idx = vec_cand, forward_num = mat_diag["forward_num",],
-             current_num = mat_diag["current_num",], 
-             backward_num = mat_diag["backward_num",],
-             selected = selected)
-  
-  list(df_diag = df_diag, lis_nn = lis_nn)
-  
-}
-
-#########################
 
 # [[note to self: I'm not sure about this function name]]
 .predict_yfromx <- function(mat_x, res_g, family){

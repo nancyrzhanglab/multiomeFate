@@ -7,11 +7,12 @@
 #'
 #' @return list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
 #' well as vector of indices \code{vec_matched}
-.init_est_matrices <- function(mat_x, mat_y, vec_start, list_end){
+.init_est_matrices <- function(mat_x, mat_y, df_res){
   stopifnot(nrow(mat_x) == nrow(mat_y))
   
   # initialize
-  vec_onlyend <- unlist(list_end)
+  vec_start <- which(df_res$init_state == -1)
+  vec_onlyend <- which(df_res$init_state > 0)
   vec <- c(vec_start, vec_onlyend)
   stopifnot(length(vec) == length(unique(vec)))
 
