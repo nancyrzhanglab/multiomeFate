@@ -31,18 +31,17 @@
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
 .recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
-                          nn_mat, nn_obj, 
-                          rec_options){
+                          nn_mat, nn_obj, rec_options){
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
   vec_matched <- which(!is.na(df_res$order_rec))
   stopifnot(!any(vec_cand %in% vec_matched))
   stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(is.na(df_res$order_rec[vec_matched])))
   
-  if(rec_options[["method"]] == "nn_yonly"){
-    res <- .recruit_next_nn_yonly(mat_x, mat_y, vec_cand, res_g, df_res, rec_options)
-  } else if(rec_options[["method"]] == "distant_pearson"){
-    res <- .recruit_next_distant_pearson(mat_x, mat_y, vec_cand, res_g, df_res, 
+  if(rec_options[["method"]] == "nn"){
+    res <- .recruit_next_nn(mat_x, vec_cand, res_g, df_res, nn_obj, rec_options)
+  } else if(rec_options[["method"]] == "distant_cor"){
+    res <- .recruit_next_distant_cor(mat_x, mat_y, vec_cand, res_g, df_res, 
                                          nn_mat, nn_obj, rec_options)
   } else {
     stop("Recruit method not found")
@@ -59,19 +58,26 @@
 
 ###################
 
-.recruit_next_nn_yonly <- function(mat_x, mat_y, vec_cand, res_g, df_res,
-                                    rec_options){
-  vec_matched <- which(!is.na(df_res$order_rec))
-  stopifnot(length(intersect(vec_matched, vec_cand)) == 0)
+.recruit_next_nn <- function(mat_x, vec_cand, res_g, df_res, nn_obj, rec_options){
   num_rec <- min(rec_options$num_rec, length(vec_cand))
-  nn <- min(c(rec_options$nn, ceiling(length(vec_matched)/2)))
+  nn <- min(c(rec_options$nn, ceiling(length(vec_target)/2)))
   
   # apply mat_g to mat_x
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
-  # see which prediction is closest to mat_y[vec_matched,]
-  # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
-  res <- RANN::nn2(mat_y[vec_matched,], query = pred_y, k = nn)
+  # see which cells are closest to the prediction 
+  nn_res <- lapply(1:nrow(pred_y), function(i){
+    res <- nn_obj$getNNsByItemList(pred_y[i,], nn, search_k = -1, include_distances = T)
+    res$item <- res$item+1
+    
+    if(i %in% res$item){
+      idx <- which(res$item == i)
+      res$item <- res$item[-i]; res$distance <- res$distance[-i]
+    }
+    
+    res
+  })
+  
   if(rec_options$average == "mean"){
     func <- mean
   } else if(rec_options$average == "median"){
@@ -80,7 +86,7 @@
     stop("Recruiting method (option: 'average') not found")
   }
   
-  idx <- order(apply(res$nn.dist, 1, func), decreasing = F)[1:num_rec]
+  idx <- order(sapply(nn_res, function(tmp){func(tmp$distance)}), decreasing = F)[1:num_rec]
   
   # run the diagnostic
   list_diagnos <- list() 
@@ -88,13 +94,13 @@
     # nothing currently here
   }
   
-  vec_from <- vec_cand[idx]
-  list_to <- lapply(idx, function(i){vec_matched[res$nn.idx[i,]]})
+  vec_from <- vec_cand[idx] 
+  list_to <- lapply(idx, function(i){nn_res[[i]]$item})
   list(rec = list(vec_from = vec_from, list_to = list_to),
        diagnostic = list_diagnos)
 }
 
-.recruit_next_distant_pearson <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
+.recruit_next_distant_cor <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
                                           nn_mat, nn_obj, rec_options){
   # apply mat_g to mat_x
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
@@ -117,7 +123,7 @@
     pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
     pearson_vec <- sapply(nn_pred, function(j){
       matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]
-      stats::cor(pred_diff, matched_diff, method = "pearson")
+      stats::cor(pred_diff, matched_diff, method = rec_options$method)
     })
     
     idx <- nn_pred[which.max(pearson_vec)]
@@ -137,7 +143,7 @@
     # nothing currently here
   }
   
-  list(rec = list(vec_from = vec_Cand, list_to = list_to),
+  list(rec = list(vec_from = vec_cand, list_to = list_to),
        diagnostic = list_diagnos)
 }
 

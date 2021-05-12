@@ -12,12 +12,15 @@
 #' @param options list
 #'
 #' @return list of 4 lists
-.chrom_options <- function(form_method, est_method, cand_method, rec_method, 
+.chrom_options <- function(dim_method, nn_method, form_method, est_method, 
+                           cand_method, rec_method, 
                            options){
+  stopifnot(dim_method %in% c("pca"))
+  stopifnot(nn_method %in% c("annoy"))
   stopifnot(form_method %in% c("literal", "average"))
   stopifnot(est_method %in% c("glmnet"))
-  stopifnot(cand_method %in% c("nn_xonly_any", "nn_xonly_avg", "all"))
-  stopifnot(rec_method %in% c("nn_yonly"))
+  stopifnot(cand_method %in% c("nn_any", "nn_freq", "all"))
+  stopifnot(rec_method %in% c("nn", "distant_cor"))
   stopifnot(is.list(options))
   
   idx <- grep("^form_*|^est_*|^cand_*|^rec_*", names(options))

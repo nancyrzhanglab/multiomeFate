@@ -26,7 +26,7 @@
 #'
 #' @return a list containing \code{vec_cand} (vector of integers between 1 and \code{nrow(mat_x)})
 #' and a list \code{diagnostic} for possible diagnostics
-.candidate_set <- function(df_res, nn_mat, cand_options){
+.candidate_set <- function(mat_x, mat_y, df_res, nn_mat, cand_options){
   if(cand_options[["method"]] == "nn_any"){
     res <- .candidate_set_nn_any(df_res, nn_mat, cand_options)
   } else if(cand_options[["method"]] == "nn_freq"){

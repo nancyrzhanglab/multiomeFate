@@ -2,7 +2,7 @@
 chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                         dim_method = "pca", nn_method = "annoy",
                         form_method = "literal", est_method = "glmnet",
-                        cand_method = "nn_any", rec_method = "distant_pearson", 
+                        cand_method = "nn_any", rec_method = "distant_cor", 
                         options = list(), verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
             is.list(options))
@@ -10,7 +10,8 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
   
   # check all the options
-  full_options <- .chrom_options(form_method, est_method, 
+  full_options <- .chrom_options(dim_method, nn_method,
+                                 form_method, est_method, 
                                  cand_method, rec_method, 
                                  options)
   dim_options <- full_options$dim_options; nn_options <- full_options$nn_options
