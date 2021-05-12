@@ -12,7 +12,15 @@ nearest_neighbor <- function(mat, nn_options){
 
 .nearest_neighbor_annoy <- function(mat, nn_options){
   p <- ncol(mat); n <- nrow(mat)
-  nn_obj <- new(RcppAnnoy::AnnoyEuclidean, p)
+  if(nn_options$metric == "euclidean"){
+    nn_obj <- new(RcppAnnoy::AnnoyEuclidean, p)
+  } else if(nn_options$metric == "cosine"){
+    nn_obj <- new(RcppAnnoy::AnnoyAngular, p)
+  } else if(nn_options$metric == "manhattan"){
+    nn_obj <- new(RcppAnnoy::AnnoyManhattan, p)
+  } else if(nn_options$metric == "hamming"){
+    nn_obj <- new(RcppAnnoy::AnnoyHamming, p)
+  } 
   
   for(i in 1:n){
     nn_obj$addItem(i-1, mat[i,])
@@ -29,7 +37,7 @@ nearest_neighbor <- function(mat, nn_options){
   n <- nn_obj$getNItems()
   
   my_sapply <- ifelse(
-    test = nn_options$verbose && future::nbrOfWorkers() == 1,
+    test = !nn_options$parallel && future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
     no = future.apply::future_sapply
   )

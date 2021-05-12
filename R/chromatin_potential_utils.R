@@ -33,14 +33,45 @@
   }
   
   ## [note to self: I should check the type (num,char,bool) of all the options]
+  dim_options <- .dim_options(dim_method, options)
+  nn_options <- .nn_options(nn_method, options)
   form_options <- .forming_options(form_method, options)
   est_options <- .estimation_options(est_method, options)
   cand_options <- .candidate_options(cand_method, options)
   rec_options <- .recruit_options(rec_method, options)
   
-  list(form_options = form_options, est_options = est_options,
+  list(dim_options = dim_options, nn_options = nn_options,
+       form_options = form_options, est_options = est_options,
        cand_options = cand_options, rec_options = rec_options)
 }
+
+##############
+
+.dim_options <- function(dim_method, options){
+  prefix <- "dim"
+  
+  if(form_method == "pca"){
+    list_default <- list(mean = T, sd = T, nlatent_x = 10, nlatent_y = 10)
+    dim_options <- .fill_options(options, list_default, prefix)
+  } 
+  
+  dim_options$method <- dim_method
+  dim_options
+}
+
+.nn_options <- function(nn_method, options){
+  prefix <- "annoy"
+  
+  if(form_method == "annoy"){
+    list_default <- list(nn = 20, parallel = F, ntrees = 50, metric = "euclidean")
+    nn_options <- .fill_options(options, list_default, prefix)
+  } 
+  
+  nn_options$method <- nn_method
+  nn_options
+}
+
+##############
 
 .forming_options <- function(form_method, options){
   prefix <- "form"
@@ -63,7 +94,7 @@
 
   if(est_method == "glmnet"){
     
-    list_default <- list(family = "poisson", 
+    list_default <- list(family = "gaussian", 
                          enforce_cis = T, cis_window = 200,
                          switch = F, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = F,
@@ -82,23 +113,19 @@
   est_options
 }
 
+#########
+
 .candidate_options <- function(cand_method, options){
   prefix <- "cand"
   
-  if(cand_method == "nn_xonly_any"){
-    list_default <- list(num_cand = 10, metric = "euclidean", run_diagnostic = T)
+  if(cand_method == "nn_any"){
+    list_default <- list(num_cand = 10, only_latest = T, run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
     
-    ## [note to self: seems like there's no metric in RANN]
-    stopifnot(cand_options$metric == "euclidean")
-    
-  } else if(cand_method == "nn_xonly_avg"){
-    list_default <- list(nn = 10, num_cand = 30, metric = "euclidean",
-                         average = "mean", run_diagnostic = T)
+  } else if(cand_method == "nn_freq"){
+    list_default <- list(num_cand = 30, run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
-    
-    ## [note to self: seems like there's no metric in RANN]
-    stopifnot(cand_options$metric == "euclidean")
+  
     
   } else if(cand_method == "all"){
     list_default <- list(run_diagnostic = T)

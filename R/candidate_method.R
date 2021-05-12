@@ -49,7 +49,6 @@
 
 .candidate_set_nn_any <- function(df_res, nn_mat, cand_options){
   # extract the indices of cells recruited in the previous iteration
-  n <- nrow(df_res)
   idx_free <- which(is.na(df_res$order_rec))
   
   if(cand_options$only_latest){
@@ -59,8 +58,6 @@
     idx_rec <- which(!is.na(df_res$order_rec))
   }
  
-  nn <- min(cand_options$nn, length(idx_free))
-  
   if(length(idx_free) == 0) return(list(vec_cand = numeric(0), diagnostic = list()))
   if(length(idx_free) <= cand_options$num_cand) return(list(vec_cand = idx_free, diagnostic = list()))
   
@@ -81,13 +78,11 @@
 
 .candidate_set_nn_freq <- function(df_res, nn_mat, cand_options){
   # extract the indices already recruited
-  n <- nrow(df_res)
   idx_free <- which(is.na(df_res$order_rec))
   idx_rec <- which(!is.na(df_res$order_rec))
   
   if(length(idx_free) == 0) return(list(vec_cand = numeric(0), diagnostic = list()))
   if(length(idx_free) <= cand_options$num_cand) return(list(vec_cand = idx_free, diagnostic = list()))
-  nn <- min(cand_options$nn, length(idx_rec))
   
   # find the free points that are nearest neighbors to any of the recruited points
   res <- as.vector(nn_mat[idx_rec,])
