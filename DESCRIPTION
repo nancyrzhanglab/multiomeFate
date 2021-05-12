@@ -16,7 +16,10 @@ Imports:
     Seurat,
     clplite,
     RANN,
-    RcppAnnoy
+    RcppAnnoy,
+    pbapply,
+    future,
+    future.apply
 Suggests:
     testthat
 RoxygenNote: 7.1.1
