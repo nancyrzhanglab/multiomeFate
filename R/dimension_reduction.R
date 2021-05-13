@@ -15,7 +15,7 @@ dimension_reduction <- function(mat, mode, dim_options){
 .dimension_reduction_pca <- function(mat, mode, dim_options){
   ## [[note to self: only this sparse class is supported currently. Shouldn't be
   ## too hard to extend to other sparse classes though]]
-  bool_sparse <- class(mat) == "dgCMatrix"
+  bool_sparse <- any(class(mat) == "dgCMatrix")
   
   if(dim_options$mean){
     if(bool_sparse){
@@ -39,12 +39,10 @@ dimension_reduction <- function(mat, mode, dim_options){
     
   svd_res <- irlba::irlba(mat, nv = ifelse(mode == "x", dim_options$nlatent_x, dim_options$nlatent_y), 
                           center = vec_mean, scale = vec_sd)
-  vec_sing <- svd_res$d; vec_sing <- vec_sing/vec_sing[1]
-  dimred <- .mult_mat_vec(svd_res$u, vec_sing)
-  
+  dimred <- .mult_mat_vec(svd_res$u, svd_res$d/svd_res$d[1])
   
   list(dimred = dimred, vec_mean = vec_mean, vec_sd = vec_sd, 
-       mat_proj = .mult_mat_vec(svd_res$v, vec_sing))
+       mat_proj = .mult_mat_vec(svd_res$v, rep(1/svd_res$d[1], ncol(svd_res$v))))
 }
 
 ####################
@@ -54,11 +52,11 @@ dimension_reduction <- function(mat, mode, dim_options){
     stopifnot(length(vec) == length(dim_reduc_obj$x_mean))
     
     vec <- (vec - dim_reduc_obj$x_mean)/dim_reduc_obj$x_sd
-    as.numeric(dim_reduc_obj$x_proj %*% vec)
+    as.numeric(vec %*% dim_reduc_obj$x_proj)
   } else {
     stopifnot(length(vec) == length(dim_reduc_obj$y_mean))
     
     vec <- (vec - dim_reduc_obj$y_mean)/dim_reduc_obj$y_sd
-    as.numeric(dim_reduc_obj$y_proj %*% vec)
+    as.numeric(vec %*% dim_reduc_obj$y_proj)
   }
 }

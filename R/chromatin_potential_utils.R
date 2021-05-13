@@ -23,7 +23,7 @@
   stopifnot(rec_method %in% c("nn", "distant_cor"))
   stopifnot(is.list(options))
   
-  idx <- grep("^form_*|^est_*|^cand_*|^rec_*", names(options))
+  idx <- grep("^dim_*|^nn_*|^form_*|^est_*|^cand_*|^rec_*", names(options))
   if(length(idx) != length(options)){
     if(length(idx) == 0){
       warning("Option ", paste0(names(options), collapse = " and "), " not used.")
