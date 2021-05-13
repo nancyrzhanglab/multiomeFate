@@ -53,6 +53,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   cand_options <- options$cand_options; rec_options <- options$rec_options
   
   # initialize
+  n <- nrow(mat_x)
   tmp <- .init_est_matrices(mat_x, mat_y, df_res)
   mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
   list_diagnos <- list()
@@ -77,7 +78,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     list_diagnos[[as.character(iter)]]$candidate <- res_cand$diagnostic
     
     ## recruit an element from the candidate set
-    enforce_matched <- length(which(df_res$order_rec > 1)) > length(which(df_res$order_rec == 1))
+    enforce_matched <- length(which(df_res$order_rec == 0)) > length(which(df_res$order_rec > 0))
     res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
                              dim_reduc_obj, nn_mat, nn_obj, enforce_matched,
                              rec_options)
@@ -89,7 +90,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
                                        res_rec$rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
     ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec$vec_from, 
-                                    res_rec$rec$list_to)
+                                    res_rec$rec$list_to, enforce_matched)
     df_res <- .update_chrom_df_rec(df_res, res_rec$rec$vec_from, iter)
     
     iter <- iter+1
@@ -99,7 +100,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   structure(list(res_g = res_g, mat_x = mat_x, mat_y = mat_y, 
                  df_x = df_x, df_y = df_y,  df_res = df_res, 
                  ht_neighbor = ht_neighbor, 
-                 list_diagnos = list_diagnos, options = full_options),
+                 list_diagnos = list_diagnos, options = options),
        class = "chromatin_potential")
 }
 
@@ -116,9 +117,11 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   df_res
 }
 
-.update_chrom_ht <- function(ht_neighbor, vec_from, list_to){
-  tmp <- as.character(unlist(list_to))
-  stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
+.update_chrom_ht <- function(ht_neighbor, vec_from, list_to, enforce_matched){
+  if(enforce_matched) {
+    tmp <- as.character(unlist(list_to))
+    stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
+  }
   
   for(i in 1:length(vec_from)){
     ht_neighbor[[as.character(vec_from[i])]] <- list_to[[i]]

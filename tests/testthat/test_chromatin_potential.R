@@ -1,6 +1,5 @@
 context("Test chromatin potential")
 
-
 ## .update_chrom_df_cand is correct
 
 test_that(".update_chrom_df_cand works", {
@@ -54,8 +53,9 @@ test_that("chromatin potential works", {
   list_end <- list(which(dat$df_info$time >= 0.9))
   
   set.seed(10)
-  res <- chromatin_potential(dat$obs_x, dat$obs_y, dat$df_x, dat$df_y,
-                             vec_start, list_end, verbose = F)
+  prep_obj <-  chromatin_potential_prepare(dat$obs_x, dat$obs_y, df$df_x, df$df_y,
+                                      vec_start, list_end)
+  res <- chromatin_potential(prep_obj, verbose = F)
   
   n <- nrow(dat$obs_x)
   expect_true(class(res) == "chromatin_potential")
@@ -70,5 +70,6 @@ test_that("chromatin potential works", {
   expect_true(length(res$ht_neighbor) == n)
   expect_true(class(res$ht_neighbor) == "hash")
   expect_true(is.list(res$options))
-  expect_true(all(sort(names(res$options)) == sort(c("form_options", "est_options", "rec_options", "cand_options"))))
+  expect_true(all(sort(names(res$options)) == sort(c("form_options", "est_options", "rec_options", "cand_options",
+                                                     "dim_options", "nn_options"))))
 })

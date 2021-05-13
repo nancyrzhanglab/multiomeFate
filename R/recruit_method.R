@@ -96,7 +96,7 @@
     # only match a cell to another previously-matched cell
     } else {
       tmp <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)
-      res <- list(item = tmp$nn.idx[1,], distance = tmp$nn.dist[1,])
+      res <- list(item = matched_idx[tmp$nn.idx[1,]], distance = tmp$nn.dist[1,])
     }
     
     if(i %in% res$item){
@@ -169,6 +169,7 @@
     # only match a cell to another previously-matched cell  
     } else {
       nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
+      nn_pred <- matched_idx[nn_pred]
     }
     
     if(length(setdiff(nn_pred[1:nn_size], nn_cand)) > 0) {

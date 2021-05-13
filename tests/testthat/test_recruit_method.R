@@ -75,6 +75,9 @@ test_that(".recruit_next_nn works", {
   expect_true(length(res$rec$vec_from) == length(res$rec$list_to))
   expect_true(is.list(res$rec$list_to))
   expect_true(length(res$rec$vec_from) == options$rec_options$num_rec)
+  for(i in 1:length(res$rec$list_to)){
+    expect_true(any(!is.na(df_res$order_rec[res$rec$list_to[[i]]])))
+  }
 })
 
 #########################
@@ -129,6 +132,9 @@ test_that(".recruit_next_distant_cor works", {
   expect_true(length(res$rec$vec_from) == length(res$rec$list_to))
   expect_true(is.list(res$rec$list_to))
   expect_true(length(res$rec$vec_from) == length(res_cand$vec_cand))
+  for(i in 1:length(res$rec$list_to)){
+    expect_true(any(!is.na(df_res$order_rec[res$rec$list_to[[i]]])))
+  }
 })
 
 #################
