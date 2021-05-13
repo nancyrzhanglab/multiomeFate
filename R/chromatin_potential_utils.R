@@ -60,10 +60,11 @@
 }
 
 .nn_options <- function(nn_method, options){
-  prefix <- "annoy"
+  prefix <- "nn"
   
   if(nn_method == "annoy"){
-    list_default <- list(nn = 20, parallel = F, ntrees = 50, metric = "euclidean")
+    list_default <- list(nn = 20, parallel = F, ntrees = 50, metric = "euclidean",
+                         verbose = F)
     nn_options <- .fill_options(options, list_default, prefix)
   } 
   

@@ -76,7 +76,7 @@
   nn_res <- my_lapply(1:len, function(i){
     vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
              .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
-    res <- nn_obj$getNNsByItemList(vec, nn, search_k = -1, include_distances = T)
+    res <- nn_obj$getNNsByVectorList(vec, nn, search_k = -1, include_distances = T)
     res$item <- res$item+1
     
     if(i %in% res$item){
