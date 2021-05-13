@@ -4,8 +4,8 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
                         form_method = "literal", est_method = "glmnet",
                         cand_method = "nn_any", rec_method = "distant_cor", 
                         options = list(), verbose = T){
-  stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
-            is.list(options))
+  stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), 
+            ncol(mat_y) == nrow(df_y), is.list(options))
   stopifnot(all(mat_x >= 0), all(mat_y >= 0))
   n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
   
@@ -36,15 +36,16 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   nn_mat <- .query_nn(nn_obj, nn_options)
   
   # initialize
+  list_diagnos <- list()
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   ht_neighbor <- .init_chrom_ht(list_end)
   if(full_options$est_options$enforce_cis){
-    full_options$est_options <- .gene_peak_map(df_x, df_y, est_options)
+    full_options$est_options <- .gene_peak_map(df_x, df_y, full_options$est_options)
   }
   
   structure(list(mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,
-                 df_res = df_res, ht_neighbor = ht_neighbor, 
-                 dim_reduc_obj = dim_reduc_obj, 
+                 df_res = df_res, dim_reduc_obj = dim_reduc_obj, 
+                 ht_neighbor = ht_neighbor, 
                  nn_mat = nn_mat, nn_obj = nn_obj, 
                  list_diagnos = list_diagnos, options = full_options),
             class = "chromatin_potential_prep")
