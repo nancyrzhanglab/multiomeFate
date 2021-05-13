@@ -61,3 +61,10 @@ dimension_reduction <- function(mat, mode, dim_options){
     as.numeric(vec %*% dim_reduc_obj$y_proj)
   }
 }
+
+.apply_dimred_mat <- function(mat, mode, dim_reduc_obj){
+  n <- nrow(mat)
+  t(sapply(1:n, function(i){
+    .apply_dimred(mat[i,], mode, dim_reduc_obj)
+  }))
+}

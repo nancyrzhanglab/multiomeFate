@@ -31,7 +31,7 @@
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
 .recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, 
-                          nn_mat, nn_obj, rec_options){
+                          nn_mat, nn_obj, enforce_matched, rec_options){
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
   vec_matched <- which(!is.na(df_res$order_rec))
@@ -39,11 +39,12 @@
   stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(is.na(df_res$order_rec[vec_matched])))
   
   if(rec_options[["method"]] == "nn"){
-    res <- .recruit_next_nn(mat_x, vec_cand, res_g, df_res, dim_reduc_obj, nn_obj, 
-                            rec_options)
+    res <- .recruit_next_nn(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, 
+                            nn_obj, enforce_matched, rec_options)
   } else if(rec_options[["method"]] == "distant_cor"){
     res <- .recruit_next_distant_cor(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                     dim_reduc_obj, nn_mat, nn_obj, rec_options)
+                                     dim_reduc_obj, nn_mat, nn_obj, enforce_matched, 
+                                     rec_options)
   } else {
     stop("Recruit method not found")
   }
@@ -56,28 +57,47 @@
 }
 
 ###################
+# [[note to self: a lot of these routines should be refactored...]]
 
-.recruit_next_nn <- function(mat_x, vec_cand, res_g, df_res, dim_reduc_obj, nn_obj, 
-                             rec_options){
+.recruit_next_nn <- function(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, nn_obj, 
+                             enforce_matched, rec_options){
   num_rec <- min(rec_options$num_rec, length(vec_cand))
-  nn <- min(c(rec_options$nn, ceiling(nrow(mat_x)/2)))
   
   # apply mat_g to mat_x
   len <- length(vec_cand)
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
+  # initialize variables for the loop
   my_lapply <- ifelse(
     test = !rec_options$parallel && future::nbrOfWorkers() == 1,
     yes = pbapply::pblapply,
     no = future.apply::future_lapply
   )
+  if(enforce_matched){
+    matched_idx <- which(!is.na(df_res$order_rec))
+    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], mode = "x", dim_reduc_obj)
+    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], mode = "y", dim_reduc_obj)
+    matched_mat <- cbind(matched_x, matched_y)
+    nn <- min(c(rec_options$nn, sum(!is.na(df_res$order_rec))))
+  } else {
+    nn <- min(c(rec_options$nn, ceiling(nrow(mat_x)/2)))
+  }
   
   # see which cells are closest to the prediction 
   nn_res <- my_lapply(1:len, function(i){
     vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
              .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
-    res <- nn_obj$getNNsByVectorList(vec, nn, search_k = -1, include_distances = T)
-    res$item <- res$item+1
+    
+    # allow cell to be matched to any other cell
+    if(!enforce_matched){
+      res <- nn_obj$getNNsByVectorList(vec, nn, search_k = -1, include_distances = T)
+      res$item <- res$item+1
+     
+    # only match a cell to another previously-matched cell
+    } else {
+      tmp <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)
+      res <- list(item = tmp$nn.idx[1,], distance = tmp$nn.dist[1,])
+    }
     
     if(i %in% res$item){
       idx <- which(res$item == i)
@@ -110,35 +130,56 @@
 }
 
 .recruit_next_distant_cor <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                      dim_reduc_obj, nn_mat, nn_obj, rec_options){
+                                      dim_reduc_obj, nn_mat, nn_obj, 
+                                      enforce_matched, rec_options){
+  nn_size <- ncol(nn_mat)
+  
   # apply mat_g to mat_x
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
+  # initialize variables for the loop
   my_lapply <- ifelse(
     test = !rec_options$parallel && future::nbrOfWorkers() == 1,
     yes = pbapply::pblapply,
     no = future.apply::future_lapply
   )
+  if(enforce_matched){
+    matched_idx <- which(!is.na(df_res$order_rec))
+    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], mode = "x", dim_reduc_obj)
+    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], mode = "y", dim_reduc_obj)
+    matched_mat <- cbind(matched_x, matched_y)
+    
+    matched_idx <- which(!is.na(df_res$order_rec))
+    nn <- min(round(rec_options$inflation*nn_size), length(matched_idx))
+  } else {
+    nn <- min(round(rec_options$inflation*nn_size), ceiling(nrow(mat_x)/2))
+  }
   
   list_to <- my_lapply(1:length(vec_cand), function(i){
     cell <- vec_cand[i]
-    nn_size <- ncol(nn_mat)
     nn_cand <- c(nn_mat[cell, ], cell)
   
     vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
              .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
   
-    nn_pred <- nn_obj$getNNsByVector(vec, round(rec_options$inflation*nn_size)) + 1
+    # allow cell to be matched to any other cell
+    if(!enforce_matched){
+      nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
+      
+    # only match a cell to another previously-matched cell  
+    } else {
+      nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
+    }
     
     if(length(setdiff(nn_pred[1:nn_size], nn_cand)) > 0) {
       nn_pred <- nn_pred[1:nn_size]
     }
     
     # find all nn's that aren't too close to cell itself
-    nn_pred <- setdiff(nn_pred, nn_cand)
-    stopifnot(length(nn_pred) > 0, !cell %in% nn_pred)
+    if(length(setdiff(nn_pred, nn_cand)) > 0) nn_pred <- setdiff(nn_pred, nn_cand)
     
     # from this set of cells, find the ones with highest pearson
+    # [[note to self: this should be refactored out]]
     pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
     cor_vec <- sapply(nn_pred, function(j){
       matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]

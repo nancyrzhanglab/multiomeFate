@@ -46,14 +46,28 @@ test_that(".recruit_next_nn works", {
                                      vec_start, list_end, rec_method = "nn",
                                      options = list(rec_num_rec = 5))
   df_res <- prep_obj$df_res; nn_mat <- prep_obj$nn_mat
-  mat_x <- prep_obj$mat_x; dim_reduc_obj <- prep_obj$dim_reduc_obj
+  mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
+  dim_reduc_obj <- prep_obj$dim_reduc_obj
   nn_obj <- prep_obj$nn_obj; options <- prep_obj$options
   res_g <- list(mat_g = mat_g, vec_g = rep(0, p2))
   
   res_cand <- .candidate_set_nn_any(prep_obj$df_res, prep_obj$nn_mat, options$cand_options)
   
-  res <- .recruit_next_nn(mat_x, res_cand$vec_cand, res_g, df_res, 
-                          dim_reduc_obj, nn_obj, options$rec_options)
+  res <- .recruit_next_nn(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
+                          dim_reduc_obj, nn_obj, enforce_matched = F,
+                          options$rec_options)
+  
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("rec", "diagnostic"))))
+  expect_true(all(sort(names(res$rec)) == sort(c("vec_from", "list_to"))))
+  expect_true(length(res$rec$vec_from) == length(res$rec$list_to))
+  expect_true(is.list(res$rec$list_to))
+  expect_true(length(res$rec$vec_from) == options$rec_options$num_rec)
+  
+  # works with enforce_matched
+  res <- .recruit_next_nn(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
+                          dim_reduc_obj, nn_obj, enforce_matched = T,
+                          options$rec_options)
   
   expect_true(is.list(res))
   expect_true(all(sort(names(res)) == sort(c("rec", "diagnostic"))))
@@ -94,7 +108,19 @@ test_that(".recruit_next_distant_cor works", {
   res_cand <- .candidate_set_nn_any(prep_obj$df_res, prep_obj$nn_mat, options$cand_options)
   
   res <- .recruit_next_distant_cor(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
-                                   dim_reduc_obj, nn_mat, nn_obj,  
+                                   dim_reduc_obj, nn_mat, nn_obj, enforce_matched = F,
+                                   options$rec_options)
+  
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("rec", "diagnostic"))))
+  expect_true(all(sort(names(res$rec)) == sort(c("vec_from", "list_to"))))
+  expect_true(length(res$rec$vec_from) == length(res$rec$list_to))
+  expect_true(is.list(res$rec$list_to))
+  expect_true(length(res$rec$vec_from) == length(res_cand$vec_cand))
+  
+  # works with enforce_matched
+  res <- .recruit_next_distant_cor(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
+                                   dim_reduc_obj, nn_mat, nn_obj, enforce_matched = T,
                                    options$rec_options)
   
   expect_true(is.list(res))
@@ -136,7 +162,7 @@ test_that(".recruit_next works", {
   res_cand <- .candidate_set_nn_any(prep_obj$df_res, prep_obj$nn_mat, options$cand_options)
     
   res <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, dim_reduc_obj, 
-                       nn_mat, nn_obj, options$rec_options)
+                       nn_mat, nn_obj, enforce_matched = F, options$rec_options)
   
   expect_true(all(sort(names(res)) == sort(c("rec", "diagnostic"))))
   expect_true("postprocess" %in% names(res$diagnostic))

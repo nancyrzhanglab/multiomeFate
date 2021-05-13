@@ -77,8 +77,10 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     list_diagnos[[as.character(iter)]]$candidate <- res_cand$diagnostic
     
     ## recruit an element from the candidate set
+    enforce_matched <- length(which(df_res$order_rec > 1)) > length(which(df_res$order_rec == 1))
     res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
-                             dim_reduc_obj, nn_mat, nn_obj, rec_options)
+                             dim_reduc_obj, nn_mat, nn_obj, enforce_matched,
+                             rec_options)
     stopifnot(all(is.na(df_res$order_rec[res_rec$rec$vec_from])))
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
