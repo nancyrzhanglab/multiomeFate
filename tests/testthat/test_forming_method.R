@@ -9,8 +9,10 @@ test_that(".init_est_matrices works", {
   mat_y <- matrix(runif(n*p2), n, p2)
   vec_start <- 1:10
   list_end <- list(80:90, 91:100)
+  cell_name <- paste0("n", 1:n)
+  df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   
-  res <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
+  res <- .init_est_matrices(mat_x, mat_y, df_res)
   
   expect_true(all(sort(names(res)) == sort(c("mat_x1", "mat_y2"))))
   len <- length(c(vec_start, unlist(list_end)))

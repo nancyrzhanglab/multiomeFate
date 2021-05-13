@@ -73,7 +73,7 @@
     # nothing currently here
   }
   
-  list(vec_cand = vec_cand, diagnostic = list_diagnos)
+  list(vec_cand = sort(vec_cand), diagnostic = list_diagnos)
 }
 
 .candidate_set_nn_freq <- function(df_res, nn_mat, cand_options){
@@ -96,7 +96,7 @@
     # nothing currently here
   }
   
-  list(vec_cand = vec_cand, diagnostic = list_diagnos)
+  list(vec_cand = sort(vec_cand), diagnostic = list_diagnos)
 }
 
 .candidate_set_all <- function(df_res, cand_options){

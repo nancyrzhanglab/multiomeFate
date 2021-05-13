@@ -21,6 +21,7 @@
   mat * rep(vec, rep(nrow(mat), length(vec)))
 }
 
+# [[note to self: clean this function up]]
 .svd_truncated <- function(mat, K, K_full_rank, vec_mean, vec_sd){
   if(is.na(K)) K <- min(dim(mat))
   stopifnot(min(dim(mat)) >= K)

@@ -148,7 +148,7 @@
     stopifnot(rec_options$average %in% c("mean", "median"))
     
   } else if(rec_method == "distant_cor"){
-    list_default <- list(inflation = 1.5, method = "pearson", nn = 2, parallel = F, 
+    list_default <- list(inflation = 1.5, cor_method = "pearson", nn = 2, parallel = F, 
                          run_diagnostic = T)
     rec_options <- .fill_options(options, list_default, prefix)
     

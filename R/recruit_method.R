@@ -60,7 +60,7 @@
 .recruit_next_nn <- function(mat_x, vec_cand, res_g, df_res, dim_reduc_obj, nn_obj, 
                              rec_options){
   num_rec <- min(rec_options$num_rec, length(vec_cand))
-  nn <- min(c(rec_options$nn, ceiling(length(vec_target)/2)))
+  nn <- min(c(rec_options$nn, ceiling(nrow(mat_x)/2)))
   
   # apply mat_g to mat_x
   len <- length(vec_cand)
@@ -123,30 +123,30 @@
   list_to <- my_lapply(1:length(vec_cand), function(i){
     cell <- vec_cand[i]
     nn_size <- ncol(nn_mat)
-    nn_cand <- nn_mat[cell, ]
+    nn_cand <- c(nn_mat[cell, ], cell)
   
     vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
              .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
-    
+  
     nn_pred <- nn_obj$getNNsByVector(vec, round(rec_options$inflation*nn_size)) + 1
     
-    if(length(intersect(nn_pred[1:nn_size], nn_cand)) > 0) {
+    if(length(setdiff(nn_pred[1:nn_size], nn_cand)) > 0) {
       nn_pred <- nn_pred[1:nn_size]
     }
     
     # find all nn's that aren't too close to cell itself
-    nn_pred <- intersect(nn_pred[1:nn_size], nn_cand)
-    stopifnot(length(nn_pred) > 0, !vec_cand[i] %in% nn_pred)
+    nn_pred <- setdiff(nn_pred, nn_cand)
+    stopifnot(length(nn_pred) > 0, !cell %in% nn_pred)
     
     # from this set of cells, find the ones with highest pearson
     pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
-    pearson_vec <- sapply(nn_pred, function(j){
+    cor_vec <- sapply(nn_pred, function(j){
       matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]
-      stats::cor(pred_diff, matched_diff, method = rec_options$method)
+      stats::cor(pred_diff, matched_diff, method = rec_options$cor_method)
     })
     
-    idx <- nn_pred[which.max(pearson_vec)]
-    tmp <- intersect(nn_mat[idx, ], nn_cand)
+    idx <- nn_pred[which.max(cor_vec)]
+    tmp <- setdiff(nn_mat[idx, ], nn_cand)
     if(length(tmp) >= rec_options$nn){
       vec_to <- c(idx, tmp[1:rec_options$nn])
     } else {
