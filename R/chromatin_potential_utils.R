@@ -29,7 +29,7 @@
   form_options <- .forming_options(form_method, options)
   est_options <- .estimation_options(est_method, options)
   cand_options <- .candidate_options(cand_method, options)
-  rec_options <- .recruit_options(rec_method, options)
+  rec_options <- multiomeFate:::.recruit_options(rec_method, options)
   
   list(form_options = form_options, est_options = est_options,
        cand_options = cand_options, rec_options = rec_options)
@@ -100,9 +100,9 @@
   prefix <- "rec"
   
   if(rec_method == "nn_yonly"){
-    list_default <- list(nn = 10, num_rec = 10, metric = "euclidean",
+    list_default <- list(nn = 10, num_rec = 10, search_num=100, metric = "euclidean",
                          average = "mean", run_diagnostic = T)
-    rec_options <- .fill_options(options, list_default, prefix)
+    rec_options <- multiomeFate:::.fill_options(options, list_default, prefix)
     
     ## [note to self: seems like there's no metric in RANN]
     stopifnot(rec_options$metric == "euclidean")

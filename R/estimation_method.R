@@ -97,7 +97,8 @@
     if(family == "poisson") {
       family_func <- stats::poisson()
     } else {
-      stop("family not found")
+      #stop("family not found")
+      family_func <- stats::gaussian()
     }
     res <- stats::glm.fit(x, y, family = family_func, intercept = F)
     vec_coef <- res$coefficients[1:p]

@@ -31,6 +31,7 @@
 #' @param est_method string
 #' @param cand_method string
 #' @param rec_method string
+#' @param dir_back boolean. constrain recruitment to only the cells that have been selected
 #' @param options list
 #' @param verbose boolean
 #'
@@ -38,7 +39,7 @@
 #' @export
 chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                                 form_method = "average", est_method = "glmnet",
-                                cand_method = "nn_xonly_avg", rec_method = "nn_yonly", 
+                                cand_method = "nn_xonly_avg", rec_method = "nn_yonly", dir_back=TRUE,
                                 options = list(),
                                 verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
@@ -46,46 +47,46 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
   
   # check all the options
-  full_options <- .chrom_options(form_method, est_method, cand_method, rec_method, options)
+  full_options <- multiomeFate:::.chrom_options(form_method, est_method, cand_method, rec_method, options)
   form_options <- full_options$form_options; est_options <- full_options$est_options
   cand_options <- full_options$cand_options; rec_options <- full_options$rec_options
   
   # initialize
-  tmp <- .init_est_matrices(mat_x, mat_y, vec_start, list_end)
+  tmp <- multiomeFate:::.init_est_matrices(mat_x, mat_y, vec_start, list_end)
   mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-  df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
-  ht_neighbor <- .init_chrom_ht(list_end)
+  df_res <- multiomeFate:::.init_chrom_df(n, vec_start, list_end, cell_name)
+  ht_neighbor <- multiomeFate:::.init_chrom_ht(list_end)
   list_diagnos <- list()
   iter <- 1
   if(est_options$enforce_cis){
-    est_options <- .gene_peak_map(df_x, df_y, est_options)
+    est_options <- multiomeFate:::.gene_peak_map(df_x, df_y, est_options)
   }
-  
   # while:
   while(length(ht_neighbor) < n){
     # [[note to self: put a better statement here]]
     if(verbose) print(paste0("Iteration ", iter, ": Recruited percentage (", 
                              round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
     ## estimate res_g
-    res_g <- .estimate_g(mat_x1, mat_y2, est_options)
+    res_g <- multiomeFate:::.estimate_g(mat_x1, mat_y2, est_options)
     
     ## construct candidate set
-    vec_cand <- .candidate_set(mat_x, mat_y, df_res, cand_options)
-    df_res <- .update_chrom_df_cand(df_res, vec_cand)
+    vec_cand <- multiomeFate:::.candidate_set(mat_x, mat_y, df_res, cand_options)
+    df_res <- multiomeFate:::.update_chrom_df_cand(df_res, vec_cand)
     stopifnot(all(is.na(df_res$order_rec[vec_cand])))
     
     ## recruit an element from the candidate set
-    res <- .recruit_next(mat_x, mat_y, vec_cand, 
-                         res_g, df_res, rec_options)
+    res <- multiomeFate:::.recruit_next(mat_x, mat_y, vec_cand, 
+                         res_g, df_res, rec_options, dir_back=dir_back)
+    
     stopifnot(all(is.na(df_res$order_rec[res$rec$vec_from])))
     
     
     ## update
-    tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
+    tmp <-  multiomeFate:::.update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
                                        res$rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-    ht_neighbor <- .update_chrom_ht(ht_neighbor, res$rec$vec_from, res$rec$list_to)
-    df_res <- .update_chrom_df_rec(df_res, res$rec$vec_from, iter)
+    ht_neighbor <-  multiomeFate:::.update_chrom_ht(ht_neighbor, res$rec$vec_from, res$rec$list_to)
+    df_res <-  multiomeFate:::.update_chrom_df_rec(df_res, res$rec$vec_from, iter)
     list_diagnos[[as.character(iter)]] <- res$diagnostic
     
     iter <- iter+1
@@ -143,7 +144,7 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
 
 .update_chrom_ht <- function(ht_neighbor, vec_from, list_to){
   tmp <- as.character(unlist(list_to))
-  stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
+  #stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
   
   for(i in 1:length(vec_from)){
     ht_neighbor[[as.character(vec_from[i])]] <- list_to[[i]]

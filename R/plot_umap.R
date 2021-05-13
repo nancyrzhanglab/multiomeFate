@@ -52,7 +52,8 @@ plot_umap.mf_simul <- function(obj, mode_x = T, mode_y = T, noiseless = F, k = 1
     mat_x <- tmp$mat_x; mat_y <- tmp$mat_y
   }
   
-  embedding <- .umap_embedding(mat_x, mat_y, mode_x, mode_y, k)
+  #embedding <- .umap_embedding(mat_x, mat_y, mode_x, mode_y, k)
+  embedding= umap_coord
 
   graphics::plot(embedding[,1], embedding[,2], pch = 16, col = col_vec, ...)
   invisible()
@@ -186,7 +187,7 @@ plot_umap.chromatin_potential <- function(obj, mode_x = T, mode_y = T, k = 10,
   }
   
   # extract embedding
-  embedding <- suppressWarnings(Seurat::RunUMAP(mat, verbose = F)@cell.embeddings)
+  embedding <- suppressWarnings(Seurat::RunUMAP(mat, verbose = F, metric="euclidean" )@cell.embeddings)
 }
 
 .ghost_matrix <- function(mat_x, mat_y, ht_neighbor){
