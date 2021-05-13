@@ -16,7 +16,7 @@ test_that(".update_chrom_df_cand works", {
 
 test_that(".update_chrom_ht works", {
   ht_neighbor <- .init_chrom_ht(list(11:20, 21:30))
-  res <- .update_chrom_ht(ht_neighbor, c(31,32), list(c(11:15), c(21:22)))
+  res <- .update_chrom_ht(ht_neighbor, c(31,32), list(c(11:15), c(21:22)), F)
   
   expect_true(class(res) == "hash")
   expect_true(all(res[["31"]] == 11:15))
