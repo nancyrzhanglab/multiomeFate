@@ -189,6 +189,11 @@
     
     idx <- nn_pred[which.max(cor_vec)]
     tmp <- setdiff(nn_mat[idx, ], nn_cand)
+    ## [note to self: include a test for this -- if enforce_match, make sure the neighbors are also matched]
+    if(enforce_matched){
+      tmp <- tmp[tmp %in% matched_idx]
+    } 
+  
     if(length(tmp) >= rec_options$nn){
       vec_to <- c(idx, tmp[1:rec_options$nn])
     } else {
