@@ -5,48 +5,19 @@
 \title{Main function to estimate chromatin potential}
 \usage{
 chromatin_potential(
-  mat_x,
-  mat_y,
-  df_x,
-  df_y,
-  vec_start,
-  list_end,
+  prep_obj,
   mat_g_init = NA,
-  vec_g_init = NA,
-  form_method = "average",
-  est_method = "glmnet",
-  cand_method = "nn_xonly_avg",
-  rec_method = "nn_yonly",
-  options = list(),
+  vec_g_init = rep(0, ncol(mat_y)),
   verbose = T
 )
 }
 \arguments{
-\item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
-
-\item{mat_y}{full data for Modality 2, where each row is a cell and each column is a variable}
-
-\item{df_x}{the data frame containing information of Modality 1}
-
-\item{df_y}{the data frame containing information of Modality 2}
-
-\item{vec_start}{integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state}
-
-\item{list_end}{list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states}
+\item{prep_obj}{object of class \code{chromatin_potential_prep}, created using the
+\code{chromatin_potential_prepare} function}
 
 \item{mat_g_init}{(optional) initial estimate of the matrix of coefficients linking Modality 1 to Modality 2}
 
 \item{vec_g_init}{(optional) initial estimate of the vector of intercepts linking Modality 1 to Modality 2}
-
-\item{form_method}{string}
-
-\item{est_method}{string}
-
-\item{cand_method}{string}
-
-\item{rec_method}{string}
-
-\item{options}{list}
 
 \item{verbose}{boolean}
 }

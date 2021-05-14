@@ -1,17 +1,20 @@
 #' Check all the options for chromatin potential
 #' 
 #' This function checks all that options in \code{options} are appropriate
-#' for the method specified in \code{form_method}, \code{est_method}, \code{cand_method}
-#' and \code{rec_method},
+#' for the method specified in \code{dim_method}, \code{nn_method}, 
+#' \code{form_method}, \code{est_method}, 
+#' \code{cand_method}, and \code{rec_method},
 #' and fills in the default values for any options not present in \code{options}
 #'
+#' @param dim_method string
+#' @param nn_method string
 #' @param form_method string
 #' @param est_method string
 #' @param cand_method string
 #' @param rec_method string
 #' @param options list
 #'
-#' @return list of 4 lists
+#' @return list of 6 lists
 .chrom_options <- function(dim_method, nn_method, form_method, est_method, 
                            cand_method, rec_method, 
                            options){

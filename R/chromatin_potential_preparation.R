@@ -1,4 +1,25 @@
-# assumes that mat_x and mat_y are normalized
+#' Prepare chromatin potential
+#' 
+#' To use this function properly, we assume that assumes that \code{mat_x} and 
+#' \code{mat_y} are normalized
+#'
+#' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
+#' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
+#' @param df_x the data frame containing information of Modality 1
+#' @param df_y the data frame containing information of Modality 2
+#' @param vec_start integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state
+#' @param list_end list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states
+#' @param dim_method string
+#' @param nn_method string
+#' @param form_method string
+#' @param est_method string
+#' @param cand_method string
+#' @param rec_method string
+#' @param options list
+#' @param verbose boolean
+#'
+#' @return object of class \code{chromatin_potential_prep}
+#' @export
 chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                         dim_method = "pca", nn_method = "annoy",
                         form_method = "literal", est_method = "glmnet",

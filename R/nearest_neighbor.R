@@ -13,13 +13,13 @@ nearest_neighbor <- function(mat, nn_options){
 .nearest_neighbor_annoy <- function(mat, nn_options){
   p <- ncol(mat); n <- nrow(mat)
   if(nn_options$metric == "euclidean"){
-    nn_obj <- new(RcppAnnoy::AnnoyEuclidean, p)
+    nn_obj <- methods::new(RcppAnnoy::AnnoyEuclidean, p)
   } else if(nn_options$metric == "cosine"){
-    nn_obj <- new(RcppAnnoy::AnnoyAngular, p)
+    nn_obj <- methods::new(RcppAnnoy::AnnoyAngular, p)
   } else if(nn_options$metric == "manhattan"){
-    nn_obj <- new(RcppAnnoy::AnnoyManhattan, p)
+    nn_obj <- methods::new(RcppAnnoy::AnnoyManhattan, p)
   } else if(nn_options$metric == "hamming"){
-    nn_obj <- new(RcppAnnoy::AnnoyHamming, p)
+    nn_obj <- methods::new(RcppAnnoy::AnnoyHamming, p)
   } 
   
   for(i in 1:n){

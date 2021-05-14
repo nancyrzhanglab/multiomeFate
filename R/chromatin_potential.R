@@ -21,19 +21,10 @@
 #' are used for \code{.estimate_g} to estimate the link from Modality 1 
 #' to Modality 2. 
 #'
-#' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
-#' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
-#' @param df_x the data frame containing information of Modality 1
-#' @param df_y the data frame containing information of Modality 2
-#' @param vec_start integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state
-#' @param list_end list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states
+#' @param prep_obj object of class \code{chromatin_potential_prep}, created using the
+#' \code{chromatin_potential_prepare} function
 #' @param mat_g_init (optional) initial estimate of the matrix of coefficients linking Modality 1 to Modality 2
 #' @param vec_g_init (optional) initial estimate of the vector of intercepts linking Modality 1 to Modality 2
-#' @param form_method string
-#' @param est_method string
-#' @param cand_method string
-#' @param rec_method string
-#' @param options list
 #' @param verbose boolean
 #'
 #' @return object of class \code{chromatin_potential}

@@ -1,27 +1,27 @@
 #' Find candidate cells
 #' 
-#' Based on the cells previously recruited (recorded in \code{df_res}),
-#' find other cells based on \code{mat_x} (the data for Modality 1) and
+#' Find other cells based on \code{mat_x} (the data for Modality 1),
+#' \code{mat_y} (the data for Modality 2), and
 #' \code{df_res} to potentially be recruited in this current
 #' iteration.  
 #' 
 #' The options are:
 #' \itemize{
-#' \item \code{nn_xonly_any}: Find the candidates based only on which
-#' unrecruited cells are one of the \code{cand_options$nn} nearest neighbors
-#' to any previously-recruited cells in Modality 1
-#' \item \code{nn_xonly_avg}: Find the \code{cand_options$num_cand} candidates 
-#' which are \code{cand_options$num_cand} unrecruited cells which have the closest
-#' \code{cand_options$nn} nearest neighbors of previously-recruited cells in Modality 1,
-#' where we compute the average distance to said nearest neighbors using
-#' \code{cand_options$average}
+#' \item \code{nn_any}: Find the candidates based only on which
+#' unrecruited cells are one of the nearest neighbors (based on \code{nn_mat})
+#' to either any of the previously-recruited cells in the latest iteration
+#' or in any of the previous iterations (depending on \code{cand_options$only_latest})
+#' \item \code{nn_freq}: Find the \code{cand_options$num_cand} candidates 
+#' which are the \code{cand_options$num_cand} unrecruited cells 
+#' which have the most nearest neighbors (based on \code{nn_mat})
+#' to any previously-recruited cells
 #' \item \code{all}: All the unrecruited cells are considered as candidates
 #' }
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
-#' @param res_g output of \code{.estimate_g}
 #' @param df_res data frame recording the current results, generated within \code{chromatin_potential}
+#' @param nn_mat the nearest-neighbor matrix, output from \code{chromatin_potential_prepare}
 #' @param cand_options one of the outputs from \code{.chrom_options}
 #'
 #' @return a list containing \code{vec_cand} (vector of integers between 1 and \code{nrow(mat_x)})

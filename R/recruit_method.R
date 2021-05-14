@@ -12,11 +12,22 @@
 #' 
 #' The options are:
 #' \itemize{
-#' \item \code{nn_yonly}: Recruit \code{rec_options$num_rec} cells
-#' whose predicted Modality 2 expression has the smallest average
+#' \item \code{nn}: Recruit \code{rec_options$num_rec} cells
+#' whose combined Modality 1 and predicted Modality 2 expression
+#' vector has the smallest average 
 #' (for example, mean, or in general, depending on what \code{rec_options$average}
-#' is set to) distance to its \code{rec_options$nn} previously-recruited
-#' nearest neighbors (dictated by the information in \code{df_res})
+#' is set to) distance to its \code{rec_options$nn} 
+#' nearest neighbors (based on \code{nn_obj})
+#' \item \code{distant_cor}: Recruit all the cells in \code{vec_cand}
+#' and match cell \code{i} to a supposed cell \code{j}
+#' (and its \code{rec_options$nn} nearest-neighbors)
+#' whose Modality 2 difference between cell \code{j} and \code{i} 
+#' has the highest correlation (via \code{rec_optiosn$cor_method})
+#' with the cell \code{i}'s change in Modality 2 (computed via \code{res_g}),
+#' searching among the \code{rec_otions$inflation*ncol(nn_mat)}
+#' nearest-neighbors of the combined Modality 1 and predicted Modality 2 expression
+#' vector but excluding the nearest neighbors of cell \code{i}
+#' (based on \code{nn_mat})
 #' }
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
@@ -24,6 +35,13 @@
 #' @param vec_cand output of \code{.candidate_set}
 #' @param res_g output of \code{.estimate_g}
 #' @param df_res data frame recording the current results, generated within \code{chromatin_potential}
+#' @param dim_reduc_obj object to compute the dimension reduction for a given vector,
+#' computed by \code{chromatin_potential_prepare}
+#' @param nn_mat the nearest-neighbor matrix, output from \code{chromatin_potential_prepare}
+#' @param nn_obj the exposed C++ \code{RcppAnnoy} that encodes the nearest neighbor
+#' information for the \code{n} cells
+#' @param enforce_matched boolean, where if \code{TRUE}, recruited cells are matched
+#' to only cells that previously-recruited
 #' @param rec_options one of the outputs from \code{.chrom_options}
 #'
 #' @return a list of two things: a list called \code{rec} that contains
