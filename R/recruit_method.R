@@ -86,15 +86,17 @@
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
   # initialize variables for the loop
-  my_lapply <- ifelse(
-    test = !rec_options$parallel && future::nbrOfWorkers() == 1,
-    yes = pbapply::pblapply,
-    no = future.apply::future_lapply
-  )
+  if(!rec_options$parallel && future::nbrOfWorkers() == 1){
+    my_lapply <- pbapply::pblapply
+    if(rec_options$verbose) pbapply::pboptions(type = "timer") else pbapply::pboptions(type = "none")
+  } else {
+    my_lapply <- future.apply::future_lapply
+  }
+  
   if(enforce_matched){
     matched_idx <- which(!is.na(df_res$order_rec))
-    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], mode = "x", dim_reduc_obj)
-    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], mode = "y", dim_reduc_obj)
+    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], dim_reduc_obj$x)
+    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], dim_reduc_obj$y)
     matched_mat <- cbind(matched_x, matched_y)
     nn <- min(c(rec_options$nn, sum(!is.na(df_res$order_rec))))
   } else {
@@ -103,8 +105,8 @@
   
   # see which cells are closest to the prediction 
   nn_res <- my_lapply(1:len, function(i){
-    vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
-             .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
+    vec <- c(.apply_dimred(mat_x[vec_cand[i],], dim_reduc_obj$x),
+             .apply_dimred(pred_y[i,], dim_reduc_obj$y))
     
     # allow cell to be matched to any other cell
     if(!enforce_matched){
@@ -156,15 +158,17 @@
   pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
   # initialize variables for the loop
-  my_lapply <- ifelse(
-    test = !rec_options$parallel && future::nbrOfWorkers() == 1,
-    yes = pbapply::pblapply,
-    no = future.apply::future_lapply
-  )
+  if(!rec_options$parallel && future::nbrOfWorkers() == 1){
+    my_lapply <- pbapply::pblapply
+    if(rec_options$verbose) pbapply::pboptions(type = "timer") else pbapply::pboptions(type = "none")
+  } else {
+    my_lapply <- future.apply::future_lapply
+  }
+  
   if(enforce_matched){
     matched_idx <- which(!is.na(df_res$order_rec))
-    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], mode = "x", dim_reduc_obj)
-    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], mode = "y", dim_reduc_obj)
+    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], dim_reduc_obj$x)
+    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], dim_reduc_obj$y)
     matched_mat <- cbind(matched_x, matched_y)
     
     matched_idx <- which(!is.na(df_res$order_rec))
@@ -175,10 +179,11 @@
   
   list_to <- my_lapply(1:length(vec_cand), function(i){
     cell <- vec_cand[i]
+    
     nn_cand <- c(nn_mat[cell, ], cell)
   
-    vec <- c(.apply_dimred(mat_x[vec_cand[i],], mode = "x", dim_reduc_obj),
-             .apply_dimred(pred_y[i,], mode = "y", dim_reduc_obj))
+    vec <- c(.apply_dimred(mat_x[vec_cand[i],], dim_reduc_obj$x),
+             .apply_dimred(pred_y[i,], dim_reduc_obj$y))
   
     # allow cell to be matched to any other cell
     if(!enforce_matched){

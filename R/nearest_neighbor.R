@@ -1,3 +1,14 @@
+#' Construct nearest-neighbor object
+#' 
+#' Returns the exposed C++ object containing the nearest-neighbor
+#' information (via the \code{RcppAnnoy} package) so
+#' other methods later can query said object to find the nearest
+#' points to said query
+#'
+#' @param mat full data for a modality, where each row is a cell and each column is a variable
+#' @param nn_options one of the outputs from \code{.chrom_options}
+#'
+#' @return exposed C++ object
 nearest_neighbor <- function(mat, nn_options){
   if(nn_options[["method"]] == "annoy"){
     res <- .nearest_neighbor_annoy(mat, nn_options)

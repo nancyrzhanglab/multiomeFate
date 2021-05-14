@@ -104,7 +104,7 @@
                          alpha = 1, standardize = F, intercept = F,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
                          bool_round = T, run_diagnostic = T,
-                         hold_initial = F)
+                         hold_initial = F, parallel = F, verbose = F)
     est_options <- .fill_options(options, list_default, prefix)
   }
   
@@ -145,14 +145,14 @@
   
   if(rec_method == "nn"){
     list_default <- list(nn = 10, num_rec = 10, average = "mean", parallel = F, 
-                         run_diagnostic = T)
+                         run_diagnostic = T, verbose = F)
     rec_options <- .fill_options(options, list_default, prefix)
 
     stopifnot(rec_options$average %in% c("mean", "median"))
     
   } else if(rec_method == "distant_cor"){
     list_default <- list(inflation = 1.5, cor_method = "pearson", nn = 2, parallel = F, 
-                         run_diagnostic = T)
+                         run_diagnostic = T, verbose = F)
     rec_options <- .fill_options(options, list_default, prefix)
     
     stopifnot(rec_options$method %in% c("pearson", "spearman", "kendall"))

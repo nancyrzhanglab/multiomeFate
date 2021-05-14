@@ -40,18 +40,14 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   # compute the dimension reduction
   dim_reduc_obj <- vector("list", 0)
   tmp <- dimension_reduction(mat_x, mode = "x", dim_options)
-  x_dimred <- tmp$dimred
-  dim_reduc_obj$x_mean <- tmp$vec_mean; dim_reduc_obj$x_sd <- tmp$vec_sd
-  dim_reduc_obj$x_proj <- tmp$mat_proj
+  x_scores <- tmp$scores; dim_reduc_obj$x <- tmp$dim_reduc_obj
   tmp <- dimension_reduction(mat_y, mode = "y", dim_options)
-  y_dimred <- tmp$dimred
-  dim_reduc_obj$y_mean <- tmp$vec_mean; dim_reduc_obj$y_sd <- tmp$vec_sd
-  dim_reduc_obj$y_proj <- tmp$mat_proj
+  y_scores <- tmp$scores; dim_reduc_obj$y <- tmp$dim_reduc_obj
   
   # form the nn
   n <- nrow(mat_x)
-  all_dimred <- cbind(x_dimred, y_dimred)
-  nn_obj <- nearest_neighbor(all_dimred, nn_options)
+  all_scores <- cbind(x_scores, y_scores)
+  nn_obj <- nearest_neighbor(all_scores, nn_options)
   
   # query each point's nn's
   nn_mat <- .query_nn(nn_obj, nn_options)

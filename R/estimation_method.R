@@ -60,8 +60,16 @@
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)
-  list_res <- lapply(1:p2, function(j){
-    
+  
+  # initialize variables for the loop
+  if(!est_options$parallel && future::nbrOfWorkers() == 1){
+    my_lapply <- pbapply::pblapply
+    if(est_options$verbose) pbapply::pboptions(type = "timer") else pbapply::pboptions(type = "none")
+  } else {
+    my_lapply <- future.apply::future_lapply
+  }
+  
+  list_res <- my_lapply(1:p2, function(j){
     if(est_options$enforce_cis){
       ## find the region around each peak
       idx_x <- est_options$ht_map[[as.character(j)]]

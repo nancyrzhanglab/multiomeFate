@@ -7,7 +7,7 @@ test_that("nearest_neighbor works", {
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
                             form_method = "literal", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
-                            options = list())
+                            options = list(nn_metric = "euclidean"))
   n <- 100; p <- 20
   mat <- MASS::mvrnorm(n, rep(0,p), diag(p))
   

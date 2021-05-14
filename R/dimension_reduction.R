@@ -1,3 +1,23 @@
+#' Compute the dimension reduction
+#'
+#' This function returns two objects: \code{scores} (the 
+#' matrix with \code{nrow(mat)} rows and \code{dim_options$nlatent_x} or 
+#' \code{dim_options$nlatent_y} columns, depending on \code{mode})
+#' representing the projection of \code{mat} into the lower-dimensional
+#' space, and \code{dim_reduc_obj} (a list containing \code{vec_mean}
+#' and \code{vec_sd} both as 
+#' vectors of length \code{ncol(mat)} and a matrix \code{mat_proj}
+#' with \code{ncol(mat)} rows and \code{dim_options$nlatent_x} or 
+#' \code{dim_options$nlatent_y} columns, all three of which are needed
+#' to project a new vector into said lower-dimensional space)
+#'
+#' @param mat full data for a modality, where each row is a cell and each column is a variable
+#' @param mode string, either \code{"x"} or \code{"y"}, which dictates
+#' if  \code{dim_options$nlatent_x} or 
+#' \code{dim_options$nlatent_y} is used as the number of latent dimensions
+#' @param dim_options one of the outputs from \code{.chrom_options}
+#'
+#' @return a list
 dimension_reduction <- function(mat, mode, dim_options){
   stopifnot(mode %in% c("x", "y"))
   
@@ -40,31 +60,25 @@ dimension_reduction <- function(mat, mode, dim_options){
     
   K <- ifelse(mode == "x", dim_options$nlatent_x, dim_options$nlatent_y)
   svd_res <- .svd_truncated(mat, K = K, K_full_rank = F, vec_mean = vec_mean, vec_sd = vec_sd)
-  dimred <- .mult_mat_vec(svd_res$u, svd_res$d/svd_res$d[1])
+  scores <- .mult_mat_vec(svd_res$u, svd_res$d/svd_res$d[1])
   
-  list(dimred = dimred, vec_mean = vec_mean, vec_sd = vec_sd, 
-       mat_proj = .mult_mat_vec(svd_res$v, rep(1/svd_res$d[1], ncol(svd_res$v))))
+  list(scores = scores, dim_reduc_obj = list(vec_mean = vec_mean, vec_sd = vec_sd, 
+       mat_proj = .mult_mat_vec(svd_res$v, rep(1/svd_res$d[1], ncol(svd_res$v)))))
 }
 
 ####################
 
-.apply_dimred <- function(vec, mode, dim_reduc_obj){
-  if(mode == "x"){
-    stopifnot(length(vec) == length(dim_reduc_obj$x_mean))
-    
-    vec <- (vec - dim_reduc_obj$x_mean)/dim_reduc_obj$x_sd
-    as.numeric(vec %*% dim_reduc_obj$x_proj)
-  } else {
-    stopifnot(length(vec) == length(dim_reduc_obj$y_mean))
-    
-    vec <- (vec - dim_reduc_obj$y_mean)/dim_reduc_obj$y_sd
-    as.numeric(vec %*% dim_reduc_obj$y_proj)
-  }
+.apply_dimred <- function(vec, dim_reduc_obj){
+  stopifnot(length(vec) == length(dim_reduc_obj$vec_mean))
+  
+  vec <- (vec - dim_reduc_obj$vec_mean)/dim_reduc_obj$vec_sd
+  as.numeric(vec %*% dim_reduc_obj$mat_proj)
 }
 
-.apply_dimred_mat <- function(mat, mode, dim_reduc_obj){
+# [[note to self: this could probably be done more efficiently]]
+.apply_dimred_mat <- function(mat, dim_reduc_obj){
   n <- nrow(mat)
   t(sapply(1:n, function(i){
-    .apply_dimred(mat[i,], mode, dim_reduc_obj)
+    .apply_dimred(mat[i,], dim_reduc_obj)
   }))
 }

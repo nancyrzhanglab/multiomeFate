@@ -22,23 +22,23 @@ test_that("dimension_reduction works and has correct calculations", {
   res <- dimension_reduction(mat, mode = "x", dim_options)
   
   expect_true(is.list(res))
-  expect_true(all(sort(names(res)) == sort(c("dimred", "vec_mean", "vec_sd", "mat_proj"))))
-  expect_true(is.matrix(res$dimred))
-  expect_true(all(dim(res$dimred) == c(n, k)))
-  expect_true(!is.matrix(res$vec_mean))
-  expect_true(length(res$vec_mean) == p)
-  expect_true(length(res$vec_sd) == p)
-  expect_true(is.matrix(res$mat_proj))
-  expect_true(all(dim(res$mat_proj) == c(p, k)))
+  expect_true(all(sort(names(res)) == sort(c("scores", "dim_reduc_obj"))))
+  expect_true(is.matrix(res$scores))
+  expect_true(all(dim(res$scores) == c(n, k)))
+  expect_true(!is.matrix(res$dim_reduc_obj$vec_mean))
+  expect_true(length(res$dim_reduc_obj$vec_mean) == p)
+  expect_true(length(res$dim_reduc_obj$vec_sd) == p)
+  expect_true(is.matrix(res$dim_reduc_obj$mat_proj))
+  expect_true(all(dim(res$dim_reduc_obj$mat_proj) == c(p, k)))
   
-  expect_true(all(abs(colMeans(res$dimred)) <= 1e-4))
-  expect_true(sum(abs(res$dimred - scale(mat, center = T, scale = T)%*%res$mat_proj)) <= 1e-4)
+  expect_true(all(abs(colMeans(res$scores)) <= 1e-4))
+  expect_true(sum(abs(res$scores - scale(mat, center = T, scale = T)%*%res$dim_reduc_obj$mat_proj)) <= 1e-4)
   
   tmp <- stats::prcomp(mat, center = T, scale. = T)$x[,1:k]
   tmp <- tmp/svd(tmp)$d[1]
   sign_mat <- matrix(c(1,1, 1,-1, -1,1, -1,-1), nrow = 4, ncol = 2, byrow = T)
   bool_vec <- sapply(1:4, function(i){
-    sum(abs(res$dimred - tmp%*%diag(sign_mat[i,]))) <= 1e-4
+    sum(abs(res$scores - tmp%*%diag(sign_mat[i,]))) <= 1e-4
   })
   expect_true(any(bool_vec))
 })
@@ -69,16 +69,16 @@ test_that(".dimension_reduction_pca works on sparse matrices", {
   res <- dimension_reduction(mat2, mode = "x", dim_options)
   
   expect_true(class(mat2) == "dgCMatrix")
-  expect_true(all(sort(names(res)) == sort(c("dimred", "vec_mean", "vec_sd", "mat_proj"))))
+  expect_true(all(sort(names(res)) == sort(c("scores", "dim_reduc_obj"))))
   
-  expect_true(all(abs(colMeans(res$dimred)) <= 1e-4))
-  expect_true(sum(abs(res$dimred - scale(mat, center = T, scale = T)%*%res$mat_proj)) <= 1e-4)
+  expect_true(all(abs(colMeans(res$scores)) <= 1e-4))
+  expect_true(sum(abs(res$scores - scale(mat, center = T, scale = T)%*%res$dim_reduc_obj$mat_proj)) <= 1e-4)
   
   tmp <- stats::prcomp(mat, center = T, scale. = T)$x[,1:k]
   tmp <- tmp/svd(tmp)$d[1]
   sign_mat <- matrix(c(1,1, 1,-1, -1,1, -1,-1), nrow = 4, ncol = 2, byrow = T)
   bool_vec <- sapply(1:4, function(i){
-    sum(abs(res$dimred - tmp%*%diag(sign_mat[i,]))) <= 1e-4
+    sum(abs(res$scores - tmp%*%diag(sign_mat[i,]))) <= 1e-4
   })
   expect_true(any(bool_vec))
 })
@@ -106,14 +106,12 @@ test_that(".apply_dimred works", {
   
   dim_reduc_obj <- vector("list", 0)
   tmp <- dimension_reduction(mat, mode = "x", dim_options)
-  x_dimred <- tmp$dimred
-  dim_reduc_obj$x_mean <- tmp$vec_mean; dim_reduc_obj$x_sd <- tmp$vec_sd
-  dim_reduc_obj$x_proj <- tmp$mat_proj
+  x_scores <- tmp$scores; dim_reduc_obj <- tmp$dim_reduc_obj
   
   res <- t(sapply(1:n, function(i){
-    .apply_dimred(mat[i,], mode = "x", dim_reduc_obj)
+    .apply_dimred(mat[i,], dim_reduc_obj)
   }))
   
-  expect_true(sum(abs(res - x_dimred)) <= 1e-4)
+  expect_true(sum(abs(res - x_scores)) <= 1e-4)
 })
 
