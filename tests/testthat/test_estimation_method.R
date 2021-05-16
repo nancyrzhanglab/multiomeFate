@@ -72,8 +72,9 @@ test_that(".transform_est_matrix works", {
   set.seed(10)
   p1 <- 20; p2 <- 5; genome_length <- 1000
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
-  options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
+  options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
+                            form_method = "literal", est_method = "glmnet", 
+                            cand_method = "nn_any", rec_method = "distant_cor",
                             options = list())
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
   
@@ -102,8 +103,9 @@ test_that(".estimate_g_glmnet works", {
   p1 <- 25; p2 <- 6; genome_length <- 1000
   df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
   n <- 100
-  options <- .chrom_options(form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn_xonly_avg", rec_method = "nn_yonly",
+  options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
+                            form_method = "literal", est_method = "glmnet", 
+                            cand_method = "nn_any", rec_method = "distant_cor",
                             options = list())
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
   

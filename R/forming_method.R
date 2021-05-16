@@ -2,16 +2,16 @@
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
-#' @param vec_start vector of integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state
-#' @param list_end list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states
-#'
+#' @param df_res data frame formed during the \code{chromatin_potential_prepare} function
+#' 
 #' @return list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
 #' well as vector of indices \code{vec_matched}
-.init_est_matrices <- function(mat_x, mat_y, vec_start, list_end){
+.init_est_matrices <- function(mat_x, mat_y, df_res){
   stopifnot(nrow(mat_x) == nrow(mat_y))
   
   # initialize
-  vec_onlyend <- unlist(list_end)
+  vec_start <- which(df_res$init_state == -1)
+  vec_onlyend <- which(df_res$init_state > 0)
   vec <- c(vec_start, vec_onlyend)
   stopifnot(length(vec) == length(unique(vec)))
 

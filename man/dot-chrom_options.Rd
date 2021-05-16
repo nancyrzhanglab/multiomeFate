@@ -4,9 +4,21 @@
 \alias{.chrom_options}
 \title{Check all the options for chromatin potential}
 \usage{
-.chrom_options(form_method, est_method, cand_method, rec_method, options)
+.chrom_options(
+  dim_method,
+  nn_method,
+  form_method,
+  est_method,
+  cand_method,
+  rec_method,
+  options
+)
 }
 \arguments{
+\item{dim_method}{string}
+
+\item{nn_method}{string}
+
 \item{form_method}{string}
 
 \item{est_method}{string}
@@ -18,11 +30,12 @@
 \item{options}{list}
 }
 \value{
-list of 4 lists
+list of 6 lists
 }
 \description{
 This function checks all that options in \code{options} are appropriate
-for the method specified in \code{form_method}, \code{est_method}, \code{cand_method}
-and \code{rec_method},
+for the method specified in \code{dim_method}, \code{nn_method}, 
+\code{form_method}, \code{est_method}, 
+\code{cand_method}, and \code{rec_method},
 and fills in the default values for any options not present in \code{options}
 }
