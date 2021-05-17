@@ -21,115 +21,82 @@
 #' are used for \code{.estimate_g} to estimate the link from Modality 1 
 #' to Modality 2. 
 #'
-#' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
-#' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
-#' @param df_x the data frame containing information of Modality 1
-#' @param df_y the data frame containing information of Modality 2
-#' @param vec_start integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state
-#' @param list_end list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states
-#' @param form_method string
-#' @param est_method string
-#' @param cand_method string
-#' @param rec_method string
-#' @param dir_back boolean. constrain recruitment to only the cells that have been selected
-#' @param options list
+#' @param prep_obj object of class \code{chromatin_potential_prep}, created using the
+#' \code{chromatin_potential_prepare} function
+#' @param mat_g_init (optional) initial estimate of the matrix of coefficients linking Modality 1 to Modality 2
+#' @param vec_g_init (optional) initial estimate of the vector of intercepts linking Modality 1 to Modality 2
 #' @param verbose boolean
 #'
 #' @return object of class \code{chromatin_potential}
 #' @export
-chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
-                                form_method = "average", est_method = "glmnet",
-                                cand_method = "nn_xonly_avg", rec_method = "nn_yonly", dir_back=TRUE,
-                                options = list(),
+chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, ncol(mat_y)),
                                 verbose = T){
-  stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), ncol(mat_y) == nrow(df_y),
-            is.list(options))
-  n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
+  # pull the appropriate objects for convenience
+  mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
+  df_x <- prep_obj$df_x; df_y <- prep_obj$df_y
+  df_res <- prep_obj$df_res; dim_reduc_obj <- prep_obj$dim_reduc_obj
+  ht_neighbor <- prep_obj$ht_neighbor
+  nn_mat <- prep_obj$nn_mat; nn_obj <- prep_obj$nn_obj
+  list_diagnos <- prep_obj$list_diagnos; options <- prep_obj$options
   
-  # check all the options
-  full_options <- multiomeFate:::.chrom_options(form_method, est_method, cand_method, rec_method, options)
-  form_options <- full_options$form_options; est_options <- full_options$est_options
-  cand_options <- full_options$cand_options; rec_options <- full_options$rec_options
+  dim_options <- options$dim_options; nn_options <- options$nn_options
+  form_options <- options$form_options; est_options <- options$est_options
+  cand_options <- options$cand_options; rec_options <- options$rec_options
   
   # initialize
-  tmp <- multiomeFate:::.init_est_matrices(mat_x, mat_y, vec_start, list_end)
+  n <- nrow(mat_x)
+  tmp <- .init_est_matrices(mat_x, mat_y, df_res)
   mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-  df_res <- multiomeFate:::.init_chrom_df(n, vec_start, list_end, cell_name)
-  ht_neighbor <- multiomeFate:::.init_chrom_ht(list_end)
   list_diagnos <- list()
   iter <- 1
-  if(est_options$enforce_cis){
-    est_options <- multiomeFate:::.gene_peak_map(df_x, df_y, est_options)
-  }
+  
   # while:
   while(length(ht_neighbor) < n){
     # [[note to self: put a better statement here]]
     if(verbose) print(paste0("Iteration ", iter, ": Recruited percentage (", 
                              round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
     ## estimate res_g
-    res_g <- multiomeFate:::.estimate_g(mat_x1, mat_y2, est_options)
-    
+
+    if((iter == 1 | est_options$hold_initial) && !any(is.na(mat_g_init)) && !any(is.na(vec_g_init))){
+      res_g <- list(mat_g = mat_g_init, vec_g = vec_g_init)
+    } else {
+      res_g <- .estimate_g(mat_x1, mat_y2, est_options)
+    }
+   
     ## construct candidate set
-    vec_cand <- multiomeFate:::.candidate_set(mat_x, mat_y, df_res, cand_options)
-    df_res <- multiomeFate:::.update_chrom_df_cand(df_res, vec_cand)
-    stopifnot(all(is.na(df_res$order_rec[vec_cand])))
+    res_cand <- .candidate_set(mat_x, mat_y, df_res, nn_mat, cand_options)
+    df_res <- .update_chrom_df_cand(df_res, res_cand$vec_cand)
+    stopifnot(all(is.na(df_res$order_rec[res_cand$vec_cand])))
+    list_diagnos[[as.character(iter)]]$candidate <- res_cand$diagnostic
     
     ## recruit an element from the candidate set
-    res <- multiomeFate:::.recruit_next(mat_x, mat_y, vec_cand, 
-                         res_g, df_res, rec_options, dir_back=dir_back)
-    
-    stopifnot(all(is.na(df_res$order_rec[res$rec$vec_from])))
-    
+    enforce_matched <- length(which(df_res$order_rec == 0)) > length(which(df_res$order_rec > 0))
+    res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
+                             dim_reduc_obj, nn_mat, nn_obj, enforce_matched,
+                             rec_options)
+    stopifnot(all(is.na(df_res$order_rec[res_rec$rec$vec_from])))
+    list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
     ## update
-    tmp <-  multiomeFate:::.update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
-                                       res$rec, form_options)
+    tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
+                                       res_rec$rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-    ht_neighbor <-  multiomeFate:::.update_chrom_ht(ht_neighbor, res$rec$vec_from, res$rec$list_to)
-    df_res <-  multiomeFate:::.update_chrom_df_rec(df_res, res$rec$vec_from, iter)
-    list_diagnos[[as.character(iter)]] <- res$diagnostic
-    
+    ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec$vec_from, 
+                                    res_rec$rec$list_to, enforce_matched)
+    df_res <- .update_chrom_df_rec(df_res, res_rec$rec$vec_from, iter)
+
     iter <- iter+1
   }
 
   # output
-  structure(list(res_g = res_g, df_res = df_res, ht_neighbor = ht_neighbor, 
-                 mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,
-                 list_diagnos = list_diagnos,
-                 options = full_options),
+  structure(list(res_g = res_g, mat_x = mat_x, mat_y = mat_y, 
+                 df_x = df_x, df_y = df_y,  df_res = df_res, 
+                 ht_neighbor = ht_neighbor, 
+                 list_diagnos = list_diagnos, options = options),
        class = "chromatin_potential")
 }
 
 #########################
-
-.init_chrom_df <- function(n, vec_start, list_end, cell_name){
-  stopifnot(all(vec_start %% 1 == 0), all(vec_start > 0), all(vec_start <= n))
-  stopifnot(all(sapply(list_end, function(vec){all(vec %% 1 == 0) & all(vec > 0) & all(vec <= n)})))
-  tmp <- c(vec_start, unlist(list_end))
-  stopifnot(length(tmp) == length(unique(tmp)))
-  
-  df_res <- data.frame(idx = 1:n, init_state = rep(NA, n), num_cand = rep(0, n),
-                       order_rec = rep(NA, n))
-  if(length(cell_name) == n) rownames(df_res) <- cell_name
-  
-  df_res$init_state[vec_start] <- -1
-  for(i in 1:length(list_end)){
-    df_res$init_state[list_end[[i]]] <- i
-    df_res$order_rec[list_end[[i]]] <- 0
-  }
-  
-  df_res
-}
-
-.init_chrom_ht <- function(list_end){
-  ht_neighbor <- hash::hash()
-  vec <- unlist(list_end)
-  for(i in vec){
-    ht_neighbor[[as.character(i)]] <- c(neighbor = i)
-  }
-  
-  ht_neighbor
-}
 
 .update_chrom_df_cand <- function(df_res, vec_cand){
   stopifnot(all(is.na(df_res$order_rec[vec_cand])))
@@ -142,10 +109,13 @@ chromatin_potential <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
   df_res
 }
 
-.update_chrom_ht <- function(ht_neighbor, vec_from, list_to){
-  tmp <- as.character(unlist(list_to))
-  #stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
-  
+
+.update_chrom_ht <- function(ht_neighbor, vec_from, list_to, enforce_matched){
+  if(enforce_matched) {
+    tmp <- as.character(unlist(list_to))
+    stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
+  }
+
   for(i in 1:length(vec_from)){
     ht_neighbor[[as.character(vec_from[i])]] <- list_to[[i]]
   }

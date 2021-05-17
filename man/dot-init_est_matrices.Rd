@@ -4,16 +4,14 @@
 \alias{.init_est_matrices}
 \title{Initialize the matrices for estimation later}
 \usage{
-.init_est_matrices(mat_x, mat_y, vec_start, list_end)
+.init_est_matrices(mat_x, mat_y, df_res)
 }
 \arguments{
 \item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
 
 \item{mat_y}{full data for Modality 2, where each row is a cell and each column is a variable}
 
-\item{vec_start}{vector of integers between 1 and \code{nrow(mat_x)} to denote the cells at the start state}
-
-\item{list_end}{list of integers between 1 and \code{nrow(mat_x)} to denote the cells any of the end states}
+\item{df_res}{data frame formed during the \code{chromatin_potential_prepare} function}
 }
 \value{
 list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as

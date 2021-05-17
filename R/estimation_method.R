@@ -56,11 +56,20 @@
 ##############################
 
 .estimate_g_glmnet <- function(mat_x1, mat_y2, est_options){
+  stopifnot(nrow(mat_x1) == nrow(mat_y2))
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)
-  list_res <- lapply(1:p2, function(j){
-    
+  
+  # initialize variables for the loop
+  if(!est_options$parallel && future::nbrOfWorkers() == 1){
+    my_lapply <- pbapply::pblapply
+    if(est_options$verbose) pbapply::pboptions(type = "timer") else pbapply::pboptions(type = "none")
+  } else {
+    my_lapply <- future.apply::future_lapply
+  }
+  
+  list_res <- my_lapply(1:p2, function(j){
     if(est_options$enforce_cis){
       ## find the region around each peak
       idx_x <- est_options$ht_map[[as.character(j)]]
@@ -96,6 +105,8 @@
     if(intercept) x <- cbind(x,1)
     if(family == "poisson") {
       family_func <- stats::poisson()
+    } else if(family == "gaussian") {
+      family_func <- stats::gaussian()
     } else {
       #stop("family not found")
       family_func <- stats::gaussian()

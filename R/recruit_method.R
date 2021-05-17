@@ -12,11 +12,22 @@
 #' 
 #' The options are:
 #' \itemize{
-#' \item \code{nn_yonly}: Recruit \code{rec_options$num_rec} cells
-#' whose predicted Modality 2 expression has the smallest average
+#' \item \code{nn}: Recruit \code{rec_options$num_rec} cells
+#' whose combined Modality 1 and predicted Modality 2 expression
+#' vector has the smallest average 
 #' (for example, mean, or in general, depending on what \code{rec_options$average}
-#' is set to) distance to its \code{rec_options$nn} previously-recruited
-#' nearest neighbors (dictated by the information in \code{df_res})
+#' is set to) distance to its \code{rec_options$nn} 
+#' nearest neighbors (based on \code{nn_obj})
+#' \item \code{distant_cor}: Recruit all the cells in \code{vec_cand}
+#' and match cell \code{i} to a supposed cell \code{j}
+#' (and its \code{rec_options$nn} nearest-neighbors)
+#' whose Modality 2 difference between cell \code{j} and \code{i} 
+#' has the highest correlation (via \code{rec_optiosn$cor_method})
+#' with the cell \code{i}'s change in Modality 2 (computed via \code{res_g}),
+#' searching among the \code{rec_otions$inflation*ncol(nn_mat)}
+#' nearest-neighbors of the combined Modality 1 and predicted Modality 2 expression
+#' vector but excluding the nearest neighbors of cell \code{i}
+#' (based on \code{nn_mat})
 #' }
 #'
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
@@ -24,51 +35,100 @@
 #' @param vec_cand output of \code{.candidate_set}
 #' @param res_g output of \code{.estimate_g}
 #' @param df_res data frame recording the current results, generated within \code{chromatin_potential}
+#' @param dim_reduc_obj object to compute the dimension reduction for a given vector,
+#' computed by \code{chromatin_potential_prepare}
+#' @param nn_mat the nearest-neighbor matrix, output from \code{chromatin_potential_prepare}
+#' @param nn_obj the exposed C++ \code{RcppAnnoy} that encodes the nearest neighbor
+#' information for the \code{n} cells
+#' @param enforce_matched boolean, where if \code{TRUE}, recruited cells are matched
+#' to only cells that previously-recruited
 #' @param rec_options one of the outputs from \code{.chrom_options}
 #'
 #' @return a list of two things: a list called \code{rec} that contains
 #' a  vector of integers \code{vec_from} and a list
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
-.recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
-                          rec_options, dir_back){
+.recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, 
+                          nn_mat, nn_obj, enforce_matched, rec_options){
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
   vec_matched <- which(!is.na(df_res$order_rec))
   stopifnot(!any(vec_cand %in% vec_matched))
   stopifnot(all(is.na(df_res$order_rec[vec_cand])), !any(is.na(df_res$order_rec[vec_matched])))
   
-  if(rec_options[["method"]] == "nn_yonly"){
-    res <- multiomeFate:::.recruit_next_nn_yonly(mat_x, mat_y, vec_cand, res_g, df_res, rec_options, dir_back)
+  if(rec_options[["method"]] == "nn"){
+    res <- .recruit_next_nn(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, 
+                            nn_obj, enforce_matched, rec_options)
+  } else if(rec_options[["method"]] == "distant_cor"){
+    res <- .recruit_next_distant_cor(mat_x, mat_y, vec_cand, res_g, df_res, 
+                                     dim_reduc_obj, nn_mat, nn_obj, enforce_matched, 
+                                     rec_options)
   } else {
     stop("Recruit method not found")
+  }
+  
+  if(rec_options$run_diagnostic){
+    res$diagnostic$postprocess <- NA
   }
 
   res
 }
 
 ###################
+# [[note to self: a lot of these routines should be refactored...]]
 
-.recruit_next_nn_yonly <- function(mat_x, mat_y, vec_cand, res_g, df_res,
-                                    rec_options, dir_back){
-  if(dir_back==TRUE){
-  vec_matched <- which(!is.na(df_res$order_rec))###
-  }else if(dir_back==FALSE){
-  vec_matched <- .find_vector_matched(rec_options = rec_options, vec_cand = vec_cand, df_res = df_res, mat_x=mat_x)
-  }else{
-    stop("Please specify \"dir_back\" as TRUE/FALSE.")
-  }
+.recruit_next_nn <- function(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, nn_obj, 
+                             enforce_matched, rec_options){
   num_rec <- min(rec_options$num_rec, length(vec_cand))
-  nn <- min(c(rec_options$nn, ceiling(length(vec_matched)/2)))
   
   
 
   # apply mat_g to mat_x
-  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g)
+  len <- length(vec_cand)
+  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
   
-  # see which prediction is closest to mat_y[vec_matched,]
-  # [[note to self: check if it's worthwhile to expose the ANN KD-tree here]]
-  res <- RANN::nn2(mat_y[vec_matched,], query = pred_y, k = nn)
+  # initialize variables for the loop
+  if(!rec_options$parallel && future::nbrOfWorkers() == 1){
+    my_lapply <- pbapply::pblapply
+    if(rec_options$verbose) pbapply::pboptions(type = "timer") else pbapply::pboptions(type = "none")
+  } else {
+    my_lapply <- future.apply::future_lapply
+  }
+  
+  if(enforce_matched){
+    matched_idx <- which(!is.na(df_res$order_rec))
+    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], dim_reduc_obj$x)
+    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], dim_reduc_obj$y)
+    matched_mat <- cbind(matched_x, matched_y)
+    nn <- min(c(rec_options$nn, sum(!is.na(df_res$order_rec))))
+  } else {
+    nn <- min(c(rec_options$nn, ceiling(nrow(mat_x)/2)))
+  }
+  
+  # see which cells are closest to the prediction 
+  nn_res <- my_lapply(1:len, function(i){
+    vec <- c(.apply_dimred(mat_x[vec_cand[i],], dim_reduc_obj$x),
+             .apply_dimred(pred_y[i,], dim_reduc_obj$y))
+    
+    # allow cell to be matched to any other cell
+    if(!enforce_matched){
+      res <- nn_obj$getNNsByVectorList(vec, nn, search_k = -1, include_distances = T)
+      res$item <- res$item+1
+     
+    # only match a cell to another previously-matched cell
+    } else {
+      tmp <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)
+      res <- list(item = matched_idx[tmp$nn.idx[1,]], distance = tmp$nn.dist[1,])
+    }
+    
+    if(i %in% res$item){
+      idx <- which(res$item == i)
+      res$item <- res$item[-i]; res$distance <- res$distance[-i]
+    }
+    
+    res
+  })
+  
   if(rec_options$average == "mean"){
     func <- mean
   } else if(rec_options$average == "median"){
@@ -77,24 +137,111 @@
     stop("Recruiting method (option: 'average') not found")
   }
   
-  idx <- order(apply(res$nn.dist, 1, func), decreasing = F)[1:num_rec]
+  idx <- order(sapply(nn_res, function(tmp){func(tmp$distance)}), decreasing = F)[1:num_rec]
   
   # run the diagnostic
-  list_diagnos <- list()
+  list_diagnos <- list() 
   if(rec_options$run_diagnostic){
-    # [[note to self: put diagnostics here]]
+    # nothing currently here
   }
   
-  vec_from <- vec_cand[idx]
-  list_to <- lapply(idx, function(i){vec_matched[res$nn.idx[i,]]})
+  vec_from <- vec_cand[idx] 
+  list_to <- lapply(idx, function(i){nn_res[[i]]$item})
   list(rec = list(vec_from = vec_from, list_to = list_to),
        diagnostic = list_diagnos)
 }
 
-#########################
+.recruit_next_distant_cor <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
+                                      dim_reduc_obj, nn_mat, nn_obj, 
+                                      enforce_matched, rec_options){
+  nn_size <- ncol(nn_mat)
+  
+  # apply mat_g to mat_x
+  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
+  
+  # initialize variables for the loop
+  if(!rec_options$parallel && future::nbrOfWorkers() == 1){
+    my_lapply <- pbapply::pblapply
+    if(rec_options$verbose) pbapply::pboptions(type = "timer") else pbapply::pboptions(type = "none")
+  } else {
+    my_lapply <- future.apply::future_lapply
+  }
+  
+  if(enforce_matched){
+    matched_idx <- which(!is.na(df_res$order_rec))
+    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], dim_reduc_obj$x)
+    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], dim_reduc_obj$y)
+    matched_mat <- cbind(matched_x, matched_y)
+    
+    matched_idx <- which(!is.na(df_res$order_rec))
+    nn <- min(round(rec_options$inflation*nn_size), length(matched_idx))
+  } else {
+    nn <- min(round(rec_options$inflation*nn_size), ceiling(nrow(mat_x)/2))
+  }
+  
+  list_to <- my_lapply(1:length(vec_cand), function(i){
+    cell <- vec_cand[i]
+    
+    nn_cand <- c(nn_mat[cell, ], cell)
+  
+    vec <- c(.apply_dimred(mat_x[vec_cand[i],], dim_reduc_obj$x),
+             .apply_dimred(pred_y[i,], dim_reduc_obj$y))
+  
+    # allow cell to be matched to any other cell
+    if(!enforce_matched){
+      nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
+      
+    # only match a cell to another previously-matched cell  
+    } else {
+      nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
+      nn_pred <- matched_idx[nn_pred]
+    }
+    
+    if(length(setdiff(nn_pred[1:nn_size], nn_cand)) > 0) {
+      nn_pred <- nn_pred[1:nn_size]
+    }
+    
+    # find all nn's that aren't too close to cell itself
+    if(length(setdiff(nn_pred, nn_cand)) > 0) nn_pred <- setdiff(nn_pred, nn_cand)
+    
+    # from this set of cells, find the ones with highest pearson
+    # [[note to self: this should be refactored out]]
+    pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
+    cor_vec <- sapply(nn_pred, function(j){
+      matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]
+      stats::cor(pred_diff, matched_diff, method = rec_options$cor_method)
+    })
+    
+    idx <- nn_pred[which.max(cor_vec)]
+    tmp <- setdiff(nn_mat[idx, ], nn_cand)
+    ## [note to self: include a test for this -- if enforce_match, make sure the neighbors are also matched]
+    if(enforce_matched){
+      tmp <- tmp[tmp %in% matched_idx]
+    } 
+  
+    if(length(tmp) >= rec_options$nn){
+      vec_to <- c(idx, tmp[1:rec_options$nn])
+    } else {
+      vec_to <- c(idx, tmp)
+    }
+   
+    vec_to
+  })
+  
+  # run the diagnostic
+  list_diagnos <- list() 
+  if(rec_options$run_diagnostic){
+    # nothing currently here
+  }
+  
+  list(rec = list(vec_from = vec_cand, list_to = list_to),
+       diagnostic = list_diagnos)
+}
 
-# [[note to self: I'm not sure about this function name, also, Poisson hard-coded right now]]
-.predict_yfromx <- function(mat_x, res_g){
+##############################3
+
+# [[note to self: I'm not sure about this function name]]
+.predict_yfromx <- function(mat_x, res_g, family){
   stopifnot(c("vec_g", "mat_g") %in% names(res_g))
   
   p2 <- ncol(res_g$mat_g)
@@ -105,33 +252,14 @@
     nat_param[,j] <- nat_param[,j] + res_g$vec_g[j]
   }
   
-  #exp(nat_param)
-  nat_param
-}
 
-#########################
-
-.find_vector_matched=function(rec_options=NULL, vec_cand=NULL, df_res=NULL, mat_x=NULL){
-  n <- nrow(df_res)
-  idx_free <- which(! ((1:n) %in% vec_cand))
-  idx_rec <- vec_cand
-  if(length(idx_free) == 0) return(numeric(0))
-  if(length(idx_free) <= rec_options$num_rec) return(idx_free)
-  nn <- length(vec_cand)
-
-  res <- RANN::nn2(mat_x[idx_rec,,drop = F], query = mat_x[idx_free,,drop = F],
-                   k = nn)
-
-  if(rec_options$average == "mean"){
-    func <- mean
-  } else if(rec_options$average == "median"){
-    func <- stats::median
-  }else {
-    stop("Candidate method (option: 'average') not found")
+  if(family == "gaussian"){
+    nat_param
+  } else if(family == "poisson"){
+    exp(nat_param)
+  } else {
+    stop("family not found")
   }
-
-  idx <- order(apply(res$nn.dist, 1, func), decreasing = F)[1:rec_options$search_num]
-
-  idx_free[idx]
+  
 }
 

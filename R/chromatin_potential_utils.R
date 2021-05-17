@@ -1,39 +1,83 @@
 #' Check all the options for chromatin potential
 #' 
 #' This function checks all that options in \code{options} are appropriate
-#' for the method specified in \code{form_method}, \code{est_method}, \code{cand_method}
-#' and \code{rec_method},
+#' for the method specified in \code{dim_method}, \code{nn_method}, 
+#' \code{form_method}, \code{est_method}, 
+#' \code{cand_method}, and \code{rec_method},
 #' and fills in the default values for any options not present in \code{options}
 #'
+#' @param dim_method string
+#' @param nn_method string
 #' @param form_method string
 #' @param est_method string
 #' @param cand_method string
 #' @param rec_method string
 #' @param options list
 #'
-#' @return list of 4 lists
-.chrom_options <- function(form_method, est_method, cand_method, rec_method, 
+#' @return list of 6 lists
+.chrom_options <- function(dim_method, nn_method, form_method, est_method, 
+                           cand_method, rec_method, 
                            options){
+  stopifnot(dim_method %in% c("pca"))
+  stopifnot(nn_method %in% c("annoy"))
   stopifnot(form_method %in% c("literal", "average"))
   stopifnot(est_method %in% c("glmnet"))
-  stopifnot(cand_method %in% c("nn_xonly_any", "nn_xonly_avg", "all"))
-  stopifnot(rec_method %in% c("nn_yonly"))
+  stopifnot(cand_method %in% c("nn_any", "nn_freq", "all"))
+  stopifnot(rec_method %in% c("nn", "distant_cor"))
   stopifnot(is.list(options))
   
-  idx <- grep("^form_*|^est_*|^cand_*|^rec_*", names(options))
+  idx <- grep("^dim_*|^nn_*|^form_*|^est_*|^cand_*|^rec_*", names(options))
   if(length(idx) != length(options)){
-    warning("Option ", paste0(names(options)[-idx], collapse = " and "), " not used.")
+    if(length(idx) == 0){
+      warning("Option ", paste0(names(options), collapse = " and "), " not used.")
+    } else {
+      warning("Option ", paste0(names(options)[-idx], collapse = " and "), " not used.")
+    }
   }
   
   ## [note to self: I should check the type (num,char,bool) of all the options]
+  dim_options <- .dim_options(dim_method, options)
+  nn_options <- .nn_options(nn_method, options)
   form_options <- .forming_options(form_method, options)
   est_options <- .estimation_options(est_method, options)
   cand_options <- .candidate_options(cand_method, options)
-  rec_options <- multiomeFate:::.recruit_options(rec_method, options)
+
+  rec_options <- .recruit_options(rec_method, est_options, options)
+
   
-  list(form_options = form_options, est_options = est_options,
+  list(dim_options = dim_options, nn_options = nn_options,
+       form_options = form_options, est_options = est_options,
        cand_options = cand_options, rec_options = rec_options)
 }
+
+##############
+
+.dim_options <- function(dim_method, options){
+  prefix <- "dim"
+  
+  if(dim_method == "pca"){
+    list_default <- list(mean = T, sd = T, nlatent_x = 10, nlatent_y = 10)
+    dim_options <- .fill_options(options, list_default, prefix)
+  } 
+  
+  dim_options$method <- dim_method
+  dim_options
+}
+
+.nn_options <- function(nn_method, options){
+  prefix <- "nn"
+  
+  if(nn_method == "annoy"){
+    list_default <- list(nn = 20, parallel = F, ntrees = 50, metric = "euclidean",
+                         verbose = F)
+    nn_options <- .fill_options(options, list_default, prefix)
+  } 
+  
+  nn_options$method <- nn_method
+  nn_options
+}
+
+##############
 
 .forming_options <- function(form_method, options){
   prefix <- "form"
@@ -56,12 +100,13 @@
 
   if(est_method == "glmnet"){
     
-    list_default <- list(family = "poisson", 
+    list_default <- list(family = "gaussian", 
                          enforce_cis = T, cis_window = 200,
-                         switch = T, switch_cutoff = 10,
+                         switch = F, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = F,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
-                         bool_round = T)
+                         bool_round = T, run_diagnostic = T,
+                         hold_initial = F, parallel = F, verbose = F)
     est_options <- .fill_options(options, list_default, prefix)
   }
   
@@ -74,42 +119,49 @@
   est_options
 }
 
+#########
+
 .candidate_options <- function(cand_method, options){
   prefix <- "cand"
   
-  if(cand_method == "nn_xonly_any"){
-    list_default <- list(nn = 10, metric = "euclidean")
+  if(cand_method == "nn_any"){
+    list_default <- list(num_cand = 10, only_latest = T, run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
     
-    ## [note to self: seems like there's no metric in RANN]
-    stopifnot(cand_options$metric == "euclidean")
-  } else if(cand_method == "nn_xonly_avg"){
-    list_default <- list(nn = 10, num_cand = 30, metric = "euclidean",
-                         average = "mean")
+  } else if(cand_method == "nn_freq"){
+    list_default <- list(num_cand = 30, run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
+  
     
-    ## [note to self: seems like there's no metric in RANN]
-    stopifnot(cand_options$metric == "euclidean")
+  } else if(cand_method == "all"){
+    list_default <- list(run_diagnostic = T)
+    cand_options <- .fill_options(options, list_default, prefix)
   }
   
   cand_options$method <- cand_method
   cand_options
 }
 
-.recruit_options <- function(rec_method, options){
+.recruit_options <- function(rec_method, est_options, options){
   prefix <- "rec"
   
-  if(rec_method == "nn_yonly"){
-    list_default <- list(nn = 10, num_rec = 10, search_num=100, metric = "euclidean",
-                         average = "mean", run_diagnostic = T)
-    rec_options <- multiomeFate:::.fill_options(options, list_default, prefix)
-    
-    ## [note to self: seems like there's no metric in RANN]
-    stopifnot(rec_options$metric == "euclidean")
+  if(rec_method == "nn"){
+    list_default <- list(nn = 10, num_rec = 10, average = "mean", parallel = F, 
+                         run_diagnostic = T, verbose = F)
+    rec_options <- .fill_options(options, list_default, prefix)
+
     stopifnot(rec_options$average %in% c("mean", "median"))
-  }
+    
+  } else if(rec_method == "distant_cor"){
+    list_default <- list(inflation = 1.5, cor_method = "pearson", nn = 2, parallel = F, 
+                         run_diagnostic = T, verbose = F)
+    rec_options <- .fill_options(options, list_default, prefix)
+    
+    stopifnot(rec_options$method %in% c("pearson", "spearman", "kendall"))
+  } 
   
   rec_options$method <- rec_method
+  rec_options$family <- est_options$family
   rec_options
 }
 

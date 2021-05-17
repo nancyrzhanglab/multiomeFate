@@ -32,7 +32,7 @@ plot_umap.mf_simul <- function(obj, mode_x = T, mode_y = T, noiseless = F, k = 1
     } else {
       vec <- obj$df_info$counter
     }
-    col_palette <- grDevices::colorRampPalette(c("red", "blue"))(num_col)
+    col_palette <- grDevices::colorRampPalette(c("red", "blue"))(num_col) 
     vec_val <- seq(min(vec), max(vec), length.out = 10)
     col_vec <- sapply(vec, function(x){
       col_palette[which.min(abs(x - vec_val))]
