@@ -89,8 +89,10 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
 
   # output
   structure(list(res_g = res_g, mat_x = mat_x, mat_y = mat_y, 
-                 df_x = df_x, df_y = df_y,  df_res = df_res, 
+                 df_x = df_x, df_y = df_y, df_res = df_res, 
+                 dim_reduc_obj = dim_reduc_obj,
                  ht_neighbor = ht_neighbor, 
+                 nn_mat = nn_mat, nn_obj = nn_obj,
                  list_diagnos = list_diagnos, options = options),
        class = "chromatin_potential")
 }
