@@ -22,15 +22,40 @@
 # one row for each cell: what its time, its branch
 
 generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise, 
-                           df_cell, blueprint_resolution = 500, options = list(),
-                           verbose = T){
+                           df_cell, blueprint_resolution = 500, verbose = T){
+  
+  # checks
+  stopifnot(all(c("name", "gene", "time_start", "time_end", "time_windup", 
+                  "exp_baseline", "exp_max", "branch", "sd_biological", 
+                  "sd_technical", "coef") %in% colnames(df_x)))
+  stopifnot(all("name", "branch", "sd_technical") %in% colnames(df_y))
+  stopifnot(all("name", "branch", "time", "exp_max", "exp_baseline") %in% colnames(df_cell))
+  stopifnot(all(df_x$gene %in% df_y$name))
+  stopifnot(length(which(df_x$branch == "0")) == length(list_xnoise),
+            length(which(df_y$branch == "0")) == length(list_ynoise))
+  stopifnot(all(df_x$time_start <= df_x$time_end), 
+            all(df_x$exp_baseline <= df_x$exp_max))
+  for(i in 1:length(list_xnoise)){
+    tmp <- list_xnoise[[i]]; len <- ncol(tmp)
+    stopifnot(all(tmp["time_start",] <= tmp["time_end",]))
+    if(len > 1) stopifnot(all(tmp["time_start",-1] >= tmp["time_end",-len]))
+  }
+  for(i in 1:length(list_ynoise)){
+    tmp <- list_ynoise[[i]]; len <- ncol(tmp)
+    stopifnot(all(tmp["time_start",] <= tmp["time_end",]))
+    if(len > 1) stopifnot(all(tmp["time_start",-1] >= tmp["time_end",-len]))
+  }
+  
+  # setup
   n <- nrow(df_cell)
   p1 <- nrow(df_x); p2 <- nrow(df_y)
-  num_branches <- .extract_num_branches(df_x)
-  time_vec <- seq(min(df_cell$time), max(df_cell$time), length.out = blueprint_resolution)
+  num_branches <- .extract_num_branches(df_y)
+  stopifnot(num_branches == length(unique(df_cell$branch)))
+  vec_time <- seq(min(df_cell$time), max(df_cell$time), length.out = blueprint_resolution)
+  stopifnot(all(diff(vec_time) > 0))
   
-  # create x's blueprint that is (time_vec) x (num. of variables) for each branch
-  blueprint_x <- .create_blueprint_x(df_x, list_xnoise, num_branches, time_vec)
+  # create x's blueprint that is (vec_time) x (num. of variables) for each branch
+  blueprint_x <- .create_blueprint_x(df_x, list_xnoise, num_branches, vec_time)
   # set the amount of biological noise in each cell
   noise_x <- .generate_noise_x(df_x, df_cell)
   # based on x's blueprint, start generating the mean expression for each cell
@@ -49,24 +74,77 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
 
 ########################
 
+.extract_num_branches <- function(df_x){
+  max(as.numeric(unlist(lapply(df_x$branch, function(x){strsplit(x, split = ",")[[1]]}))))
+}
+
 # create a list (equal to the number of branches) where each element is 
-# (time_vec) x (number of peaks), denoting the mean expression across time
+# (vec_time) x (number of peaks), denoting the mean expression across time
 # for each branch
-.create_blueprint_x <- function(df_x, list_xnoise, num_branches, time_vec){
+.create_blueprint_x <- function(df_x, list_xnoise, num_branches, vec_time){
+  p <- nrow(df_x)
   
+  list_blueprint <- lapply(1:num_branches, function(k){
+    mat_blueprint <- t(sapply(vec_time, function(time){
+      
+      # [[note to self: there's definitely a better way to code this...]]
+      sapply(1:p, function(j){
+        if(df_x$branch[j] == "0"){
+          .extract_exp_unrelated(time, df_x[j,], list_xnoise[[df_x$name[j]]])
+          
+          # informative gene
+        } else if(branch %in% as.numeric(strsplit(df_x$branch[j], split = ",")[[1]])){
+          .extract_exp_informative(time, df_x[j,])
+          
+          # gene not informative for this gene, so generate from its baseline value
+        } else {
+          df_x$exp_baseline[j]
+        }
+      })
+    }))
+    
+    rownames(mat_blueprint) <- vec_time
+    colnames(mat_blueprint) <- df_x$name
+    
+    mat_blueprint
+  })
+  
+  names(list_blueprint) <- paste0("blueprint", 1:k)
+  
+  list_blueprint
 }
 
 # create a template for the biological noise in each cell, where this is a 
 # matrix that is (number of cells) x (number of peaks)
 .generate_noise_x <- function(df_x, df_cell){
+  n <- nrow(df_cell); p <- nrow(df_x)
   
+  mat <- sapply(1:p, function(j){
+    stats::rnorm(n, mean = 0, sd = df_x$sd_biological)
+  })
+  
+  colnames(mat) <- df_x$name
+  rownames(mat) <- df_cell$name
+  
+  mat
 }
 
 # take the blueprint_x (dictating for this branch, at this time, what is the supposed-expression)
 # and add the noise for that cell (given in noise_x). the output is a 
 # a matrix that is (number of cells) x (number of peaks)
 .generate_mean_x <- function(df_cell, blueprint_x, noise_x){
+  n <- nrow(df_cell); p <- ncol(noise_x)
   
+  mat <- t(sapply(1:n, function(i){
+    branch <- df_cell$branch[i]
+    .generate_cell_x(time = df_cell$time[i], noise_vec = noise_x[i,], 
+                     blueprint_x = blueprint_x[[branch]])
+  }))
+  
+  colnames(mat) <- colnames(noise_x)
+  rownames(mat) <- df_cell$name
+  
+  mat
 }
 
 # create a matrix that is (number of cells) x (number of y variables).
@@ -78,61 +156,110 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
 # biological noise. This gives this cell's mean-x vector "earlier in time." 
 # Then, based on the peak's coefficients in df_x, compute the mean-y vector
 .generate_mean_y <- function(df_x, df_y, df_cell, blueprint_x, noise_x){
+  n <- nrow(df_cell)
   
+  mat <- t(sapply(1:n, function(i){
+    branch <- df_cell$branch[i]
+    .generate_cell_y(df_x, df_y, time = df_cell$time[i], noise_vec = noise_x[i,], 
+                     blueprint_x = blueprint_x[[branch]])
+  }))
+  
+  colnames(mat) <- df_y$name
+  rownames(mat) <- df_cell$name
+  
+  mat
 }
 
+.generate_obs <- function(df, mat){
+  n <- nrow(mat); p <- nrow(df)
+  
+  mat_obs <- sapply(1:p, function(j){
+    mat[,j] + stats::rnorm(n, mean = 0, sd = df$sd_technical[j])
+  })
+  
+  colnames(mat_obs) <- colnames(mat)
+  rownames(mat_obs) <- rownames(mat)
+  
+  mat_obs
+}
 
 #########################
 
-.generate_cell <- function(time, branch, df_var, list_noise, options){
-  p <- nrow(df_var)
- 
-  # compute a matrix with the mean and sd across all the genes
-  mat_exp <- sapply(1:p, function(j){
-    # gene unrelated to trajectories
-    if(df_var[j,"branch"] == 0){
-      .extract_exp_unrelated(time, list_noise[[rownames(df_var)[j]]])
-      
-    # informative gene
-    } else if(branch %in% as.numeric(strsplit(df_var[j,"branch"], split = ",")[[1]])){
-      .extract_exp_informative(time, df_var[j,])
-      
-    # gene not informative for this gene, so generate from its baseline value
-    } else {
-      c(df_var[j, "baseline_exp"], df_var[j, "sd_exp"])
-    }
-  })
+# [[note to self: no windup time used here]]
+.extract_exp_unrelated <- function(time, vec_param, mat_interval){
+  idx <- intersect(which(time >= mat_interval["time_start",]), 
+                   which(time <= mat_interval["time_end",]))
   
-}
-
-.extract_exp_unrelated <- function(time, list_param){
-  
+  if(length(idx) == 1){
+    vec_param["exp_max"]
+  } else {
+    vec_param["exp_baseline"]
+  }
 }
 
 .extract_exp_informative <- function(time, vec_param){
   # determine if time is in the high region
-  if(time >= vec_param["start_time"] & time <= vec_param["end_time"]){
-    return(c(vec_param["max_exp"], vec_param["sd"]))
+  if(time >= vec_param["time_start"] & time <= vec_param["time_end"]){
+    return(vec_param["exp_max"])
     
   # determine if time is in the windup period
-  } else if(time >= vec_param["start_time"]-vec_param["windup"] & 
-            time <= vec_param["end_time"]+vec_param["windup"]){
+  } else if(time >= vec_param["time_start"]-vec_param["time_windup"] & 
+            time <= vec_param["time_end"]+vec_param["time_windup"]){
     
-    if(time >= vec_param["start_time"]-vec_param["windup"] & time <= vec_param["start_time"]){
-      frac <- abs(time - vec_param["start_time"])/vec_param["windup"]
-      val <- (1-frac)*vec_param["max_exp"] + frac*vec_param["baseline_exp"]
+    if(time >= vec_param["time_start"]-vec_param["time_windup"] & time <= vec_param["time_start"]){
+      frac <- abs(time - vec_param["time_start"])/vec_param["time_windup"]
+      val <- (1-frac)*vec_param["exp_max"] + frac*vec_param["exp_baseline"]
     } else {
-      frac <- abs(time - vec_param["end_time"])/vec_param["windup"]
-      val <- (1-frac)*vec_param["max_exp"] + frac*vec_param["baseline_exp"]
+      frac <- abs(time - vec_param["time_end"])/vec_param["time_windup"]
+      val <- (1-frac)*vec_param["exp_max"] + frac*vec_param["exp_baseline"]
     }
-    return(c(val, vec_param["sd_exp"]))
+    return(val)
     
   } else {
-    return(c(vec_param["baseline_exp"], vec_param["sd_exp"]))
+    return(vec_param["exp_baseline"])
   }
 }
 
-# for an informative gene's information and the time, compute the mean expression
-.extract_exp <- function(){
+.generate_cell_x <- function(time, noise_vec, blueprint_matx){
+  vec_time <- as.numeric(rownames(blueprint_matx))
   
+  idx_lower <- which.max(sapply(vec_time, function(x){ifelse(x <= time, x, NA)}))
+  idx_upper <- which.min(sapply(vec_time, function(x){ifelse(x >= time, x, NA)}))
+  
+  if(length(idx_lower) == 0 || length(idx_upper) == 0 || idx_lower == idx_upper){
+    idx <- ifelse(length(idx_lower) == 0, idx_upper, idx_lower)
+    pmax(blueprint_matx[idx,] + noise_vec, 0)
+    
+  } else {
+    weight <- (x-vec_time[idx_lower])/(vec_time[idx_upper] - vec_time[idx_lower])
+    vec <- weight*blueprint_matx[idx_upper,] + (1-weight)*blueprint_matx[idx_lower,]
+    
+    pmax(vec + noise_vec, 0)
+  }
+}
+
+.generate_cell_y <- function(df_x, df_y, time, noise_vec, blueprint_x){
+  stopifnot(ncol(noise_vec) == ncol(blueprint_x))
+  p1 <- nrow(df_x); p2 <- nrow(df_y)
+  
+  sapply(1:p2, function(j){
+    if(df_y$branch[j] == "0"){
+      .extract_exp_unrelated(time, vec_param = df_y[j,], 
+                             mat_interval = list_ynoise[[df_y$name[j]]])
+      
+    } else {
+      # [[note to self: there could be a check on the branches here?]]
+      idx_x <- which(df_x$gene == df_y$name[j])
+      time_lag <- df_x$time_lag[idx_x]
+      vec_time <- pmax(time - time_lag, 0)
+      
+      vec_x <- sapply(1:length(idx_x), function(i){
+        as.numeric(.generate_cell_x(time = vec_time[i], 
+                                    noise_vec = noise_vec[idx_x[i]],
+                                    blueprint_matx = blueprint_x[,idx_x[i],drop=F]))
+      })
+      
+      as.numeric(df_x$coef[idx_x] %*% vec_x)
+    }
+  })
 }
