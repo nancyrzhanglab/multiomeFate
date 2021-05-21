@@ -1,40 +1,17 @@
-# starting to port over nancy's simulator
-
-# one hash-table: for each gene, which peaks are nearby
-
-# one gene dataframe: one row for each gene.
-# the attributes: TSS for gene, which branch (string, ex: "1" or "2,3", or "0"), which wave,
-# 5 values: interval-start, interval-end, windup, low-exp, high-exp
-# recall: the waves simply help us translate "which group of genes is this" to "what times are this gene maxed out"
-
-# one peak dataframe: one row for each peak.
-# the attributes: peak start and end, which branch (string, ex: "1" or "2,3" or "0"), which wave,
-# 5 values: interval-start, interval-end, windup, low-exp, high-exp
-## this is made after gene dataframe, so the construction of this df requires chromatin lead/lag
-
-# one noise gene list: length of number of noise genes, named by the gene
-# the elements: matrix of start&ends, vector of 4 (windup, low-exp, high-exp, prob of expressed)
-
-# one noise peak list: length of number of noise peak, named by the peak
-# the elements: matrix of start&ends, vector of 4 (windup, low-exp, high-exp, prob of expressed)
-
-# one cell dataframe:
-# one row for each cell: what its time, its branch
-
 generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise, 
                            df_cell, blueprint_resolution = 500, verbose = T){
   
   # checks
-  stopifnot(all(c("name", "gene", "time_start", "time_end", "time_windup", 
+  stopifnot(all(c("name", "gene", "time_start", "time_end", "time_windup", "time_lag",
                   "exp_baseline", "exp_max", "branch", "sd_biological", 
                   "sd_technical", "coef") %in% colnames(df_x)))
-  stopifnot(all("name", "branch", "sd_technical") %in% colnames(df_y))
-  stopifnot(all("name", "branch", "time", "exp_max", "exp_baseline") %in% colnames(df_cell))
-  stopifnot(all(df_x$gene %in% df_y$name))
+  stopifnot(all(c("name", "branch", "sd_technical", "exp_max", "exp_baseline") %in% colnames(df_y)))
+  stopifnot(all(c("name", "branch", "time") %in% colnames(df_cell)))
+  stopifnot(all(df_x$gene[!is.na(df_x$gene)] %in% df_y$name))
   stopifnot(length(which(df_x$branch == "0")) == length(list_xnoise),
             length(which(df_y$branch == "0")) == length(list_ynoise))
-  stopifnot(all(df_x$time_start <= df_x$time_end), 
-            all(df_x$exp_baseline <= df_x$exp_max))
+  stopifnot(all(df_x$time_start[df_x$branch != "0"] <= df_x$time_end[df_x$branch != "0"]), 
+            all(df_x$exp_baseline[df_x$branch != "0"] <= df_x$exp_max[df_x$branch != "0"]))
   for(i in 1:length(list_xnoise)){
     tmp <- list_xnoise[[i]]; len <- ncol(tmp)
     stopifnot(all(tmp["time_start",] <= tmp["time_end",]))
@@ -55,7 +32,7 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
   stopifnot(all(diff(vec_time) > 0))
   
   # create x's blueprint that is (vec_time) x (num. of variables) for each branch
-  blueprint_x <- .create_blueprint_x(df_x, list_xnoise, num_branches, vec_time)
+  blueprint_x <- .create_blueprint_x(df_x, list_xnoise, num_branches, vec_time, verbose = T)
   # set the amount of biological noise in each cell
   noise_x <- .generate_noise_x(df_x, df_cell)
   # based on x's blueprint, start generating the mean expression for each cell
@@ -81,11 +58,15 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
 # create a list (equal to the number of branches) where each element is 
 # (vec_time) x (number of peaks), denoting the mean expression across time
 # for each branch
-.create_blueprint_x <- function(df_x, list_xnoise, num_branches, vec_time){
+.create_blueprint_x <- function(df_x, list_xnoise, num_branches, vec_time,
+                                verbose = T){
   p <- nrow(df_x)
   
-  list_blueprint <- lapply(1:num_branches, function(k){
-    mat_blueprint <- t(sapply(vec_time, function(time){
+  list_blueprint <- lapply(1:num_branches, function(branch){
+    if(verbose) print(paste0("branch ", branch))
+    mat_blueprint <- t(sapply(1:length(vec_time), function(idx){
+      if(verbose && length(vec_time) >= 10 && idx %% floor(length(vec_time)/10) == 0) cat('*')
+      time <- vec_time[idx]
       
       # [[note to self: there's definitely a better way to code this...]]
       sapply(1:p, function(j){
