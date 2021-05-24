@@ -45,7 +45,8 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
                                 time_windup = time_on/2, max_lag = time_on/2,
                                 x_exp_baseline = 0, x_exp_max = 1,
                                 x_sd_biological = 0.1, x_sd_technical = 0.01,
-                                x_coef = 1, y_sd_technical = 0.01,
+                                x_coef = 1, 
+                                y_exp_baseline = 0, y_sd_technical = 0.01,
                                 num_unrelated_x = 10, num_unrelated_y = 10,
                                 x_unrelated_baseline = 0, x_unrelated_max = 1,
                                 x_unrelated_intervals = 5,
@@ -66,7 +67,7 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
   df_y <- data.frame(name = paste0("vary_",1:p2), location = round(seq(1, genome_length, length.out = p2)),
                      branch = branch_vec, time_start_scaffold = round(time_start_scaffold), 
                      time_end_scaffold = round(pmin(time_start_scaffold + time_on, time_max)),
-                     exp_baseline = y_unrelated_baseline, exp_max = y_unrelated_max,
+                     exp_baseline = y_exp_baseline, exp_max = NA,
                      sd_technical = y_sd_technical)
 
   # construct the peak information

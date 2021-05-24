@@ -151,7 +151,8 @@ generate_data <- function(df_x, df_y, list_xnoise, list_ynoise,
         val <- .compute_y_expression(time_cell = df_cell$time[idx],
                                      mat_noise = noise_x[idx, x_idx],
                                      df_param = df_x[x_idx,],
-                                     blueprint_matx = blueprint_x[[branch]][,x_idx,drop = F])
+                                     blueprint_matx = blueprint_x[[branch]][,x_idx,drop = F],
+                                     y_baseline = df_y$exp_baseline[j])
         
         vec[idx] <- val
       }
@@ -160,6 +161,7 @@ generate_data <- function(df_x, df_y, list_xnoise, list_ynoise,
     vec
   })
   
+  mat <- pmax(mat, 0)
   colnames(mat) <- df_y$name
   rownames(mat) <- df_cell$name
   
@@ -244,7 +246,8 @@ generate_data <- function(df_x, df_y, list_xnoise, list_ynoise,
 }
 
 # [[note to self: assumes the rownames in blueprint_matx are a fixed spacing]]
-.compute_y_expression <- function(time_cell, mat_noise, df_param, blueprint_matx){
+.compute_y_expression <- function(time_cell, mat_noise, df_param, blueprint_matx,
+                                  y_baseline){
   stopifnot(nrow(df_param) == ncol(blueprint_matx), nrow(df_param) == ncol(mat_noise),
             length(time_cell) == nrow(mat_noise))
   
@@ -264,5 +267,5 @@ generate_data <- function(df_x, df_y, list_xnoise, list_ynoise,
   mat <- mat + mat_noise
   mat <- pmax(mat, 0)
   
-  as.numeric(mat %*% df_param$coef)
+  as.numeric(mat %*% df_param$coef + y_baseline)
 }
