@@ -41,7 +41,7 @@ generate_combn_wave_mat <- function(g, idx_root, num_waves = 20, num_per_wave = 
 
 generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
                                 genome_length = 10000,
-                                time_max = 100, time_on = time_max/ncol(combn_wave_mat), 
+                                time_max = 100, time_on = 2*time_max/ncol(combn_wave_mat), 
                                 time_windup = time_on/2, max_lag = time_on/2,
                                 x_exp_baseline = 0, x_exp_max = 1,
                                 x_sd_biological = 0.1, x_sd_technical = 0.01,

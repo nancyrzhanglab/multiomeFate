@@ -1,27 +1,8 @@
-generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise, 
+generate_data <- function(df_x, df_y, list_xnoise, list_ynoise, 
                            df_cell, blueprint_resolution = 500, verbose = T){
   
   # checks
-  stopifnot(all(c("name", "gene", "time_start", "time_end", "time_windup", "time_lag",
-                  "exp_baseline", "exp_max", "branch", "sd_biological", 
-                  "sd_technical", "coef") %in% colnames(df_x)))
-  stopifnot(all(c("name", "branch", "sd_technical", "exp_max", "exp_baseline") %in% colnames(df_y)))
-  stopifnot(all(c("name", "branch", "time") %in% colnames(df_cell)))
-  stopifnot(all(df_x$gene[!is.na(df_x$gene)] %in% df_y$name))
-  stopifnot(length(which(df_x$branch == "0")) == length(list_xnoise),
-            length(which(df_y$branch == "0")) == length(list_ynoise))
-  stopifnot(all(df_x$time_start[df_x$branch != "0"] <= df_x$time_end[df_x$branch != "0"]), 
-            all(df_x$exp_baseline[df_x$branch != "0"] <= df_x$exp_max[df_x$branch != "0"]))
-  for(i in 1:length(list_xnoise)){
-    tmp <- list_xnoise[[i]]; len <- ncol(tmp)
-    stopifnot(all(tmp["time_start",] <= tmp["time_end",]))
-    if(len > 1) stopifnot(all(tmp["time_start",-1] >= tmp["time_end",-len]))
-  }
-  for(i in 1:length(list_ynoise)){
-    tmp <- list_ynoise[[i]]; len <- ncol(tmp)
-    stopifnot(all(tmp["time_start",] <= tmp["time_end",]))
-    if(len > 1) stopifnot(all(tmp["time_start",-1] >= tmp["time_end",-len]))
-  }
+  .check_data_inputs(df_x, df_y, list_xnoise, list_ynoise, df_cell)
   
   # setup
   n <- nrow(df_cell)
@@ -45,7 +26,8 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
   obs_x <- .generate_obs(df_x, mean_x)
   obs_y <- .generate_obs(df_y, mean_y)
   
-  list(obs_x = obs_x, obs_y = obs_y, mean_x = mean_x, mean_y = mean_y)
+  list(obs_x = obs_x, obs_y = obs_y, mean_x = mean_x, mean_y = mean_y,
+       blueprint_x = blueprint_x)
 }
 
 ########################
@@ -81,19 +63,10 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
       
     } else {
       branches <- as.numeric(strsplit(df_x$branch[j], split = ",")[[1]])
-      # [[note to self: factorize this out]]
-      idx_high <- intersect(which(vec_time >= df_x$time_start[j]), 
-                       which(vec_time <= df_x$time_end[j]))
-      val_high <- rep(df_x$exp_max[j], length(idx_high))
-      idx_up <- intersect(which(vec_time >= df_x$time_start[j] - df_x$time_lag[j]),
-                          which(vec_time < df_x$time_start[j]))
-      val_up <- seq(df_x$exp_baseline[j], df_x$exp_max[j], length.out = length(idx_up))
-      idx_down <- intersect(which(vec_time >= df_x$time_end[j]),
-                          which(vec_time < df_x$time_end[j] + df_x$time_lag[j]))
-      val_down <- seq(df_x$exp_max[j], df_x$exp_baseline[j], length.out = length(idx_down))
+      tmp <- .compute_expression_values(vec_time, df_x[j,])
       
       for(branch in branches){
-        list_blueprint[[branch]][c(idx_up, idx_high, idx_down),j] <- c(val_up, val_high, val_down)
+        list_blueprint[[branch]][tmp$idx,j] <- tmp$val
       }
     }
   }
@@ -122,10 +95,13 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
 .generate_mean_x <- function(df_cell, blueprint_x, noise_x){
   n <- nrow(df_cell); p <- ncol(noise_x)
   
+  # [[note to self: hard coded to be the same across all elements in blueprint_x]]
+  vec_time <- as.numeric(rownames(blueprint_x[[1]]))
+  
   mat <- t(sapply(1:n, function(i){
     branch <- df_cell$branch[i]
-    .generate_cell_x(time = df_cell$time[i], noise_vec = noise_x[i,], 
-                     blueprint_matx = blueprint_x[[branch]])
+    idx <- which.min(abs(vec_time - df_cell$time[i]))
+    pmax(blueprint_x[[branch]][idx,] + noise_x[i,], 0)
   }))
   
   colnames(mat) <- colnames(noise_x)
@@ -200,10 +176,37 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
   colnames(mat_obs) <- colnames(mat)
   rownames(mat_obs) <- rownames(mat)
   
+  mat_obs <- pmax(mat_obs, 0)
+  
   mat_obs
 }
 
 #########################
+
+.check_data_inputs <- function(df_x, df_y, list_xnoise, list_ynoise, df_cell){
+  stopifnot(all(c("name", "gene", "time_start", "time_end", "time_windup", "time_lag",
+                  "exp_baseline", "exp_max", "branch", "sd_biological", 
+                  "sd_technical", "coef") %in% colnames(df_x)))
+  stopifnot(all(c("name", "branch", "sd_technical", "exp_max", "exp_baseline") %in% colnames(df_y)))
+  stopifnot(all(c("name", "branch", "time") %in% colnames(df_cell)))
+  stopifnot(all(df_x$gene[!is.na(df_x$gene)] %in% df_y$name))
+  stopifnot(length(which(df_x$branch == "0")) == length(list_xnoise),
+            length(which(df_y$branch == "0")) == length(list_ynoise))
+  stopifnot(all(df_x$time_start[df_x$branch != "0"] <= df_x$time_end[df_x$branch != "0"]), 
+            all(df_x$exp_baseline[df_x$branch != "0"] <= df_x$exp_max[df_x$branch != "0"]))
+  for(i in 1:length(list_xnoise)){
+    tmp <- list_xnoise[[i]]; len <- ncol(tmp)
+    stopifnot(all(tmp["time_start",] <= tmp["time_end",]))
+    if(len > 1) stopifnot(all(tmp["time_start",-1] >= tmp["time_end",-len]))
+  }
+  for(i in 1:length(list_ynoise)){
+    tmp <- list_ynoise[[i]]; len <- ncol(tmp)
+    stopifnot(all(tmp["time_start",] <= tmp["time_end",]))
+    if(len > 1) stopifnot(all(tmp["time_start",-1] >= tmp["time_end",-len]))
+  }
+  
+  invisible()
+}
 
 .extract_unrelated_idx <- function(vec_time, mat_noiseparam){
   unlist(lapply(1:ncol(mat_noiseparam), function(j){
@@ -212,11 +215,32 @@ generate_data2 <- function(df_x, df_y, list_xnoise, list_ynoise,
   }))
 }
 
-.generate_cell_x <- function(time, noise_vec, blueprint_matx){
-  vec_time <- as.numeric(rownames(blueprint_matx))
+.compute_expression_values <- function(vec_time, vec_param){
+  idx_high <- intersect(which(vec_time >= vec_param$time_start), 
+                        which(vec_time <= vec_param$time_end))
+  val_high <- rep(vec_param$exp_max, length(idx_high))
   
-  idx <- which.min(abs(vec_time - time))
-  pmax(blueprint_matx[idx,] + noise_vec, 0)
+  # [[note to self: assumes a constant change in vec_time]]
+  idx_spacing <- ceiling(vec_param$time_windup/min(abs(diff(vec_time))))
+  val_change <- (vec_param$exp_max - vec_param$exp_baseline)/idx_spacing
+    
+  idx_up <- intersect(which(vec_time >= vec_param$time_start - vec_param$time_windup),
+                      which(vec_time < vec_param$time_start))
+  if(length(idx_up) > 0){
+    val_up <- vec_param$exp_max-c(length(idx_up):1)*val_change
+  } else {
+    val_up <- numeric(0)
+  }
+ 
+  idx_down <- intersect(which(vec_time >= vec_param$time_end),
+                        which(vec_time < vec_param$time_end + vec_param$time_windup))
+  if(length(idx_down) > 0){
+    val_down <- vec_param$exp_max-c(1:length(idx_down))*val_change
+  } else {
+    val_down <- numeric(0)
+  }
+  
+  list(idx = c(idx_up, idx_high, idx_down), val = c(val_up, val_high, val_down))
 }
 
 # [[note to self: assumes the rownames in blueprint_matx are a fixed spacing]]
