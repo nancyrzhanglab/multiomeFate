@@ -53,7 +53,6 @@ generate_data <- function(df_x, df_y, list_xnoise, list_ynoise,
   })
   names(list_blueprint) <- paste0("blueprint_", 1:num_branches)
   
-  
   for(j in 1:p){
     if(df_x$branch[j] == "0"){
       idx <- .extract_unrelated_idx(vec_time, list_xnoise[[df_x$name[j]]])
