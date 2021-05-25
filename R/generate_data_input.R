@@ -122,8 +122,8 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
                         location = round(seq(1, genome_length, length.out = num_unrelated_x)),
                         gene = NA, branch = "0",
                         time_start = NA, time_end = NA, time_lag = NA,
-                        time_windup = NA, exp_baseline = x_exp_baseline,
-                        exp_max = x_exp_max, sd_technical = x_sd_technical,
+                        time_windup = NA, exp_baseline = x_unrelated_baseline,
+                        exp_max = x_unrelated_max, sd_technical = x_sd_technical,
                         sd_biological = x_sd_biological, coef = NA)
     df_x <- rbind(df_x, tmp_x)
     list_xnoise <- lapply(1:num_unrelated_x, function(i){
