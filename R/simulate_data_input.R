@@ -1,5 +1,6 @@
 # generate how many genes there are per wave that belong to each branch combination
-generate_combn_wave_mat <- function(g, idx_root, num_waves = 20, num_per_wave = 20){
+generate_combn_wave_mat <- function(g, idx_root, num_waves = 20, num_per_wave = 20,
+                                    distinct_waves = 0){
   stopifnot(class(g) == "igraph")
   
   idx_leaves <- which(igraph::degree(g) == 1)
@@ -38,6 +39,16 @@ generate_combn_wave_mat <- function(g, idx_root, num_waves = 20, num_per_wave = 
     }
   }
   
+  if(distinct_waves > 0){
+    row_idx <- which(rownames(mat) %in% as.character(idx_leaves))
+    tmp <- matrix(0, nrow = nrow(mat), ncol = distinct_waves)
+    colnames(tmp) <- paste0("w", ncol(mat)+1:distinct_waves)
+    rownames(tmp) <- rownames(mat) 
+    
+    tmp[row_idx,] <- mat[row_idx,ncol(mat)]
+    mat <- cbind(mat, tmp)
+  }
+  
   mat
 }
 
@@ -45,6 +56,7 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
                                 genome_length = 10000,
                                 time_max = 100, time_on = 2*time_max/ncol(combn_wave_mat), 
                                 time_windup = time_on/2, 
+                                time_hold = time_max - time_on,
                                 max_lag = time_on/2, min_lag = 0,
                                 x_exp_baseline = 0, x_exp_max = 1,
                                 x_sd_biological = 0.1, x_sd_technical = 0.01,
@@ -61,12 +73,15 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
   branch_vec <- unlist(lapply(1:ncol(combn_wave_mat), function(i){
     rep(rownames(combn_wave_mat), times = combn_wave_mat[,i])
   }))
-  wave_length <- time_max/ncol(combn_wave_mat)
-  time_start_scaffold <- unlist(lapply(1:ncol(combn_wave_mat), function(j){
+  wave_length <- time_hold/(ncol(combn_wave_mat)-1)
+  time_start_scaffold1 <- unlist(lapply(1:(ncol(combn_wave_mat)-1), function(j){
     unlist(lapply(1:nrow(combn_wave_mat), function(i){
       seq((j-1)*wave_length, j*wave_length, length.out = combn_wave_mat[i,j])
     }))
   }))
+  time_start_scaffold2 <- rep(time_hold, sum(combn_wave_mat[,ncol(combn_wave_mat)]))
+  time_start_scaffold <- c(time_start_scaffold1, time_start_scaffold2)
+  
   df_y <- data.frame(name = paste0("vary_",1:p2), location = round(seq(1, genome_length, length.out = p2)),
                      branch = branch_vec, time_start_scaffold = round(time_start_scaffold), 
                      time_end_scaffold = round(pmin(time_start_scaffold + time_on, time_max)),
