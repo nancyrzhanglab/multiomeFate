@@ -65,7 +65,9 @@
   idx_nn <- unique(as.vector(nn_mat[idx_rec,]))
   
   vec_cand <- intersect(idx_nn, idx_free)
-  stopifnot(length(vec_cand) > 0)
+  if(length(vec_cand) == 0){
+    vec_cand <- idx_free
+  }
   
   # run the diagnostic
   list_diagnos <- list() 

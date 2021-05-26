@@ -34,7 +34,7 @@
 .estimate_g <- function(mat_x1, mat_y2, est_options){
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
-  if(est_options[["method"]] == "glmnet"){
+  if(est_options[["method"]] %in% c("glmnet", "threshold_glmnet")){
     res_g <- .estimate_g_glmnet(mat_x1, mat_y2, est_options)
   } else {
     stop("Estimation method not found")
@@ -75,23 +75,37 @@
       idx_x <- est_options$ht_map[[as.character(j)]]
     } else {
       #[[note to self: I think there's a cleaner way to write this]]
+      #[[note to self: write a test for this scenario]]
       idx_x <- 1:p1
     }
-    if(length(idx_x) == 0) return(val_int = 0, vec_coef = rep(0, p1))
+    if(length(idx_x) == 0) return(val_int = mean(mat_y2[,j]), vec_coef = rep(0, p1))
     
     idx_y <- j
     
     ## apply glmnet
-    .glmnet_fancy(mat_x1[,idx_x,drop = F], mat_y2[,idx_y],
-                  family = est_options$family, 
-                  switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
-                  alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
-                  cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice,
-                  bool_round = est_options$bool_round)
+    if(est_options[["method"]] == "glmnet"){
+      .glmnet_fancy(mat_x1[,idx_x,drop = F], mat_y2[,idx_y],
+                    family = est_options$family, 
+                    switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
+                    alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
+                    cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice,
+                    bool_round = est_options$bool_round)
+    } else{
+      .threshold_glmnet_fancy(mat_x1[,idx_x,drop = F], mat_y2[,idx_y],
+                              family = est_options$family, 
+                              switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
+                              alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
+                              cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice,
+                              bool_round = est_options$bool_round,
+                              num_iterations = est_options$num_iterations, 
+                              initial_quantile = est_options$initial_quantile)
+    }
   })
   
   .transform_est_matrix(list_res, est_options, p1)
 }
+
+#####################################################
 
 .glmnet_fancy <- function(x, y, family, 
                           switch, switch_cutoff,
@@ -138,14 +152,61 @@
   list(val_int = val_int, vec_coef = vec_coef)
 }
 
+.threshold_glmnet_fancy <- function(x, y, family, 
+                                    switch, switch_cutoff,
+                                    alpha, standardize, intercept,
+                                    cv, nfolds, cv_choice, bool_round,
+                                    num_iterations, initial_quantile,
+                                    tol = 1e-4){
+  prev_threshold <- stats::quantile(y, probs = initial_quantile)
+  iter <- 1
+  
+  while(iter <= num_iterations){
+    # update the regression
+    idx <- which(y >= prev_threshold)
+    res_glm <- .glmnet_fancy(x[idx,,drop = F], y[idx], family, 
+                           switch, switch_cutoff,
+                           alpha, standardize, intercept,
+                           cv, nfolds, cv_choice, bool_round)
+    
+    # update the threshold
+    # [[note to self: assumes family is Gaussian essentially]]
+    next_threshold <- .update_threshold_glmnet(x, y, res_glm)
+    
+    if(abs(next_threshold - prev_threshold) <= tol) break()
+    iter <- iter+1
+  }
+  
+  list(val_int = res_glm$val_int, vec_coef = res_glm$vec_coef,
+       val_threshold = next_threshold)
+}
+
+.update_threshold_glmnet <- function(x, y, res_glm){
+  pred_y <- as.numeric(x %*% res_glm$vec_coef) + res_glm$val_int
+  
+  f <- function(val_threshold, y, pred_y){
+    sum((y - pmax(pred_y, val_threshold))^2)
+  }
+  
+  stats::optimize(f, interval = c(min(y), max(y)), maximum = F,
+                  y = y, pred_y = pred_y)$minimum
+}
+
+#################################
+
 .transform_est_matrix <- function(list_res, est_options, p1){
   p2 <- length(list_res)
+  bool_thres <- "val_threshold" %in% names(list_res[[1]])
   
   mat_g <- matrix(0, nrow = p1, ncol = p2)
   vec_g <- rep(0, length = p2)
+  if(bool_thres) {
+    vec_threshold <- rep(0, length = p2)
+  }
   
   for(j in 1:p2){
     vec_g[j] <- list_res[[j]]$val_int
+    if(bool_thres){ vec_threshold[j] <- list_res[[j]]$val_threshold }
   
     if(est_options$enforce_cis){
       idx_x <- est_options$ht_map[[as.character(j)]]
@@ -155,5 +216,10 @@
     }
   }
   
-  list(mat_g = mat_g, vec_g = vec_g)
+  if(bool_thres){
+    list(mat_g = mat_g, vec_g = vec_g, vec_threshold = vec_threshold)
+  } else {
+    list(mat_g = mat_g, vec_g = vec_g)
+  }
+  
 }

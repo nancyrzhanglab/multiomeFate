@@ -187,7 +187,11 @@
   
     # allow cell to be matched to any other cell
     if(!enforce_matched){
-      nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
+      if(rec_options$bool_pred_nn){
+        nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
+      } else{
+        nn_pred <- .distant_nn(cell, nn_mat)
+      }
       
     # only match a cell to another previously-matched cell  
     } else {
@@ -211,6 +215,7 @@
     })
     
     idx <- nn_pred[which.max(cor_vec)]
+    print(max(cor_vec))
     tmp <- setdiff(nn_mat[idx, ], nn_cand)
     ## [note to self: include a test for this -- if enforce_match, make sure the neighbors are also matched]
     if(enforce_matched){
@@ -251,11 +256,33 @@
   }
   
   if(family == "gaussian"){
-    nat_param
+    res <- nat_param
   } else if(family == "poisson"){
-    exp(nat_param)
+    res <- exp(nat_param)
   } else {
     stop("family not found")
   }
   
+  if("vec_threshold" %in% names(res_g)){
+    for(j in 1:p2){
+      val <- res_g$vec_threshold[j]
+      res[res[,j] <= val, j] <- val
+    }
+  }
+  
+  res
+}
+
+.distant_nn <- function(idx, nn_mat){
+  vec_neigh <- nn_mat[idx,]
+  vec_neigh2 <- unlist(lapply(vec_neigh, function(i){
+    nn_mat[i,]
+  }))
+  
+  vec_neigh2 <- sort(unique(vec_neigh2))
+  if(all(vec_neigh2 %in% vec_neigh)){
+    vec_neigh2
+  } else{
+    vec_neigh2[!vec_neigh2 %in% vec_neigh]
+  }
 }

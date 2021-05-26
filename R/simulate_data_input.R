@@ -1,5 +1,5 @@
 # generate how many genes there are per wave that belong to each branch combination
-generate_combn_wave_mat <- function(g, idx_root, num_waves = 20, num_per_wave = 20,
+simulate_combn_wave_mat <- function(g, idx_root, num_waves = 20, num_per_wave = 20,
                                     distinct_waves = 0){
   stopifnot(class(g) == "igraph")
   
@@ -52,7 +52,7 @@ generate_combn_wave_mat <- function(g, idx_root, num_waves = 20, num_per_wave = 
   mat
 }
 
-generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
+simulate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
                                 genome_length = 10000,
                                 time_max = 100, time_on = 2*time_max/ncol(combn_wave_mat), 
                                 time_windup = time_on/2, 
@@ -81,10 +81,12 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
   }))
   time_start_scaffold2 <- rep(time_hold, sum(combn_wave_mat[,ncol(combn_wave_mat)]))
   time_start_scaffold <- c(time_start_scaffold1, time_start_scaffold2)
+  lag_scaffold <- c(rep(TRUE, length(time_start_scaffold1)), rep(FALSE, length(time_start_scaffold2)))
   
   df_y <- data.frame(name = paste0("vary_",1:p2), location = round(seq(1, genome_length, length.out = p2)),
                      branch = branch_vec, time_start_scaffold = round(time_start_scaffold), 
                      time_end_scaffold = round(pmin(time_start_scaffold + time_on, time_max)),
+                     lag_scaffold = lag_scaffold,
                      exp_baseline = y_exp_baseline, exp_max = NA,
                      sd_technical = y_sd_technical)
 
@@ -99,7 +101,7 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
                      sd_biological = x_sd_biological, coef = x_coef)
   for(i in 1:p2){
     idx <- (num_x_per_y*(i-1)+1):(num_x_per_y*i)
-    df_x$location[idx] <- round(df_y$location[i]+seq(-spacing/2, spacing/2, length.out = num_x_per_y))
+    df_x$location[idx] <- round(df_y$location[i]+seq(-spacing/4, spacing/4, length.out = num_x_per_y))
     df_x$location[idx] <- pmin(pmax(df_x$location[idx], 0), genome_length)
     
     df_x$gene[idx] <- rep(df_y$name[i], num_x_per_y)
@@ -107,7 +109,11 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
     df_x$time_lag[idx] <- round(seq(max_lag, min_lag, length.out = num_x_per_y))
     
     df_x$time_start[idx] <- round(pmax(df_y$time_start_scaffold[i] - df_x$time_lag[idx], 0))
-    df_x$time_end[idx] <- round(pmax(df_y$time_end_scaffold[i] - df_x$time_lag[idx], time_on))
+    if(df_y$lag_scaffold[i]){
+      df_x$time_end[idx] <- round(pmax(df_y$time_end_scaffold[i] - df_x$time_lag[idx], time_on))
+    } else {
+      df_x$time_end[idx] <- round(df_y$time_end_scaffold[i])
+    }
   }
   
   # add in the unrelated genes
@@ -115,7 +121,7 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
     tmp_y <- data.frame(name = paste0("vary_",(p2+1):(p2+num_unrelated_y)), 
                         location = round(seq(1, genome_length, length.out = num_unrelated_y)),
                         branch = "0", time_start_scaffold = NA, 
-                        time_end_scaffold = NA,
+                        time_end_scaffold = NA, lag_scaffold = NA,
                         exp_baseline = y_unrelated_baseline, exp_max = y_unrelated_max,
                         sd_technical = y_sd_technical)
     df_y <- rbind(df_y, tmp_y)
@@ -157,7 +163,7 @@ generate_data_input <- function(combn_wave_mat, num_x_per_y = 5,
        list_ynoise = list_ynoise)
 }
 
-generate_df_cell <- function(n, time_max, num_branch){
+simulate_df_cell <- function(n, time_max, num_branch){
   df <- expand.grid(round(seq(0, time_max, length.out = ceiling(n/num_branch))),
                     1:num_branch)
   if(nrow(df) >= n) df <- df[1:n,]
@@ -167,7 +173,7 @@ generate_df_cell <- function(n, time_max, num_branch){
   df
 }
 
-generate_df_cell_random <- function(n_list, func_list, time_max){
+simulate_df_cell_random <- function(n_list, func_list, time_max){
   list_time <- lapply(1:length(n_list), function(branch){
     sapply(1:n_list[[branch]], function(i){
       func_list[[i]]()*time_max

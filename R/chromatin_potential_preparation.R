@@ -55,14 +55,12 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   # initialize
   list_diagnos <- list()
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
-  ht_neighbor <- .init_chrom_ht(list_end)
   if(full_options$est_options$enforce_cis){
     full_options$est_options <- .gene_peak_map(df_x, df_y, full_options$est_options)
   }
   
   structure(list(mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,
                  df_res = df_res, dim_reduc_obj = dim_reduc_obj, 
-                 ht_neighbor = ht_neighbor, 
                  nn_mat = nn_mat, nn_obj = nn_obj, 
                  list_diagnos = list_diagnos, options = full_options),
             class = "chromatin_potential_prep")
@@ -88,14 +86,4 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   }
   
   df_res
-}
-
-.init_chrom_ht <- function(list_end){
-  ht_neighbor <- hash::hash()
-  vec <- unlist(list_end)
-  for(i in vec){
-    ht_neighbor[[as.character(i)]] <- c(neighbor = i)
-  }
-  
-  ht_neighbor
 }

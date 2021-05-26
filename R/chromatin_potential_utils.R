@@ -21,7 +21,7 @@
   stopifnot(dim_method %in% c("pca"))
   stopifnot(nn_method %in% c("annoy"))
   stopifnot(form_method %in% c("literal", "average"))
-  stopifnot(est_method %in% c("glmnet"))
+  stopifnot(est_method %in% c("glmnet", "threshold_glmnet"))
   stopifnot(cand_method %in% c("nn_any", "nn_freq", "all"))
   stopifnot(rec_method %in% c("nn", "distant_cor"))
   stopifnot(is.list(options))
@@ -101,11 +101,25 @@
     list_default <- list(family = "gaussian", 
                          enforce_cis = T, cis_window = 200,
                          switch = F, switch_cutoff = 10,
-                         alpha = 1, standardize = F, intercept = F,
+                         alpha = 1, standardize = F, intercept = T,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
                          bool_round = T, run_diagnostic = T,
                          hold_initial = F, parallel = F, verbose = F)
     est_options <- .fill_options(options, list_default, prefix)
+  } else if(est_method == "threshold_glmnet"){
+    
+    list_default <- list(family = "gaussian", 
+                         enforce_cis = T, cis_window = 200,
+                         switch = F, switch_cutoff = 10,
+                         alpha = 1, standardize = F, intercept = T,
+                         cv = T, nfolds = 5, cv_choice = "lambda.1se",
+                         bool_round = T, 
+                         num_iterations = 10, initial_quantile = 0.25,
+                         run_diagnostic = T, hold_initial = F, 
+                         parallel = F, verbose = F)
+    est_options <- .fill_options(options, list_default, prefix)
+    
+    stopifnot(est_options$family == "gaussian")
   }
   
   if(est_options$family == "poisson") stopifnot(est_options$bool_round) # [[note to self: glmnet seems to be not handle non-integers for poisson glm...]]
@@ -152,7 +166,7 @@
     
   } else if(rec_method == "distant_cor"){
     list_default <- list(inflation = 1.5, cor_method = "pearson", nn = 2, parallel = F, 
-                         run_diagnostic = T, verbose = F)
+                         bool_pred_nn = F, run_diagnostic = T, verbose = F)
     rec_options <- .fill_options(options, list_default, prefix)
     
     stopifnot(rec_options$method %in% c("pearson", "spearman", "kendall"))

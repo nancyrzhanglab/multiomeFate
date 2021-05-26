@@ -1,4 +1,4 @@
-generate_data <- function(df_x, df_y, list_xnoise, list_ynoise, 
+simulate_data <- function(df_x, df_y, list_xnoise, list_ynoise, 
                            df_cell, blueprint_resolution = 500, verbose = T){
   
   # checks

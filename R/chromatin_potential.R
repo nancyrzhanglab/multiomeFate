@@ -35,7 +35,6 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
   df_x <- prep_obj$df_x; df_y <- prep_obj$df_y
   df_res <- prep_obj$df_res; dim_reduc_obj <- prep_obj$dim_reduc_obj
-  ht_neighbor <- prep_obj$ht_neighbor
   nn_mat <- prep_obj$nn_mat; nn_obj <- prep_obj$nn_obj
   list_diagnos <- prep_obj$list_diagnos; options <- prep_obj$options
   
@@ -45,6 +44,8 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   
   # initialize
   n <- nrow(mat_x)
+  
+  ht_neighbor <- .init_chrom_ht(which(df_res$order_rec == 0))
   tmp <- .init_est_matrices(mat_x, mat_y, df_res)
   mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
   list_diagnos <- list()
@@ -98,6 +99,17 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
 }
 
 #########################
+
+
+.init_chrom_ht <- function(vec_end){
+  ht_neighbor <- hash::hash()
+  for(i in vec_end){
+    ht_neighbor[[as.character(i)]] <- c(neighbor = i)
+  }
+  
+  ht_neighbor
+}
+
 
 .update_chrom_df_cand <- function(df_res, vec_cand){
   stopifnot(all(is.na(df_res$order_rec[vec_cand])))
