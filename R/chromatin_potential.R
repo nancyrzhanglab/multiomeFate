@@ -30,7 +30,7 @@
 #' @return object of class \code{chromatin_potential}
 #' @export
 chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, ncol(mat_y)),
-                                verbose = T){
+                                df_cell = NA, bool_oracle = F, verbose = T){
   # pull the appropriate objects for convenience
   mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
   df_x <- prep_obj$df_x; df_y <- prep_obj$df_y
@@ -69,11 +69,11 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     stopifnot(all(is.na(df_res$order_rec[res_cand$vec_cand])))
     list_diagnos[[as.character(iter)]]$candidate <- res_cand$diagnostic
     
-    ## recruit an element from the candidate set
-    enforce_matched <- length(which(df_res$order_rec == 0)) > length(which(df_res$order_rec > 0))
+    ## recruit an element from the candidate se
+    enforce_matched <- length(which(df_res$order_rec == 0)) > length(which(df_res$order_rec > 0)) & !bool_oracle
     res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
                              dim_reduc_obj, nn_mat, nn_obj, enforce_matched,
-                             rec_options)
+                             df_cell, rec_options)
     stopifnot(all(is.na(df_res$order_rec[res_rec$rec$vec_from])))
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
@@ -91,6 +91,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   # output
   structure(list(res_g = res_g, mat_x = mat_x, mat_y = mat_y, 
                  df_x = df_x, df_y = df_y, df_res = df_res, 
+                 df_cell = df_cell,
                  dim_reduc_obj = dim_reduc_obj,
                  ht_neighbor = ht_neighbor, 
                  nn_mat = nn_mat, nn_obj = nn_obj,

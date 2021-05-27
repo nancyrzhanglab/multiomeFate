@@ -3,7 +3,8 @@ chromatin_potential_refine <- function(chrom_obj, iter_max = 10, tol = 1e-4,
   # set up
   mat_x <- chrom_obj$mat_x; mat_y <- chrom_obj$mat_y
   df_x <- chrom_obj$df_x; df_y <- chrom_obj$df_y
-  df_res <- prep_obj$df_res; dim_reduc_obj <- chrom_obj$dim_reduc_obj
+  df_res <- chrom_obj$df_res
+  df_cell <- chrom_obj$df_cell; dim_reduc_obj <- chrom_obj$dim_reduc_obj
   ht_neighbor <- chrom_obj$ht_neighbor
   nn_mat <- chrom_obj$nn_mat; nn_obj <- chrom_obj$nn_obj
   res_g <- res$res_g
@@ -14,15 +15,16 @@ chromatin_potential_refine <- function(chrom_obj, iter_max = 10, tol = 1e-4,
   cand_options <- options$cand_options; rec_options <- options$rec_options
   
   n <- nrow(mat_x); iter <- 1
-  df_res$order_rec <- NA
+  all_cells <- which(df_res$order_rec != 0)
+  df_res$order_rec[all_cells] <- NA
   
   while(iter <= iter_max){
     if(verbose) print(paste0("Refining: On iteration ", iter))
     
     # rematch all the cells based on g
-    res_rec <- .recruit_next(mat_x, mat_y, vec_cand = 1:n, res_g, df_res, 
+    res_rec <- .recruit_next(mat_x, mat_y, vec_cand = all_cells, res_g, df_res, 
                              dim_reduc_obj, nn_mat, nn_obj, enforce_matched = F,
-                             rec_options)
+                             df_cell, rec_options)
     ht_neighbor <- .refine_chrom_ht(res_rec$rec)
     
     # reestimate g
@@ -53,7 +55,6 @@ chromatin_potential_refine <- function(chrom_obj, iter_max = 10, tol = 1e-4,
 
 .refine_chrom_ht <- function(list_res){
   n <- length(list_res$vec_from)
-  stopifnot(length(unique(list_res$vec_from)) == n, max(list_res$vec_from) == n)
   
   ht_neighbor <- hash::hash()
   for(i in 1:length(list_res$vec_from)){

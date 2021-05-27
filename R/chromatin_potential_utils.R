@@ -23,7 +23,7 @@
   stopifnot(form_method %in% c("literal", "average"))
   stopifnot(est_method %in% c("glmnet", "threshold_glmnet"))
   stopifnot(cand_method %in% c("nn_any", "nn_freq", "all"))
-  stopifnot(rec_method %in% c("nn", "distant_cor"))
+  stopifnot(rec_method %in% c("nn", "distant_cor", "distant_cor_oracle"))
   stopifnot(is.list(options))
   
   idx <- grep("^dim_*|^nn_*|^form_*|^est_*|^cand_*|^rec_*", names(options))
@@ -103,7 +103,7 @@
                          switch = F, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = T,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
-                         bool_round = T, run_diagnostic = T,
+                         bool_round = F, run_diagnostic = T,
                          hold_initial = F, parallel = F, verbose = F)
     est_options <- .fill_options(options, list_default, prefix)
   } else if(est_method == "threshold_glmnet"){
@@ -113,7 +113,7 @@
                          switch = F, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = T,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
-                         bool_round = T, 
+                         bool_round = F, 
                          num_iterations = 10, initial_quantile = 0.25,
                          run_diagnostic = T, hold_initial = F, 
                          parallel = F, verbose = F)
@@ -143,7 +143,6 @@
   } else if(cand_method == "nn_freq"){
     list_default <- list(num_cand = 30, run_diagnostic = T)
     cand_options <- .fill_options(options, list_default, prefix)
-  
     
   } else if(cand_method == "all"){
     list_default <- list(run_diagnostic = T)
@@ -164,7 +163,7 @@
 
     stopifnot(rec_options$average %in% c("mean", "median"))
     
-  } else if(rec_method == "distant_cor"){
+  } else if(rec_method %in% c("distant_cor", "distant_cor_oracle")){
     list_default <- list(inflation = 1.5, cor_method = "pearson", nn = 2, parallel = F, 
                          bool_pred_nn = F, run_diagnostic = T, verbose = F)
     rec_options <- .fill_options(options, list_default, prefix)

@@ -49,7 +49,8 @@
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
 .recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, 
-                          nn_mat, nn_obj, enforce_matched, rec_options){
+                          nn_mat, nn_obj, enforce_matched, df_cell,
+                          rec_options){
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
   vec_matched <- which(!is.na(df_res$order_rec))
@@ -63,6 +64,10 @@
     res <- .recruit_next_distant_cor(mat_x, mat_y, vec_cand, res_g, df_res, 
                                      dim_reduc_obj, nn_mat, nn_obj, enforce_matched, 
                                      rec_options)
+  } else if(rec_options[["method"]] == "distant_cor_oracle"){
+    res <- .recruit_next_distant_cor_oracle(mat_x, mat_y, vec_cand, res_g, df_res, 
+                                     dim_reduc_obj, nn_mat, nn_obj, enforce_matched, 
+                                     df_cell, rec_options)
   } else {
     stop("Recruit method not found")
   }
@@ -211,7 +216,6 @@
     })
     
     idx <- nn_pred[which.max(cor_vec)]
-    print(max(cor_vec))
     tmp <- setdiff(nn_mat[idx, ], nn_cand)
     ## [note to self: include a test for this -- if enforce_match, make sure the neighbors are also matched]
     if(enforce_matched){
@@ -224,6 +228,76 @@
       vec_to <- c(idx, tmp)
     }
    
+    vec_to
+  })
+  
+  # run the diagnostic
+  list_diagnos <- list() 
+  if(rec_options$run_diagnostic){
+    # nothing currently here
+  }
+  
+  list(rec = list(vec_from = vec_cand, list_to = list_to),
+       diagnostic = list_diagnos)
+}
+
+.recruit_next_distant_cor_oracle <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
+                                      dim_reduc_obj, nn_mat, nn_obj, 
+                                      enforce_matched, df_cell, rec_options){
+  nn_size <- ncol(nn_mat)
+  
+  # apply mat_g to mat_x
+  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
+  
+  # initialize variables for the loop
+  if(!rec_options$parallel && future::nbrOfWorkers() == 1){
+    my_lapply <- pbapply::pblapply
+    if(rec_options$verbose) pbapply::pboptions(type = "timer") else pbapply::pboptions(type = "none")
+  } else {
+    my_lapply <- future.apply::future_lapply
+  }
+  
+  nn <- min(round(rec_options$inflation*nn_size), ceiling(nrow(mat_x)/2))
+  
+  list_to <- my_lapply(1:length(vec_cand), function(i){
+    cell <- vec_cand[i]
+    
+    nn_cand <- c(nn_mat[cell, ], cell)
+    
+    vec <- c(.apply_dimred(mat_x[vec_cand[i],], dim_reduc_obj$x),
+             .apply_dimred(pred_y[i,], dim_reduc_obj$y))
+    
+    # allow cell to be matched to any other cell
+    nn_pred <- .distant_nn(cell, nn_mat)
+
+    # since this is an oracle method, restrict to only cells in the same branch 
+    #  with more time
+    idx <- intersect(which(df_cell$branch == df_cell$branch[cell]),
+                     which(df_cell$time >= df_cell$time[cell]))
+    nn_pred <- intersect(nn_pred, idx)
+    if(length(nn_pred) == 0) nn_pred <- idx
+    
+    # find all nn's that aren't too close to cell itself
+    if(length(setdiff(nn_pred, nn_cand)) > 0) nn_pred <- setdiff(nn_pred, nn_cand)
+    
+    # from this set of cells, find the ones with highest pearson
+    # [[note to self: this should be refactored out]]
+    # [[note to self: there's a warning about standard deviation equal to 0...]]
+    pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
+    cor_vec <- sapply(nn_pred, function(j){
+      matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]
+      stats::cor(pred_diff, matched_diff, method = rec_options$cor_method)
+    })
+    
+    idx <- nn_pred[which.max(cor_vec)]
+    tmp <- setdiff(nn_mat[idx, ], nn_cand)
+    
+    if(length(tmp) >= rec_options$nn){
+      vec_to <- c(idx, tmp[1:rec_options$nn])
+    } else {
+      vec_to <- c(idx, tmp)
+    }
+    
     vec_to
   })
   

@@ -75,8 +75,9 @@
   p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
   
   # for mat_x1 and mat_y2
+  # [[note to self: make explicit tests for this...]]
   idx_from <- unlist(lapply(1:length(rec$list_to), function(i){
-    rep(rec$vec_from, length = length(rec$list_to[[i]]))
+    rep(rec$vec_from[i], length = length(rec$list_to[[i]]))
   }))
   idx_to <- unlist(rec$list_to)
   stopifnot(length(idx_from) == length(idx_to))

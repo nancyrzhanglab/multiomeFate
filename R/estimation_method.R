@@ -113,7 +113,7 @@
                           cv, nfolds, cv_choice, bool_round){
   n <- length(y); p <- ncol(x)
   if(bool_round) y <- round(y)
-  
+
   if(switch & n > p*switch_cutoff){
     # use glm
     if(intercept) x <- cbind(x,1)

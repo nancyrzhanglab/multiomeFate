@@ -1,5 +1,6 @@
 simulate_data <- function(df_x, df_y, list_xnoise, list_ynoise, 
-                           df_cell, blueprint_resolution = 500, verbose = T){
+                          df_cell, blueprint_resolution = 500, 
+                          jitter = 0.01, verbose = T){
   
   # checks
   .check_data_inputs(df_x, df_y, list_xnoise, list_ynoise, df_cell)
@@ -26,6 +27,9 @@ simulate_data <- function(df_x, df_y, list_xnoise, list_ynoise,
   obs_x <- .generate_obs(df_x, mean_x)
   obs_y <- .generate_obs(df_y, mean_y)
   
+  mean_x <- mean_x + stats::runif(prod(dim(mean_x)), min = 0, max = jitter)
+  mean_y <- mean_y + stats::runif(prod(dim(mean_y)), min = 0, max = jitter)
+
   list(obs_x = obs_x, obs_y = obs_y, mean_x = mean_x, mean_y = mean_y,
        blueprint_x = blueprint_x)
 }
