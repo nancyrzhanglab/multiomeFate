@@ -30,6 +30,7 @@
 #' @return object of class \code{chromatin_potential}
 #' @export
 chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, ncol(mat_y)),
+                                vec_threshold_init = rep(0, ncol(mat_y)),
                                 df_cell = NA, bool_oracle = F, verbose = T){
   # pull the appropriate objects for convenience
   mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
@@ -58,7 +59,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
                              round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
     ## estimate res_g
     if((iter == 1 | est_options$hold_initial) && !any(is.na(mat_g_init)) && !any(is.na(vec_g_init))){
-      res_g <- list(mat_g = mat_g_init, vec_g = vec_g_init)
+      res_g <- list(mat_g = mat_g_init, vec_g = vec_g_init, vec_threshold = vec_threshold_init)
     } else {
       res_g <- .estimate_g(mat_x1, mat_y2, est_options)
     }

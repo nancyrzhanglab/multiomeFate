@@ -191,17 +191,23 @@
              .apply_dimred(pred_y[i,], dim_reduc_obj$y))
   
     # allow cell to be matched to any other cell
-    if(!enforce_matched){
-      if(rec_options$bool_pred_nn){
+    if(!rec_options$bool_pred_nn){
+      if(!enforce_matched){
         nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
-      } else{
-        nn_pred <- .distant_nn(cell, nn_mat)
+      } else {
+        nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
+        nn_pred <- matched_idx[nn_pred]
+      }
+    } else {
+      nn_pred <- .distant_nn(cell, nn_mat)
+      if(enforce_matched){
+        nn_pred <- intersect(nn_pred, matched_idx)
       }
       
-    # only match a cell to another previously-matched cell  
-    } else {
-      nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
-      nn_pred <- matched_idx[nn_pred]
+      if(length(nn_pred) == 0){
+        nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
+        nn_pred <- matched_idx[nn_pred]
+      }
     }
     
     # find all nn's that aren't too close to cell itself
@@ -268,7 +274,11 @@
              .apply_dimred(pred_y[i,], dim_reduc_obj$y))
     
     # allow cell to be matched to any other cell
-    nn_pred <- .distant_nn(cell, nn_mat)
+    if(!rec_options$bool_pred_nn){
+      nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
+    } else{
+      nn_pred <- .distant_nn(cell, nn_mat)
+    }
 
     # since this is an oracle method, restrict to only cells in the same branch 
     #  with more time
