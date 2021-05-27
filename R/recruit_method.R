@@ -199,10 +199,6 @@
       nn_pred <- matched_idx[nn_pred]
     }
     
-    if(length(setdiff(nn_pred[1:nn_size], nn_cand)) > 0) {
-      nn_pred <- nn_pred[1:nn_size]
-    }
-    
     # find all nn's that aren't too close to cell itself
     if(length(setdiff(nn_pred, nn_cand)) > 0) nn_pred <- setdiff(nn_pred, nn_cand)
     
