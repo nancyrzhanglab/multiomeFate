@@ -51,6 +51,7 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   
   # query each point's nn's
   nn_mat <- .query_nn(nn_obj, nn_options)
+  nn_g <- .nn_to_igraph(nn_mat)
   
   # initialize
   list_diagnos <- list()
@@ -61,13 +62,12 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   
   structure(list(mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,
                  df_res = df_res, dim_reduc_obj = dim_reduc_obj, 
-                 nn_mat = nn_mat, nn_obj = nn_obj, 
+                 nn_g = nn_g, nn_mat = nn_mat, nn_obj = nn_obj, 
                  list_diagnos = list_diagnos, options = full_options),
             class = "chromatin_potential_prep")
 }
 
 #################################
-
 
 .init_chrom_df <- function(n, vec_start, list_end, cell_name){
   stopifnot(all(vec_start %% 1 == 0), all(vec_start > 0), all(vec_start <= n))
@@ -86,4 +86,14 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   }
   
   df_res
+}
+
+.nn_to_igraph <- function(nn_mat){
+  # generate the edge-mat
+  edge_mat <- do.call(cbind, lapply(1:nrow(nn_mat), function(i){
+    matrix(c(rep(i, ncol(nn_mat)), nn_mat[i,]), nrow = 2, ncol = ncol(nn_mat))
+  }))
+  
+  g <- igraph::graph_from_edgelist(edge_mat, directed = F)
+  igraph::simplify(g)
 }

@@ -165,7 +165,8 @@
     
   } else if(rec_method %in% c("distant_cor", "distant_cor_oracle")){
     list_default <- list(inflation = 1.5, cor_method = "pearson", nn = 2, parallel = F, 
-                         bool_pred_nn = T, run_diagnostic = T, verbose = F)
+                         bool_avg_from = T, bool_pred_nn = T, 
+                         run_diagnostic = T, verbose = F)
     rec_options <- .fill_options(options, list_default, prefix)
     
     stopifnot(rec_options$method %in% c("pearson", "spearman", "kendall"))

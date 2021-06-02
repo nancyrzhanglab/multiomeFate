@@ -148,10 +148,10 @@
     # nothing currently here
   }
   
-  vec_from <- vec_cand[idx] 
-  list_to <- lapply(idx, function(i){nn_res[[i]]$item})
-  list(rec = list(vec_from = vec_from, list_to = list_to),
-       diagnostic = list_diagnos)
+  rec_list <- lapply(1:length(idx), function(i){
+    list(from = vec_cand[idx[i]], to = nn_res[[idx[i]]]$item)
+  })
+  list(rec = rec_list, diagnostic = list_diagnos)
 }
 
 .recruit_next_distant_cor <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
@@ -240,7 +240,7 @@
   # run the diagnostic
   list_diagnos <- list() 
   if(rec_options$run_diagnostic){
-    # nothing currently here
+    list_diagnos[["pred_y"]] <- .predict_yfromx(mat_x, res_g, family = "gaussian")
   }
   
   list(rec = list(vec_from = vec_cand, list_to = list_to),
@@ -350,7 +350,7 @@
     }
   }
   
-  res
+  pmax(res, 0)
 }
 
 .distant_nn <- function(idx, nn_mat){
