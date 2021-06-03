@@ -22,7 +22,7 @@
 #' @export
 chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, list_end,
                         dim_method = "pca", nn_method = "annoy",
-                        form_method = "literal", est_method = "glmnet",
+                        form_method = "average", est_method = "glmnet",
                         cand_method = "nn_any", rec_method = "distant_cor", 
                         options = list(), verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), 

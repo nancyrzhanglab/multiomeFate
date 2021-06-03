@@ -75,16 +75,15 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
                              dim_reduc_obj, nn_g, nn_mat, nn_obj, enforce_matched,
                              df_cell, rec_options)
-    stopifnot(all(is.na(df_res$order_rec[res_rec$rec$vec_from])))
+
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
     ## update
     tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
                                        res_rec$rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
-    ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec$vec_from, 
-                                    res_rec$rec$list_to, enforce_matched)
-    df_res <- .update_chrom_df_rec(df_res, res_rec$rec$vec_from, iter)
+    ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec, enforce_matched)
+    df_res <- .update_chrom_df_rec(df_res, res_rec$rec, iter)
     
     iter <- iter+1
   }
@@ -124,23 +123,29 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   df_res
 }
 
-.update_chrom_ht <- function(ht_neighbor, vec_from, list_to, enforce_matched){
+.update_chrom_ht <- function(ht_neighbor, rec, enforce_matched){
   if(enforce_matched) {
-    tmp <- as.character(unlist(list_to))
-    stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
+    for(i in 1:length(rec)){
+      tmp <- as.character(rec[[i]]$to)
+      stopifnot(all(tmp %in% hash::keys(ht_neighbor)))
+    }
   }
   
-  for(i in 1:length(vec_from)){
-    ht_neighbor[[as.character(vec_from[i])]] <- list_to[[i]]
+  for(i in 1:length(rec)){
+    for(idx in rec[[i]]$from){
+      tmp <- ht_neighbor[[as.character(idx)]]
+      ht_neighbor[[as.character(idx)]] <- c(tmp, rec[[i]]$to)
+    }
   }
   
   ht_neighbor
 }
 
 # [[note to self: currently does not check that iter is the latest/largest iteration in df_res]]
-.update_chrom_df_rec <- function(df_res, vec_from, iter){
-  stopifnot(all(is.na(df_res$order_rec[vec_from])))
+.update_chrom_df_rec <- function(df_res, rec, iter){
+  for(i in 1:length(rec)){
+    df_res$order_rec[rec[[i]]$from] <- iter
+  }
   
-  df_res$order_rec[vec_from] <- iter
   df_res
 }

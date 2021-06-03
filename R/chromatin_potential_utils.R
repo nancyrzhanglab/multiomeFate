@@ -20,7 +20,7 @@
                            options){
   stopifnot(dim_method %in% c("pca"))
   stopifnot(nn_method %in% c("annoy"))
-  stopifnot(form_method %in% c("literal", "average"))
+  stopifnot(form_method %in% c("average"))
   stopifnot(est_method %in% c("glmnet", "threshold_glmnet"))
   stopifnot(cand_method %in% c("nn_any", "nn_freq", "all"))
   stopifnot(rec_method %in% c("nn", "distant_cor", "distant_cor_oracle"))
@@ -80,9 +80,7 @@
 .forming_options <- function(form_method, options){
   prefix <- "form"
   
-  if(form_method == "literal"){
-    form_options <- list()
-  } else if(form_method == "average"){
+  if(form_method == "average"){
     list_default <- list(average = "median")
     form_options <- .fill_options(options, list_default, prefix)
     

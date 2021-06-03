@@ -51,14 +51,10 @@
                                         mat_x1, mat_y2,
                                         rec, form_options){
   p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
-  stopifnot(c("vec_from", "list_to") %in% names(rec))
   stopifnot(ncol(mat_x1) == p1, ncol(mat_y2) == p2,
             nrow(mat_y) == n, nrow(mat_x1) == nrow(mat_y2))
   
-  if(form_options[["method"]] == "literal"){
-    res <- .update_estimation_literal(mat_x, mat_y, mat_x1, mat_y2, 
-                                      rec, form_options)
-  } else if(form_options[["method"]] == "average"){
+  if(form_options[["method"]] == "average"){
     res <- .update_estimation_average(mat_x, mat_y, mat_x1, mat_y2, 
                                       rec, form_options)
   } else {
@@ -70,41 +66,49 @@
 
 ########################
 
-.update_estimation_literal <- function(mat_x, mat_y, mat_x1, mat_y2, 
-                                       rec, form_options){
-  p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
-  
-  # for mat_x1 and mat_y2
-  # [[note to self: make explicit tests for this...]]
-  idx_from <- unlist(lapply(1:length(rec$list_to), function(i){
-    rep(rec$vec_from[i], length = length(rec$list_to[[i]]))
-  }))
-  idx_to <- unlist(rec$list_to)
-  stopifnot(length(idx_from) == length(idx_to))
-  mat_x1 <- rbind(mat_x1, mat_x[idx_from,,drop = F])
-  mat_y2 <- rbind(mat_y2, mat_y[idx_to,,drop = F])
-  
-  list(mat_x1 = mat_x1, mat_y2 = mat_y2)
-}
-
 .update_estimation_average <- function(mat_x, mat_y, mat_x1, mat_y2,
                                        rec, form_options){
   p1 <- ncol(mat_x); p2 <- ncol(mat_y); n <- nrow(mat_x)
 
   # for mat_x1 and mat_y2
-  tmp <- t(sapply(rec$list_to, function(idx){
+  tmp_x <- t(sapply(1:length(rec), function(i){
     if(form_options$average == "mean"){
-      apply(mat_y[idx,,drop = F], 2, mean)
+      if("dgcMatrix" %in% class(mat_x)){
+        sparseMatrixStats::colMeans2(mat_x[rec[[i]]$from,,drop=F])
+      } else {
+        matrixStats::colMeans2(mat_x[rec[[i]]$from,,drop=F])
+      }
     } else if(form_options$average == "median") {
-      apply(mat_y[idx,,drop = F], 2, stats::median)
+      if("dgcMatrix" %in% class(mat_x)){
+        sparseMatrixStats::colMedians(mat_x[rec[[i]]$from,,drop=F])
+      } else {
+        matrixStats::colMedians(mat_x[rec[[i]]$from,,drop=F])
+      }
     } else {
       stop("Forming method (option: 'average') not found")
     }
   }))
   
-  stopifnot(nrow(tmp) == length(rec$vec_from))
-  mat_x1 <- rbind(mat_x1, mat_x[rec$vec_from,,drop = F])
-  mat_y2 <- rbind(mat_y2, tmp)
+  tmp_y <- t(sapply(1:length(rec), function(i){
+    if(form_options$average == "mean"){
+      if("dgcMatrix" %in% class(mat_y)){
+        sparseMatrixStats::colMeans2(mat_y[rec[[i]]$to,,drop=F])
+      } else {
+        matrixStats::colMeans2(mat_y[rec[[i]]$to,,drop=F])
+      }
+    } else if(form_options$average == "median") {
+      if("dgcMatrix" %in% class(mat_y)){
+        sparseMatrixStats::colMedians(mat_y[rec[[i]]$to,,drop=F])
+      } else {
+        matrixStats::colMedians(mat_y[rec[[i]]$to,,drop=F])
+      }
+    } else {
+      stop("Forming method (option: 'average') not found")
+    }
+  }))
+  
+  mat_x1 <- rbind(mat_x1, tmp_x)
+  mat_y2 <- rbind(mat_y2, tmp_y)
 
   list(mat_x1 = mat_x1, mat_y2 = mat_y2)
 }

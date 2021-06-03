@@ -66,7 +66,7 @@
                                      enforce_matched, rec_options)
   } else if(rec_options[["method"]] == "distant_cor_oracle"){
     res <- .recruit_next_distant_cor_oracle(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                     dim_reduc_obj, nn_mat, nn_obj, enforce_matched, 
+                                     dim_reduc_obj, nn_g, nn_mat, nn_obj, enforce_matched, 
                                      df_cell, rec_options)
   } else {
     stop("Recruit method not found")
@@ -215,8 +215,7 @@
       stats::cor(pred_diff, matched_diff, method = rec_options$cor_method)
     })
     
-    idx <- nn_pred[which.max(cor_vec)]
-    list_nn_to[[idx]]
+    list_nn_to[[which.max(cor_vec)]]
   })
   
   # run the diagnostic
@@ -235,7 +234,7 @@
                                       dim_reduc_obj, nn_g, nn_mat, nn_obj, 
                                       enforce_matched, df_cell, rec_options){
   nn_size <- ncol(nn_mat)
-  
+
   # apply mat_g to mat_x
   if(rec_options$bool_avg_from){
     list_nn <- .extract_nn_list(vec_cand, nn_mat)
@@ -271,8 +270,9 @@
     } else {
       include_idx <- intersect(which(df_cell$branch == df_cell$branch[cell]),
                               which(df_cell$time >= df_cell$time[cell]))
-      list_nn_to <- .find_to_list(cell, include_idx = include_idx, 
-                                  exclude_idx = list_nn[[i]], nn_g, nn_mat, rec_options)
+      list_nn_to <- .find_to_list(cell, include_idx = setdiff(include_idx, list_nn[[i]]),
+                                  exclude_idx = list_nn[[i]], 
+                                  nn_g, nn_mat, rec_options)
     }
     
     # from this set of cells, find the ones with highest pearson
@@ -283,8 +283,7 @@
       stats::cor(pred_diff, matched_diff, method = rec_options$cor_method)
     })
     
-    idx <- nn_pred[which.max(cor_vec)]
-    list_nn_to[[idx]]
+    list_nn_to[[which.max(cor_vec)]]
   })
   
   # run the diagnostic
@@ -293,8 +292,10 @@
     # nothing currently here
   }
   
-  list(rec = list(vec_from = vec_cand, list_to = list_to),
-       diagnostic = list_diagnos)
+  rec_list <- lapply(1:length(list_nn), function(i){
+    list(from = list_nn[[i]], to = list_to[[i]])
+  })
+  list(rec = rec_list, diagnostic = list_diagnos)
 }
 
 ##############################3
@@ -338,9 +339,9 @@
 .construct_avg_mat <- function(mat, list_idx){
   t(sapply(list_idx, function(vec_idx){
     if("dgcMatrix" %in% class(mat)){
-      sparseMatrixStats::colMeans2(mat[vec_idx,])
+      sparseMatrixStats::colMeans2(mat[vec_idx,,drop=F])
     } else {
-      matrixStats::colMeans2(mat[vec_idx,])
+      matrixStats::colMeans2(mat[vec_idx,,drop=F])
     }
   }))
 }
@@ -355,7 +356,7 @@
   }
     
   if(rec_options$bool_avg_from){
-    nn_pred <- as.numeric(igraph::ego(tmp, order = 4, nodes = cell, mindist = 4))
+    nn_pred <- as.numeric(igraph::ego(nn_g, order = 4, nodes = cell, mindist = 4)[[1]])
     if(length(nn_pred) > 0){
       nn_pred <- lapply(nn_pred, function(x){
         c(x, nn_mat[x,])
@@ -363,7 +364,7 @@
     }
     
   } else {
-    nn_pred <- as.numeric(igraph::ego(tmp, order = 2, nodes = cell, mindist = 2))
+    nn_pred <- as.numeric(igraph::ego(nn_g, order = 2, nodes = cell, mindist = 2)[[1]])
     if(length(nn_pred) > 0){
       nn_pred <- lapply(nn_pred, function(x){
         c(x, nn_mat[x,])
