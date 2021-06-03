@@ -49,7 +49,7 @@
 #' of integers \code{list_to}, and a list called \code{diagnostic} that 
 #' contains optionally-computed diagnostics to better-understand the recruitment
 .recruit_next <- function(mat_x, mat_y, vec_cand, res_g, df_res, dim_reduc_obj, 
-                          nn_mat, nn_obj, enforce_matched, df_cell,
+                          nn_g, nn_mat, nn_obj, enforce_matched, df_cell,
                           rec_options){
   stopifnot(all(vec_cand %% 1 == 0), all(vec_cand > 0), all(vec_cand <= nrow(mat_x)),
             length(vec_cand) == length(unique(vec_cand)))
@@ -62,8 +62,8 @@
                             nn_obj, enforce_matched, rec_options)
   } else if(rec_options[["method"]] == "distant_cor"){
     res <- .recruit_next_distant_cor(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                     dim_reduc_obj, nn_mat, nn_obj, enforce_matched, 
-                                     rec_options)
+                                     dim_reduc_obj, nn_g, nn_mat, nn_obj, 
+                                     enforce_matched, rec_options)
   } else if(rec_options[["method"]] == "distant_cor_oracle"){
     res <- .recruit_next_distant_cor_oracle(mat_x, mat_y, vec_cand, res_g, df_res, 
                                      dim_reduc_obj, nn_mat, nn_obj, enforce_matched, 
@@ -155,12 +155,28 @@
 }
 
 .recruit_next_distant_cor <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                      dim_reduc_obj, nn_mat, nn_obj, 
+                                      dim_reduc_obj, nn_g, nn_mat, nn_obj, 
                                       enforce_matched, rec_options){
   nn_size <- ncol(nn_mat)
   
+  if(enforce_matched){
+    matched_idx <- which(!is.na(df_res$order_rec))
+  } else {
+    matched_idx <- NA
+  }
+  
   # apply mat_g to mat_x
-  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
+  if(rec_options$bool_avg_from){
+    list_nn <- .extract_nn_list(vec_cand, nn_mat)
+    mat_avg_x <- .construct_avg_mat(mat_x, list_nn)
+    mat_avg_y <- .construct_avg_mat(mat_y, list_nn)
+    pred_y <- .predict_yfromx(mat_avg_x, res_g, rec_options$family)
+  } else {
+    list_nn <- lapply(vec_cand, function(x){x})
+    mat_avg_x <- mat_x[vec_cand,]
+    mat_avg_y <- mat_y[vec_cand,]
+    pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
+  }
   
   # initialize variables for the loop
   if(!rec_options$parallel && future::nbrOfWorkers() == 1){
@@ -169,72 +185,38 @@
   } else {
     my_lapply <- future.apply::future_lapply
   }
-  
-  if(enforce_matched){
-    matched_idx <- which(!is.na(df_res$order_rec))
-    matched_x <- .apply_dimred_mat(mat_x[matched_idx,,drop = F], dim_reduc_obj$x)
-    matched_y <- .apply_dimred_mat(mat_y[matched_idx,,drop = F], dim_reduc_obj$y)
-    matched_mat <- cbind(matched_x, matched_y)
-    
-    matched_idx <- which(!is.na(df_res$order_rec))
-    nn <- min(round(rec_options$inflation*nn_size), length(matched_idx))
-  } else {
-    nn <- min(round(rec_options$inflation*nn_size), ceiling(nrow(mat_x)/2))
-  }
-  
+
   list_to <- my_lapply(1:length(vec_cand), function(i){
     cell <- vec_cand[i]
-    
-    nn_cand <- c(nn_mat[cell, ], cell)
-  
-    vec <- c(.apply_dimred(mat_x[vec_cand[i],], dim_reduc_obj$x),
+    vec <- c(.apply_dimred(mat_avg_x[i,], dim_reduc_obj$x),
              .apply_dimred(pred_y[i,], dim_reduc_obj$y))
   
-    # allow cell to be matched to any other cell
+    # allow cell to be matched to potentially any other cell
     if(!rec_options$bool_pred_nn){
       if(!enforce_matched){
-        nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
+        nn_pred <- nn_obj$getNNsByVector(vec, nn_size) + 1
       } else {
-        nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
-        nn_pred <- matched_idx[nn_pred]
+        nn_pred <- sample(matched_idx, size = ceiling(rec_options$matched_sampling_rate * length(matched_idx)))
       }
+      list_nn_to <- lapply(nn_pred, function(x){x})
+    
+    # match to only cells near target cell
     } else {
-      nn_pred <- .distant_nn(cell, nn_mat)
-      if(enforce_matched){
-        nn_pred <- intersect(nn_pred, matched_idx)
-      }
-      
-      if(length(nn_pred) == 0){
-        nn_pred <- RANN::nn2(matched_mat, query = matrix(vec, nrow = 1), k = nn)$nn.idx[1,]
-        nn_pred <- matched_idx[nn_pred]
-      }
+      list_nn_to <- .find_to_list(cell, include_idx = matched_idx, 
+                                  exclude_idx = list_nn[[i]],
+                                  nn_g, nn_mat, rec_options)
     }
     
-    # find all nn's that aren't too close to cell itself
-    if(length(setdiff(nn_pred, nn_cand)) > 0) nn_pred <- setdiff(nn_pred, nn_cand)
-    
     # from this set of cells, find the ones with highest pearson
-    # [[note to self: this should be refactored out]]
-    pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
-    cor_vec <- sapply(nn_pred, function(j){
-      matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]
+    pred_diff <- pred_y[i,] - mat_avg_y[i,]
+    mat_nn_to <- .construct_avg_mat(mat_y, list_nn_to)
+    cor_vec <- sapply(1:nrow(mat_nn_to), function(j){
+      matched_diff <- mat_nn_to[j,] - mat_avg_y[i,]
       stats::cor(pred_diff, matched_diff, method = rec_options$cor_method)
     })
     
     idx <- nn_pred[which.max(cor_vec)]
-    tmp <- setdiff(nn_mat[idx, ], nn_cand)
-    ## [note to self: include a test for this -- if enforce_match, make sure the neighbors are also matched]
-    if(enforce_matched){
-      tmp <- tmp[tmp %in% matched_idx]
-    } 
-  
-    if(length(tmp) >= rec_options$nn){
-      vec_to <- c(idx, tmp[1:rec_options$nn])
-    } else {
-      vec_to <- c(idx, tmp)
-    }
-   
-    vec_to
+    list_nn_to[[idx]]
   })
   
   # run the diagnostic
@@ -243,17 +225,29 @@
     list_diagnos[["pred_y"]] <- .predict_yfromx(mat_x, res_g, family = "gaussian")
   }
   
-  list(rec = list(vec_from = vec_cand, list_to = list_to),
-       diagnostic = list_diagnos)
+  rec_list <- lapply(1:length(list_nn), function(i){
+    list(from = list_nn[[i]], to = list_to[[i]])
+  })
+  list(rec = rec_list, diagnostic = list_diagnos)
 }
 
 .recruit_next_distant_cor_oracle <- function(mat_x, mat_y, vec_cand, res_g, df_res, 
-                                      dim_reduc_obj, nn_mat, nn_obj, 
+                                      dim_reduc_obj, nn_g, nn_mat, nn_obj, 
                                       enforce_matched, df_cell, rec_options){
   nn_size <- ncol(nn_mat)
   
   # apply mat_g to mat_x
-  pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
+  if(rec_options$bool_avg_from){
+    list_nn <- .extract_nn_list(vec_cand, nn_mat)
+    mat_avg_x <- .construct_avg_mat(mat_x, list_nn)
+    mat_avg_y <- .construct_avg_mat(mat_y, list_nn)
+    pred_y <- .predict_yfromx(mat_avg_x, res_g, rec_options$family)
+  } else {
+    list_nn <- lapply(vec_cand, function(x){x})
+    mat_avg_X <- mat_x[vec_cand,]
+    mat_avg_y <- mat_y[vec_cand,]
+    pred_y <- .predict_yfromx(mat_x[vec_cand,,drop = F], res_g, rec_options$family)
+  }
   
   # initialize variables for the loop
   if(!rec_options$parallel && future::nbrOfWorkers() == 1){
@@ -263,52 +257,34 @@
     my_lapply <- future.apply::future_lapply
   }
   
-  nn <- min(round(rec_options$inflation*nn_size), ceiling(nrow(mat_x)/2))
-  
   list_to <- my_lapply(1:length(vec_cand), function(i){
     cell <- vec_cand[i]
-    
-    nn_cand <- c(nn_mat[cell, ], cell)
-    
-    vec <- c(.apply_dimred(mat_x[vec_cand[i],], dim_reduc_obj$x),
+    vec <- c(.apply_dimred(mat_avg_x[i,], dim_reduc_obj$x),
              .apply_dimred(pred_y[i,], dim_reduc_obj$y))
     
     # allow cell to be matched to any other cell
     if(!rec_options$bool_pred_nn){
-      nn_pred <- nn_obj$getNNsByVector(vec, nn) + 1
-    } else{
-      nn_pred <- .distant_nn(cell, nn_mat)
+      nn_pred <- nn_obj$getNNsByVector(vec, nn_size) + 1
+      list_nn_to <- lapply(nn_pred, function(x){x})
+      
+      # match to only cells near target cell
+    } else {
+      include_idx <- intersect(which(df_cell$branch == df_cell$branch[cell]),
+                              which(df_cell$time >= df_cell$time[cell]))
+      list_nn_to <- .find_to_list(cell, include_idx = include_idx, 
+                                  exclude_idx = list_nn[[i]], nn_g, nn_mat, rec_options)
     }
-
-    # since this is an oracle method, restrict to only cells in the same branch 
-    #  with more time
-    idx <- intersect(which(df_cell$branch == df_cell$branch[cell]),
-                     which(df_cell$time >= df_cell$time[cell]))
-    nn_pred <- intersect(nn_pred, idx)
-    if(length(nn_pred) == 0) nn_pred <- idx
-    
-    # find all nn's that aren't too close to cell itself
-    if(length(setdiff(nn_pred, nn_cand)) > 0) nn_pred <- setdiff(nn_pred, nn_cand)
     
     # from this set of cells, find the ones with highest pearson
-    # [[note to self: this should be refactored out]]
-    # [[note to self: there's a warning about standard deviation equal to 0...]]
-    pred_diff <- pred_y[i,] - mat_y[vec_cand[i],]
-    cor_vec <- sapply(nn_pred, function(j){
-      matched_diff <- mat_y[j,] - mat_y[vec_cand[i],]
+    pred_diff <- pred_y[i,] - mat_avg_y[i,]
+    mat_nn_to <- .construct_avg_mat(mat_y, list_nn_to)
+    cor_vec <- sapply(1:nrow(mat_nn_to), function(j){
+      matched_diff <- mat_nn_to[j,] - mat_avg_y[i,]
       stats::cor(pred_diff, matched_diff, method = rec_options$cor_method)
     })
     
     idx <- nn_pred[which.max(cor_vec)]
-    tmp <- setdiff(nn_mat[idx, ], nn_cand)
-    
-    if(length(tmp) >= rec_options$nn){
-      vec_to <- c(idx, tmp[1:rec_options$nn])
-    } else {
-      vec_to <- c(idx, tmp)
-    }
-    
-    vec_to
+    list_nn_to[[idx]]
   })
   
   # run the diagnostic
@@ -353,16 +329,73 @@
   pmax(res, 0)
 }
 
-.distant_nn <- function(idx, nn_mat){
-  vec_neigh <- nn_mat[idx,]
-  vec_neigh2 <- unlist(lapply(vec_neigh, function(i){
-    nn_mat[i,]
+.extract_nn_list <- function(vec_cand, nn_mat){
+  lapply(vec_cand, function(cell){
+    c(cell, nn_mat[cell,])
+  })
+}
+
+.construct_avg_mat <- function(mat, list_idx){
+  t(sapply(list_idx, function(vec_idx){
+    if("dgcMatrix" %in% class(mat)){
+      sparseMatrixStats::colMeans2(mat[vec_idx,])
+    } else {
+      matrixStats::colMeans2(mat[vec_idx,])
+    }
   }))
-  
-  vec_neigh2 <- sort(unique(vec_neigh2))
-  if(all(vec_neigh2 %in% vec_neigh)){
-    vec_neigh2
-  } else{
-    vec_neigh2[!vec_neigh2 %in% vec_neigh]
+}
+
+# include_idx are indices we intersect
+# exclude_idx are indices we setdiff out
+.find_to_list <- function(cell, include_idx, 
+                          exclude_idx,
+                          nn_g, nn_mat, rec_options){
+  if(!all(is.na(include_idx)) & !all(is.na(exclude_idx))){
+    stopifnot(length(intersect(include_idx, exclude_idx)) == 0)
   }
+    
+  if(rec_options$bool_avg_from){
+    nn_pred <- as.numeric(igraph::ego(tmp, order = 4, nodes = cell, mindist = 4))
+    if(length(nn_pred) > 0){
+      nn_pred <- lapply(nn_pred, function(x){
+        c(x, nn_mat[x,])
+      })
+    }
+    
+  } else {
+    nn_pred <- as.numeric(igraph::ego(tmp, order = 2, nodes = cell, mindist = 2))
+    if(length(nn_pred) > 0){
+      nn_pred <- lapply(nn_pred, function(x){
+        c(x, nn_mat[x,])
+      })
+    }
+  }
+  
+  # deal with includes
+  if(length(nn_pred) > 0 & all(!is.na(include_idx))){
+    nn_pred <- lapply(nn_pred, function(vec){
+      intersect(vec, include_idx)
+    })
+  }
+  
+  # deal with excludes
+  if(length(nn_pred) > 0 & all(!is.na(exclude_idx))){
+    nn_pred <- lapply(nn_pred, function(vec){
+      setdiff(vec, exclude_idx)
+    })
+  }
+  
+  # remove empty sets
+  nn_pred <- nn_pred[which(sapply(nn_pred, length) > 0)]
+    
+  # if all else fails, match to a cell previously matched
+  if(length(nn_pred) == 0){
+    nn_pred <- sample(include_idx, size = ceiling(rec_options$matched_sampling_rate * length(include_idx)),
+                      replace = F)
+    nn_pred <- lapply(nn_pred, function(x){
+      c(x, nn_mat[x,])
+    })
+  }
+  
+  nn_pred
 }

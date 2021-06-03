@@ -36,7 +36,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
   df_x <- prep_obj$df_x; df_y <- prep_obj$df_y
   df_res <- prep_obj$df_res; dim_reduc_obj <- prep_obj$dim_reduc_obj
-  nn_mat <- prep_obj$nn_mat; nn_obj <- prep_obj$nn_obj
+  nn_g <- prep_obj$nn_g; nn_mat <- prep_obj$nn_mat; nn_obj <- prep_obj$nn_obj
   list_diagnos <- prep_obj$list_diagnos; options <- prep_obj$options
   
   dim_options <- options$dim_options; nn_options <- options$nn_options
@@ -73,7 +73,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     ## recruit an element from the candidate se
     enforce_matched <- length(which(df_res$order_rec == 0)) > length(which(df_res$order_rec > 0)) & !bool_oracle
     res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
-                             dim_reduc_obj, nn_mat, nn_obj, enforce_matched,
+                             dim_reduc_obj, nn_g, nn_mat, nn_obj, enforce_matched,
                              df_cell, rec_options)
     stopifnot(all(is.na(df_res$order_rec[res_rec$rec$vec_from])))
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic

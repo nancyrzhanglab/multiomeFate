@@ -51,7 +51,7 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   
   # query each point's nn's
   nn_mat <- .query_nn(nn_obj, nn_options)
-  nn_g <- .nn_to_igraph(nn_mat)
+  nn_g <- .nn_to_igraph(nn_mat, name_vec = rownames(mat_x))
   
   # initialize
   list_diagnos <- list()
@@ -88,12 +88,19 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   df_res
 }
 
-.nn_to_igraph <- function(nn_mat){
+.nn_to_igraph <- function(nn_mat, name_vec){
   # generate the edge-mat
-  edge_mat <- do.call(cbind, lapply(1:nrow(nn_mat), function(i){
-    matrix(c(rep(i, ncol(nn_mat)), nn_mat[i,]), nrow = 2, ncol = ncol(nn_mat))
+  edge_mat <- do.call(rbind, lapply(1:nrow(nn_mat), function(i){
+    matrix(c(rep(i, ncol(nn_mat)), nn_mat[i,]), ncol = 2, nrow = ncol(nn_mat))
   }))
   
-  g <- igraph::graph_from_edgelist(edge_mat, directed = F)
-  igraph::simplify(g)
+  nn_g <- igraph::graph_from_edgelist(edge_mat, directed = F)
+  nn_g <- igraph::simplify(nn_g)
+  
+  if(!all(is.na(name_vec))){
+    stopifnot(length(name_vec) == nrow(nn_mat))
+    nn_g <- igraph::set_vertex_attr(nn_g, "name", value = name_vec)
+  }
+  
+  nn_g
 }

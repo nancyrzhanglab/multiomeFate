@@ -164,11 +164,13 @@
     stopifnot(rec_options$average %in% c("mean", "median"))
     
   } else if(rec_method %in% c("distant_cor", "distant_cor_oracle")){
-    list_default <- list(inflation = 1.5, cor_method = "pearson", nn = 2, parallel = F, 
+    list_default <- list(cor_method = "pearson", parallel = F, 
                          bool_avg_from = T, bool_pred_nn = T, 
-                         run_diagnostic = T, verbose = F)
+                         run_diagnostic = T, verbose = F,
+                         matched_sampling_rate = 1)
     rec_options <- .fill_options(options, list_default, prefix)
     
+    stopifnot(rec_options$matched_sampling_rate > 0, rec_options$matched_sampling_rate <= 1)
     stopifnot(rec_options$method %in% c("pearson", "spearman", "kendall"))
   } 
   
