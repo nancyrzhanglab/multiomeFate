@@ -25,7 +25,8 @@ Imports:
     matrixStats,
     sparseMatrixStats,
     Matrix,
-    methods
+    methods,
+    data.table
 Suggests:
     testthat
 RoxygenNote: 7.1.1

@@ -6,13 +6,19 @@
 #' 
 #' @return list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
 #' well as vector of indices \code{vec_matched}
-.init_est_matrices <- function(mat_x, mat_y, df_res){
+.init_est_matrices <- function(mat_x, mat_y, df_res,
+                               form_options){
   stopifnot(nrow(mat_x) == nrow(mat_y))
   
   # initialize
-  vec_start <- which(df_res$init_state == -1)
   vec_onlyend <- which(df_res$init_state > 0)
-  vec <- c(vec_start, vec_onlyend)
+  if(form_options$bool_include_start){
+    vec_start <- which(df_res$init_state == -1)
+    vec <- c(vec_start, vec_onlyend)
+  } else {
+    vec <- vec_onlyend
+  }
+  
   stopifnot(length(vec) == length(unique(vec)))
 
   # fill in steady-states

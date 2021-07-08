@@ -47,7 +47,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   n <- nrow(mat_x)
   
   ht_neighbor <- .init_chrom_ht(which(df_res$order_rec == 0))
-  tmp <- .init_est_matrices(mat_x, mat_y, df_res)
+  tmp <- .init_est_matrices(mat_x, mat_y, df_res, form_options)
   mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
   list_diagnos <- list()
   iter <- 1
@@ -75,7 +75,6 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
                              dim_reduc_obj, nn_g, nn_mat, nn_obj, enforce_matched,
                              df_cell, rec_options)
-
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
     ## update

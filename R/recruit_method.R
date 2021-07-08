@@ -73,7 +73,7 @@
   }
   
   if(rec_options$run_diagnostic){
-    res$diagnostic$postprocess <- NA
+    res$diagnostic$postprocess <- res$rec
   }
 
   res
@@ -202,9 +202,16 @@
     
     # match to only cells near target cell
     } else {
-      list_nn_to <- .find_to_list(cell, include_idx = matched_idx, 
-                                  exclude_idx = list_nn[[i]],
-                                  nn_g, nn_mat, rec_options)
+      if(!enforce_matched){
+        list_nn_to <- .find_to_list(cell, include_idx = setdiff(matched_idx, list_nn[[i]]),
+                                    exclude_idx = list_nn[[i]],
+                                    nn_g, nn_mat, rec_options)
+      } else{
+        list_nn_to <- .find_to_list_matched(mat_x, mat_y, cell, dim_reduc_obj, 
+                              include_idx = setdiff(matched_idx, list_nn[[i]]), 
+                              exclude_idx = list_nn[[i]], nn_mat,
+                              rec_options)
+      }
     }
     
     # from this set of cells, find the ones with highest pearson
@@ -397,6 +404,28 @@
       c(x, nn_mat[x,])
     })
   }
+  
+  nn_pred
+}
+
+.find_to_list_matched <- function(mat_x, mat_y, cell, dim_reduc_obj, 
+                                  include_idx, exclude_idx, nn_mat,
+                                  rec_options){
+  stopifnot(length(intersect(include_idx, exclude_idx)) == 0)
+  
+  matched_x <- .apply_dimred_mat(mat_x[include_idx,,drop = F], dim_reduc_obj$x)
+  matched_y <- .apply_dimred_mat(mat_y[include_idx,,drop = F], dim_reduc_obj$y)
+  matched_mat <- cbind(matched_x, matched_y)
+  
+  cell_x <- .apply_dimred_mat(mat_x[cell,,drop = F], dim_reduc_obj$x)
+  cell_y <- .apply_dimred_mat(mat_y[cell,,drop = F], dim_reduc_obj$y)
+  cell_vec <- c(cell_x, cell_y)
+  
+  tmp <- RANN::nn2(matched_mat, query = matrix(cell_vec, nrow = 1), k = rec_options$enforced_nn)$nn.idx[1,]
+  nn_pred <- include_idx[tmp]
+  nn_pred <- lapply(nn_pred, function(x){
+    setdiff(c(x, intersect(nn_mat[x,], include_idx)), exclude_idx)
+  })
   
   nn_pred
 }

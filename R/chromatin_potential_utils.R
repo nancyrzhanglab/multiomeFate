@@ -81,7 +81,7 @@
   prefix <- "form"
   
   if(form_method == "average"){
-    list_default <- list(average = "median")
+    list_default <- list(average = "median", bool_include_start = F)
     form_options <- .fill_options(options, list_default, prefix)
     
     stopifnot(form_options$average %in% c("mean", "median"))
@@ -165,7 +165,7 @@
     list_default <- list(cor_method = "pearson", parallel = F, 
                          bool_avg_from = T, bool_pred_nn = T, 
                          run_diagnostic = T, verbose = F,
-                         matched_sampling_rate = 1)
+                         matched_sampling_rate = 1, enforced_nn = 10)
     rec_options <- .fill_options(options, list_default, prefix)
     
     stopifnot(rec_options$matched_sampling_rate > 0, rec_options$matched_sampling_rate <= 1)
