@@ -20,7 +20,7 @@
                            options){
   stopifnot(dim_method %in% c("pca"))
   stopifnot(nn_method %in% c("annoy"))
-  stopifnot(form_method %in% c("average"))
+  stopifnot(form_method %in% c("average", "average_weighted"))
   stopifnot(est_method %in% c("glmnet", "threshold_glmnet"))
   stopifnot(cand_method %in% c("nn_any", "nn_freq", "all"))
   stopifnot(rec_method %in% c("nn", "distant_cor", "distant_cor_oracle"))
@@ -82,6 +82,12 @@
   
   if(form_method == "average"){
     list_default <- list(average = "median", bool_include_start = F)
+    form_options <- .fill_options(options, list_default, prefix)
+    
+    stopifnot(form_options$average %in% c("mean", "median"))
+  } else if(form_method == "average_weighted"){
+    list_default <- list(average = "median", bool_include_start = F,
+                         stepsize = 0.9, min_weight = 0.5)
     form_options <- .fill_options(options, list_default, prefix)
     
     stopifnot(form_options$average %in% c("mean", "median"))

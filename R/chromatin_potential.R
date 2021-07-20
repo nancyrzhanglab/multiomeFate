@@ -51,17 +51,19 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
   list_diagnos <- list()
   iter <- 1
+  weights <- .init_weights(nrow(mat_x1), form_options)
   
   # while:
   while(length(ht_neighbor) < n){
     # [[note to self: put a better statement here]]
     if(verbose) print(paste0("Iteration ", iter, ": Recruited percentage (", 
                              round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
+    if(verbose & !any(is.na(weights))) print(paste0("Weights range from ", round(min(weights),2), " to ", round(max(weights),2)))
     ## estimate res_g
     if((iter == 1 | est_options$hold_initial) && !any(is.na(mat_g_init)) && !any(is.na(vec_g_init))){
       res_g <- list(mat_g = mat_g_init, vec_g = vec_g_init, vec_threshold = vec_threshold_init)
     } else {
-      res_g <- .estimate_g(mat_x1, mat_y2, est_options)
+      res_g <- .estimate_g(mat_x1, mat_y2, weights, est_options)
     }
    
     ## construct candidate set
@@ -78,9 +80,9 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
     ## update
-    tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, 
+    tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, weights,
                                        res_rec$rec, form_options)
-    mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2
+    mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2; weights <- tmp$weights
     ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec, enforce_matched)
     df_res <- .update_chrom_df_rec(df_res, res_rec$rec, iter)
     

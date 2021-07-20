@@ -31,11 +31,12 @@
 #'
 #' @return a list of a matrix \code{mat_g} (of dimensions \code{ncol(mat_x1)} by \code{ncol(mat_y2)})
 #' and a vector \code{vec_g} (of length \code{ncol(mat_y2)})
-.estimate_g <- function(mat_x1, mat_y2, est_options){
+.estimate_g <- function(mat_x1, mat_y2, weights, est_options){
+  stopifnot(all(is.na(weights)) || length(weights) == nrow(mat_x1))
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   if(est_options[["method"]] %in% c("glmnet", "threshold_glmnet")){
-    res_g <- .estimate_g_glmnet(mat_x1, mat_y2, est_options)
+    res_g <- .estimate_g_glmnet(mat_x1, mat_y2, weights, est_options)
   } else {
     stop("Estimation method not found")
   }
@@ -55,12 +56,12 @@
 
 ##############################
 
-.estimate_g_glmnet <- function(mat_x1, mat_y2, est_options){
+.estimate_g_glmnet <- function(mat_x1, mat_y2, weights, est_options){
   stopifnot(nrow(mat_x1) == nrow(mat_y2))
   if(est_options$enforce_cis) stopifnot(class(est_options$ht_map) == "hash")
   
   p1 <- ncol(mat_x1); p2 <- ncol(mat_y2)
-  
+
   # initialize variables for the loop
   if(!est_options$parallel && future::nbrOfWorkers() == 1){
     my_lapply <- pbapply::pblapply
@@ -85,6 +86,7 @@
     ## apply glmnet
     if(est_options[["method"]] == "glmnet"){
       .glmnet_fancy(mat_x1[,idx_x,drop = F], mat_y2[,idx_y],
+                    weights = weights,
                     family = est_options$family, 
                     switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
                     alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
@@ -92,6 +94,7 @@
                     bool_round = est_options$bool_round)
     } else{
       .threshold_glmnet_fancy(mat_x1[,idx_x,drop = F], mat_y2[,idx_y],
+                              weights = weights,
                               family = est_options$family, 
                               switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
                               alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
@@ -107,14 +110,15 @@
 
 #####################################################
 
-.glmnet_fancy <- function(x, y, family, 
+.glmnet_fancy <- function(x, y, weights, family, 
                           switch, switch_cutoff,
                           alpha, standardize, intercept,
                           cv, nfolds, cv_choice, bool_round){
   n <- length(y); p <- ncol(x)
   if(bool_round) y <- round(y)
-
+  
   if(switch & n > p*switch_cutoff){
+    if(length(weights) <= 1) weights <- NULL
     # use glm
     if(intercept) x <- cbind(x,1)
     if(family == "poisson") {
@@ -124,22 +128,24 @@
     } else {
       stop("family not found")
     }
-    res <- stats::glm.fit(x, y, family = family_func, intercept = F)
+    res <- stats::glm.fit(x, y, weights = weights, family = family_func, intercept = F)
     vec_coef <- res$coefficients[1:p]
     vec_coef[is.na(vec_coef)] <- 0
     val_int <- ifelse(intercept, vec_coef[p+1], 0)
     
   } else {
+    if(length(weights) <= 1) weights <- rep(1, length(y))
+    
     if(cv & n > 10*nfolds){
       # use cv.glmnet
-      res <- glmnet::cv.glmnet(x, y, family = family, nfolds = nfolds, alpha = alpha,
+      res <- glmnet::cv.glmnet(x, y, weights = weights, family = family, nfolds = nfolds, alpha = alpha,
                                standardize = standardize, intercept = intercept)
       lambda <- res[[cv_choice]]
-      res <- glmnet::glmnet(x, y, family = family, alpha = alpha,
+      res <- glmnet::glmnet(x, y, weights = weights, family = family, alpha = alpha,
                             standardize = standardize, intercept = intercept)
     } else {
       # use glmnet and pick the densest solution
-      res <- glmnet::glmnet(x, y, family = family, alpha = alpha,
+      res <- glmnet::glmnet(x, y, weights = weights, family = family, alpha = alpha,
                             standardize = standardize, intercept = intercept)
       tmp <- res$lambda; len <- length(tmp); stopifnot(len > 1)
       lambda <- mean(tmp[c(len-1,len)])
@@ -152,7 +158,7 @@
   list(val_int = val_int, vec_coef = vec_coef)
 }
 
-.threshold_glmnet_fancy <- function(x, y, family, 
+.threshold_glmnet_fancy <- function(x, y, weights, family, 
                                     switch, switch_cutoff,
                                     alpha, standardize, intercept,
                                     cv, nfolds, cv_choice, bool_round,
@@ -164,14 +170,15 @@
   while(iter <= num_iterations){
     # update the regression
     idx <- which(y >= prev_threshold)
-    res_glm <- .glmnet_fancy(x[idx,,drop = F], y[idx], family, 
-                           switch, switch_cutoff,
-                           alpha, standardize, intercept,
-                           cv, nfolds, cv_choice, bool_round)
+    if(length(weights) == 1) weight_vec <- NA else weight_vec <- weights[idx]
+    res_glm <- .glmnet_fancy(x[idx,,drop = F], y[idx], weight_vec,
+                             family, switch, switch_cutoff,
+                             alpha, standardize, intercept,
+                             cv, nfolds, cv_choice, bool_round)
     
     # update the threshold
     # [[note to self: assumes family is Gaussian essentially]]
-    next_threshold <- .update_threshold_glmnet(x, y, res_glm)
+    next_threshold <- .update_threshold_glmnet(x, y, weights, res_glm)
     
     if(abs(next_threshold - prev_threshold) <= tol) break()
     iter <- iter+1
@@ -181,11 +188,17 @@
        val_threshold = next_threshold)
 }
 
-.update_threshold_glmnet <- function(x, y, res_glm){
+.update_threshold_glmnet <- function(x, y, weights, res_glm){
   pred_y <- as.numeric(x %*% res_glm$vec_coef) + res_glm$val_int
   
-  f <- function(val_threshold, y, pred_y){
-    sum((y - pmax(pred_y, val_threshold))^2)
+  if(length(weights) <= 1) {
+    f <- function(val_threshold, y, pred_y){
+      sum((y - pmax(pred_y, val_threshold))^2)
+    }
+  } else {
+    f <- function(val_threshold, y, pred_y){
+      sum(weights*(y - pmax(pred_y, val_threshold))^2)
+    }
   }
   
   stats::optimize(f, interval = c(min(y), max(y)), maximum = F,
