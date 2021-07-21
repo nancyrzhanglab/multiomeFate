@@ -4,7 +4,7 @@
 \alias{.estimate_g}
 \title{Estimate the GLM that links the two modalities}
 \usage{
-.estimate_g(mat_x1, mat_y2, est_options)
+.estimate_g(mat_x1, mat_y2, weights, est_options)
 }
 \arguments{
 \item{mat_x1}{Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
@@ -12,6 +12,8 @@ the data for Modality 1}
 
 \item{mat_y2}{Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
 the data for Modality 2}
+
+\item{weights}{non-negative weights, one for each row of \code{mat_x1}}
 
 \item{est_options}{one of the outputs from \code{.chrom_options}}
 }

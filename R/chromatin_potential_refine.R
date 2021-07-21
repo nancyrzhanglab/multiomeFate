@@ -7,7 +7,7 @@ chromatin_potential_refine <- function(chrom_obj, iter_max = 10, tol = 1e-4,
   df_cell <- chrom_obj$df_cell; dim_reduc_obj <- chrom_obj$dim_reduc_obj
   ht_neighbor <- chrom_obj$ht_neighbor
   nn_mat <- chrom_obj$nn_mat; nn_obj <- chrom_obj$nn_obj
-  res_g <- res$res_g
+  res_g <- chrom_obj$res_g
   list_diagnos <- chrom_obj$list_diagnos; options <- chrom_obj$options
   
   dim_options <- options$dim_options; nn_options <- options$nn_options

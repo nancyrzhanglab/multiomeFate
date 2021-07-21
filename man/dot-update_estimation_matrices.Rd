@@ -4,7 +4,15 @@
 \alias{.update_estimation_matrices}
 \title{Update the matrices for estimation later}
 \usage{
-.update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, rec, form_options)
+.update_estimation_matrices(
+  mat_x,
+  mat_y,
+  mat_x1,
+  mat_y2,
+  weights,
+  rec,
+  form_options
+)
 }
 \arguments{
 \item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
@@ -14,6 +22,8 @@
 \item{mat_x1}{previous \code{mat_x1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
 
 \item{mat_y2}{previous \code{mat_y2}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}}
+
+\item{weights}{non-negative weights, one for each row of \code{mat_x1}}
 
 \item{rec}{output \code{rec} from \code{.recruit_next}}
 
@@ -31,9 +41,6 @@ options in \code{form_options}
 \details{
 The options are:
 \itemize{
-\item \code{literal}: If \code{rec$list_to[[i]]} matches many cells from a single cell in \code{rec$vec_from[i]},
-form one row in \code{mat_y2} for each matched cell in \code{rec$list_to[[i]]} (and 
-duplicate the cell in \code{rec$vec_from[i]} in \code{mat_x1} as many times as needed)
 \item \code{average}: If \code{rec$list_to[[i]]} matches many cells from a single cell in \code{rec$vec_from[i]},
 average all the variables among the matched cell in \code{rec$list_to[[i]]} based on
 \code{form_options$average} to form one row in \code{mat_y2} (and one row in 

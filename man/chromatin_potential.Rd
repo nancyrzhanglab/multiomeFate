@@ -8,6 +8,9 @@ chromatin_potential(
   prep_obj,
   mat_g_init = NA,
   vec_g_init = rep(0, ncol(mat_y)),
+  vec_threshold_init = rep(0, ncol(mat_y)),
+  df_cell = NA,
+  bool_oracle = F,
   verbose = T
 )
 }
@@ -18,6 +21,14 @@ chromatin_potential(
 \item{mat_g_init}{(optional) initial estimate of the matrix of coefficients linking Modality 1 to Modality 2}
 
 \item{vec_g_init}{(optional) initial estimate of the vector of intercepts linking Modality 1 to Modality 2}
+
+\item{vec_threshold_init}{(optional) initial estimate of the vector of thresholds}
+
+\item{df_cell}{(optional) data frame containing information of each cell, primarily used
+for simulations where the true cell types are known (for \code{.recruit_next})}
+
+\item{bool_oracle}{boolean, where \code{TRUE} is used if you want to invoke "oracle" behavior
+where true psuedotimes and cell-types might be known}
 
 \item{verbose}{boolean}
 }

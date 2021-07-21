@@ -11,9 +11,11 @@
   res_g,
   df_res,
   dim_reduc_obj,
+  nn_g,
   nn_mat,
   nn_obj,
   enforce_matched,
+  df_cell,
   rec_options
 )
 }
@@ -30,6 +32,8 @@
 
 \item{dim_reduc_obj}{object to compute the dimension reduction for a given vector,
 computed by \code{chromatin_potential_prepare}}
+
+\item{nn_g}{nearest neighbor graph, represented as an \code{igraph} object}
 
 \item{nn_mat}{the nearest-neighbor matrix, output from \code{chromatin_potential_prepare}}
 

@@ -37,6 +37,7 @@
 #' @param df_res data frame recording the current results, generated within \code{chromatin_potential}
 #' @param dim_reduc_obj object to compute the dimension reduction for a given vector,
 #' computed by \code{chromatin_potential_prepare}
+#' @param nn_g nearest neighbor graph, represented as an \code{igraph} object
 #' @param nn_mat the nearest-neighbor matrix, output from \code{chromatin_potential_prepare}
 #' @param nn_obj the exposed C++ \code{RcppAnnoy} that encodes the nearest neighbor
 #' information for the \code{n} cells
@@ -159,11 +160,7 @@
                                       enforce_matched, rec_options){
   nn_size <- ncol(nn_mat)
   
-  if(enforce_matched){
-    matched_idx <- which(!is.na(df_res$order_rec))
-  } else {
-    matched_idx <- NA
-  }
+  if(enforce_matched) matched_idx <- which(!is.na(df_res$order_rec))
   
   # apply mat_g to mat_x
   if(rec_options$bool_avg_from){
@@ -194,8 +191,10 @@
     # allow cell to be matched to potentially any other cell
     if(!rec_options$bool_pred_nn){
       if(!enforce_matched){
+        # consider the nearest neighbors
         nn_pred <- nn_obj$getNNsByVector(vec, nn_size) + 1
       } else {
+        # consider any cells, as long as it's matched
         nn_pred <- sample(matched_idx, size = ceiling(rec_options$matched_sampling_rate * length(matched_idx)))
       }
       list_nn_to <- lapply(nn_pred, function(x){x})
@@ -203,7 +202,8 @@
     # match to only cells near target cell
     } else {
       if(!enforce_matched){
-        list_nn_to <- .find_to_list(cell, include_idx = setdiff(matched_idx, list_nn[[i]]),
+        # consider nearest neighbors that are not the immediate nn's (i.e., exclude_idx)
+        list_nn_to <- .find_to_list(cell, include_idx = NA,
                                     exclude_idx = list_nn[[i]],
                                     nn_g, nn_mat, rec_options)
       } else{
@@ -364,19 +364,18 @@
     
   if(rec_options$bool_avg_from){
     nn_pred <- as.numeric(igraph::ego(nn_g, order = 4, nodes = cell, mindist = 4)[[1]])
-    if(length(nn_pred) > 0){
-      nn_pred <- lapply(nn_pred, function(x){
-        c(x, nn_mat[x,])
-      })
+    if(length(nn_pred) == 0){ # happens if the graph doesn't have large enough radius
+      # [[note to self: refactor this better...]]
+      nn_pred <- as.numeric(igraph::ego(nn_g, order = 2, nodes = cell, mindist = 2)[[1]])
     }
-    
   } else {
     nn_pred <- as.numeric(igraph::ego(nn_g, order = 2, nodes = cell, mindist = 2)[[1]])
-    if(length(nn_pred) > 0){
-      nn_pred <- lapply(nn_pred, function(x){
-        c(x, nn_mat[x,])
-      })
-    }
+  }
+  
+  if(length(nn_pred) > 0){
+    nn_pred <- lapply(nn_pred, function(x){
+      c(x, nn_mat[x,])
+    })
   }
   
   # deal with includes
@@ -398,6 +397,7 @@
     
   # if all else fails, match to a cell previously matched
   if(length(nn_pred) == 0){
+    stopifnot(!all(is.na(include_idx)))
     nn_pred <- sample(include_idx, size = ceiling(rec_options$matched_sampling_rate * length(include_idx)),
                       replace = F)
     nn_pred <- lapply(nn_pred, function(x){

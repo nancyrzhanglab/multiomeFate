@@ -4,7 +4,7 @@
 \alias{.init_est_matrices}
 \title{Initialize the matrices for estimation later}
 \usage{
-.init_est_matrices(mat_x, mat_y, df_res)
+.init_est_matrices(mat_x, mat_y, df_res, form_options)
 }
 \arguments{
 \item{mat_x}{full data for Modality 1, where each row is a cell and each column is a variable}
@@ -12,6 +12,8 @@
 \item{mat_y}{full data for Modality 2, where each row is a cell and each column is a variable}
 
 \item{df_res}{data frame formed during the \code{chromatin_potential_prepare} function}
+
+\item{form_options}{one of the outputs from \code{.chrom_options}}
 }
 \value{
 list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as

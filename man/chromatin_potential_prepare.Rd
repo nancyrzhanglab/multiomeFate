@@ -13,7 +13,7 @@ chromatin_potential_prepare(
   list_end,
   dim_method = "pca",
   nn_method = "annoy",
-  form_method = "literal",
+  form_method = "average",
   est_method = "glmnet",
   cand_method = "nn_any",
   rec_method = "distant_cor",

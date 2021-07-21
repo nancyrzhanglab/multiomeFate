@@ -3,6 +3,7 @@
 #' @param mat_x full data for Modality 1, where each row is a cell and each column is a variable
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
 #' @param df_res data frame formed during the \code{chromatin_potential_prepare} function
+#' @param form_options one of the outputs from \code{.chrom_options}
 #' 
 #' @return list of 2 matrices, \code{mat_x1} and \code{mat_y2}, as
 #' well as vector of indices \code{vec_matched}
@@ -54,6 +55,7 @@
 #' @param mat_y full data for Modality 2, where each row is a cell and each column is a variable
 #' @param mat_x1 previous \code{mat_x1}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
 #' @param mat_y2 previous \code{mat_y2}, say, from an earlier call to \code{.init_est_matrices} or \code{.update_estimation_matrices}
+#' @param weights non-negative weights, one for each row of \code{mat_x1}
 #' @param rec output \code{rec} from \code{.recruit_next}
 #' @param form_options one of the outputs from \code{.chrom_options}
 #'

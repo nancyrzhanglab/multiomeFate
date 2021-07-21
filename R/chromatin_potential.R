@@ -25,6 +25,11 @@
 #' \code{chromatin_potential_prepare} function
 #' @param mat_g_init (optional) initial estimate of the matrix of coefficients linking Modality 1 to Modality 2
 #' @param vec_g_init (optional) initial estimate of the vector of intercepts linking Modality 1 to Modality 2
+#' @param vec_threshold_init (optional) initial estimate of the vector of thresholds
+#' @param df_cell (optional) data frame containing information of each cell, primarily used
+#' for simulations where the true cell types are known (for \code{.recruit_next})
+#' @param bool_oracle boolean, where \code{TRUE} is used if you want to invoke "oracle" behavior
+#' where true psuedotimes and cell-types might be known
 #' @param verbose boolean
 #'
 #' @return object of class \code{chromatin_potential}
@@ -102,7 +107,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
 
 #########################
 
-
+# initialize the hash table via the indices that constitue the end states
 .init_chrom_ht <- function(vec_end){
   ht_neighbor <- hash::hash()
   for(i in vec_end){

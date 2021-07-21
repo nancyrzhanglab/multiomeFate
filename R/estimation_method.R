@@ -27,6 +27,7 @@
 #' the data for Modality 1
 #' @param mat_y2 Output of \code{.init_est_matrices} or \code{.update_estimation_matrices}, representing
 #' the data for Modality 2
+#' @param weights non-negative weights, one for each row of \code{mat_x1}
 #' @param est_options one of the outputs from \code{.chrom_options}
 #'
 #' @return a list of a matrix \code{mat_g} (of dimensions \code{ncol(mat_x1)} by \code{ncol(mat_y2)})

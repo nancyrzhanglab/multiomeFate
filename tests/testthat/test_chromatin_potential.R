@@ -15,23 +15,14 @@ test_that(".update_chrom_df_cand works", {
 ## .update_chrom_ht is correct
 
 test_that(".update_chrom_ht works", {
-  ht_neighbor <- .init_chrom_ht(list(11:20, 21:30))
-  res <- .update_chrom_ht(ht_neighbor, c(31,32), list(c(11:15), c(21:22)), F)
+  ht_neighbor <- .init_chrom_ht(c(11:20))
+  res <- .update_chrom_ht(ht_neighbor, list(list(to = c(11,12), from = c(1:4)),
+                                            list(to = c(16:18), from = c(5:8))), F)
   
   expect_true(class(res) == "hash")
-  expect_true(all(res[["31"]] == 11:15))
-  expect_true(all(res[["32"]] == 21:22))
-})
-
-##################
-
-## .update_chrom_df_rec is correct
-
-test_that(".update_chrom_df_rec works", {
-  df_res <- .init_chrom_df(50, 1:10, list(11:20), paste0("n", 1:50))
-  res <- .update_chrom_df_rec(df_res, 21:22, 1)
-  
-  expect_true(all(res$order_rec[21:22] == 1))
+  expect_true(all(res[["1"]] == 11:12))
+  expect_true(all(res[["2"]] == 11:12))
+  expect_true(all(res[["5"]] ==  16:18))
 })
 
 ########################
@@ -40,21 +31,33 @@ test_that(".update_chrom_df_rec works", {
 
 test_that("chromatin potential works", {
   set.seed(10)
-  p1 <- 20; p2 <- 10; genome_length <- 1000; window <- 10
-  df <- generate_df_simple(p1, p2, genome_length = genome_length, window = window)
-  mat_g <- generate_gcoef_simple(df$df_x, df$df_y, window = window)
-  timepoints <- 20
-  mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
-  obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, 
-                                   list(mat_traj), verbose = F)
-  dat <- generate_data(obj_next, number_runs = 10, sample_perc = 0.9, verbose = F)
+  g <- igraph::graph_from_edgelist(matrix(c(4,1, 4,5, 2,5, 3,5), nrow = 4, ncol = 2, byrow = T), 
+                                   directed = F)
+  g <- igraph::set_vertex_attr(g, name = "lag", index = 4, value = 3)
+  g <- igraph::set_vertex_attr(g, name = "lag", index = 5, value = 5)
+  idx_root <- 4; num_waves <- 10; num_per_wave <- 5; distinct_waves <- 2
+  combn_wave_mat <- simulate_combn_wave_mat(g, idx_root, num_waves = num_waves,
+                                            num_per_wave = num_per_wave, 
+                                            distinct_waves = distinct_waves)
   
-  vec_start <- which(dat$df_info$time <= 0.1)
-  list_end <- list(which(dat$df_info$time >= 0.9))
+  res <- simulate_data_input(combn_wave_mat)
+  df_x <- res$df_x; df_y <- res$df_y
+  list_xnoise <- res$list_xnoise; list_ynoise <- res$list_ynoise
+  df_cell <- simulate_df_cell(100, time_max = max(df_y$time_end_scaffold, na.rm = T),
+                              num_branch = 3)
   
   set.seed(10)
-  prep_obj <-  chromatin_potential_prepare(dat$obs_x, dat$obs_y, df$df_x, df$df_y,
-                                      vec_start, list_end)
+  dat <- simulate_data(df_x, df_y, list_xnoise, list_ynoise, df_cell)
+  mat_x <- dat$obs_x; mat_y <- dat$obs_y
+  
+  vec_start <- which(df_cell$time <= 10)
+  list_end <- lapply(sort(unique(df_cell$branch)), function(branch){
+    intersect(which(df_cell$branch == branch), which(df_cell$time >= 80))
+  })
+  
+  set.seed(10)
+  prep_obj <- chromatin_potential_prepare(mat_x, mat_y, df_x, df_y, 
+                                          vec_start, list_end)
   res <- chromatin_potential(prep_obj, verbose = F)
   
   n <- nrow(dat$obs_x)

@@ -1,6 +1,6 @@
 Package: multiomeFate
 Title: Kevin Lin and Chi-Yun Wu
-Version: 0.0.0.0007
+Version: 0.0.0.0009
 Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
 Description: A package to do multiome fate prediction. Currently under development.
 Depends:
@@ -14,7 +14,6 @@ Imports:
     igraph,
     glmnet,
     Seurat,
-    clplite,
     RANN,
     RcppAnnoy,
     pbapply,
@@ -26,7 +25,8 @@ Imports:
     sparseMatrixStats,
     Matrix,
     methods,
-    data.table
+    dequer,
+    scales
 Suggests:
     testthat
 RoxygenNote: 7.1.1

@@ -9,8 +9,8 @@ test_that(".candidate_set_nn_any works", {
   df_res <- data.frame(init_state = rep(NA, n), 
                        order_rec = sample(c(1, NA), size = n, prob = c(1,2), replace = T))
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn_any", rec_method = "distant_cor",
+                            form_method = "average", est_method = "glmnet",
+                            cand_method = "nn_any", rec_method = "distant_cor", 
                             options = list(nn_nn = 3))
   nn_obj <- nearest_neighbor(mat_x, options$nn_options)
   nn_mat <- .query_nn(nn_obj, options$nn_options)
@@ -37,8 +37,8 @@ test_that(".candidate_set_nn_freq works", {
   df_res <- data.frame(init_state = rep(NA, n), 
                        order_rec = sample(c(1, NA), size = n, prob = c(1,2), replace = T))
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
-                            cand_method = "nn_any", rec_method = "distant_cor",
+                            form_method = "average", est_method = "glmnet", 
+                            cand_method = "nn_freq", rec_method = "distant_cor",
                             options = list(nn_nn = 3, cand_num_cand = 20))
   nn_obj <- nearest_neighbor(mat_x, options$nn_options)
   nn_mat <- .query_nn(nn_obj, options$nn_options)
