@@ -6,7 +6,7 @@ test_that("dimension_reduction works and has correct calculations", {
   set.seed(10)
   k <- 2
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
+                            form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
                             options = list(dim_nlatent_x = k))
   dim_options <- options$dim_options
@@ -51,7 +51,7 @@ test_that(".dimension_reduction_pca works on sparse matrices", {
   set.seed(10)
   k <- 2
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
+                            form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
                             options = list(dim_nlatent_x = k))
   dim_options <- options$dim_options
@@ -91,7 +91,7 @@ test_that(".apply_dimred works", {
   set.seed(10)
   k <- 2
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
+                            form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
                             options = list(dim_nlatent_x = k))
   dim_options <- options$dim_options

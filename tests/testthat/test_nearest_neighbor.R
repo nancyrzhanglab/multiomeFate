@@ -5,7 +5,7 @@ context("Test nearest neighbor")
 test_that("nearest_neighbor works", {
   set.seed(10)
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
+                            form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
                             options = list(nn_metric = "euclidean"))
   n <- 100; p <- 20
@@ -34,7 +34,7 @@ test_that("nearest_neighbor works", {
 test_that(".query_nn works", {
   set.seed(10)
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
+                            form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
                             options = list(nn_nn = 5))
   nn_options <- options$nn_options

@@ -1,5 +1,19 @@
 context("Test estimation method")
 
+.generate_df_test <- function(seed = 10){
+  set.seed(seed)
+  g <- igraph::graph_from_edgelist(matrix(c(4,1, 4,5, 2,5, 3,5), nrow = 4, ncol = 2, byrow = T), 
+                                   directed = F)
+  g <- igraph::set_vertex_attr(g, name = "lag", index = 4, value = 3)
+  g <- igraph::set_vertex_attr(g, name = "lag", index = 5, value = 5)
+  idx_root <- 4; num_waves <- 10; num_per_wave <- 5; distinct_waves <- 2
+  combn_wave_mat <- simulate_combn_wave_mat(g, idx_root, num_waves = num_waves,
+                                            num_per_wave = num_per_wave, 
+                                            distinct_waves = distinct_waves)
+  
+  df <- simulate_data_input(combn_wave_mat)
+}
+
 ## .glmnet_fancy is correct
 
 test_that(".glmnet_fancy works", {
@@ -10,7 +24,7 @@ test_that(".glmnet_fancy works", {
   y <- rpois(n, lambda = x %*% beta)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
@@ -28,14 +42,14 @@ test_that(".glmnet_fancy respects intercept", {
   y <- rpois(n, lambda = x %*% beta + 1)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
   expect_true(abs(res$val_int) <= 1e-6)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
@@ -50,14 +64,14 @@ test_that(".glmnet_fancy respects switch", {
   y <- rpois(n, lambda = x %*% beta)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
   expect_true(any(abs(res$vec_coef) <= 1e-6))
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, family = "poisson", switch = T, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = T, 
                        switch_cutoff = 2, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
@@ -69,11 +83,10 @@ test_that(".glmnet_fancy respects switch", {
 ## .transform_est_matrix is correct
 
 test_that(".transform_est_matrix works", {
-  set.seed(10)
-  p1 <- 20; p2 <- 5; genome_length <- 1000
-  df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
+  df <- .generate_df_test()
+  p1 <- nrow(df$df_x); p2 <- nrow(df$df_y)
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
+                            form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
                             options = list())
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
@@ -99,12 +112,11 @@ test_that(".transform_est_matrix works", {
 ## .estimate_g_glmnet is correct
 
 test_that(".estimate_g_glmnet works", {
-  set.seed(11)
-  p1 <- 25; p2 <- 6; genome_length <- 1000
-  df <- generate_df_simple(p1 = p1, p2 = p2, genome_length = genome_length, window = 10)
+  df <- .generate_df_test()
+  p1 <- nrow(df$df_x); p2 <- nrow(df$df_y)
   n <- 100
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
-                            form_method = "literal", est_method = "glmnet", 
+                            form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
                             options = list())
   est_options <- .gene_peak_map(df$df_x, df$df_y, options$est_options)
@@ -112,7 +124,7 @@ test_that(".estimate_g_glmnet works", {
   mat_x1 <- matrix(sample(c(0,1), n*p1, replace = T), n, p1)
   mat_y2 <- matrix(rpois(n*p2, lambda = 3), n, p2)
   
-  res <- .estimate_g_glmnet(mat_x1, mat_y2, est_options)
+  res <- .estimate_g_glmnet(mat_x1, mat_y2, weights = rep(1,n), est_options)
   
   expect_true(all(sort(names(res)) == sort(c("mat_g", "vec_g"))))
   expect_true(all(dim(res$mat_g) == c(p1, p2)))
