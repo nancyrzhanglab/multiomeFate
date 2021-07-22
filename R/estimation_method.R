@@ -119,6 +119,8 @@
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x))))
   }
   
+  print(paste0("Length: ", nrow(x), " // Sd x: ", max(matrixStats::colSds(x)), " // Sd y: ", stats::sd))
+  
   if(ncol(x) == 1 || switch & n > p*switch_cutoff){
     if(length(weights) <= 1) weights <- NULL
     # use glm
@@ -167,8 +169,6 @@
   if(nrow(x) == 1 || all(matrixStats::colSds(x) <= tol) || stats::sd(y) <= tol){
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x)), val_threshold = 0))
   }
-  
-  print(paste0("Length: ", nrow(x), " // Sd x: ", max(matrixStats::colSds(x)), " // Sd y: ", stats::sd(y)))
   
   prev_threshold <- stats::quantile(y, probs = initial_quantile)
   iter <- 1
