@@ -119,7 +119,7 @@
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x))))
   }
   
-  print(paste0("Length: ", nrow(x), " // Sd x: ", max(matrixStats::colSds(x)), " // Sd y: ", stats::sd))
+  print(paste0("Length: ", nrow(x), " // Sd x: ", max(matrixStats::colSds(x)), " // Sd y: ", stats::sd(y)))
   
   if(ncol(x) == 1 || switch & n > p*switch_cutoff){
     if(length(weights) <= 1) weights <- NULL
