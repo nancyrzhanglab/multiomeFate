@@ -43,6 +43,8 @@
 #' information for the \code{n} cells
 #' @param enforce_matched boolean, where if \code{TRUE}, recruited cells are matched
 #' to only cells that previously-recruited
+#' @param df_cell (optional) data frame containing information of each cell, primarily used
+#' for simulations where the true cell types are known (for \code{.recruit_next})
 #' @param rec_options one of the outputs from \code{.chrom_options}
 #'
 #' @return a list of two things: a list called \code{rec} that contains

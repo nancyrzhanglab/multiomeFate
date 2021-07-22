@@ -24,7 +24,7 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
                         dim_method = "pca", nn_method = "annoy",
                         form_method = "average", est_method = "glmnet",
                         cand_method = "nn_any", rec_method = "distant_cor", 
-                        options = list(), verbose = T){
+                        ht_map = NA, options = list(), verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), 
             ncol(mat_y) == nrow(df_y), is.list(options))
   stopifnot(all(mat_x >= 0), all(mat_y >= 0))
@@ -57,7 +57,11 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   list_diagnos <- list()
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   if(full_options$est_options$enforce_cis){
-    full_options$est_options <- .gene_peak_map(df_x, df_y, full_options$est_options)
+    if(all(is.na(ht_map))){
+      full_options$est_options <- .gene_peak_map(df_x, df_y, full_options$est_options)
+    } else {
+      full_options$est_options$ht_map <- ht_map
+    }
   }
   
   structure(list(mat_x = mat_x, mat_y = mat_y, df_x = df_x, df_y = df_y,

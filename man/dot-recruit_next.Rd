@@ -43,6 +43,9 @@ information for the \code{n} cells}
 \item{enforce_matched}{boolean, where if \code{TRUE}, recruited cells are matched
 to only cells that previously-recruited}
 
+\item{df_cell}{(optional) data frame containing information of each cell, primarily used
+for simulations where the true cell types are known (for \code{.recruit_next})}
+
 \item{rec_options}{one of the outputs from \code{.chrom_options}}
 }
 \value{
