@@ -21,10 +21,10 @@ test_that(".glmnet_fancy works", {
   n <- 100; p <- 10
   x <- matrix(abs(rnorm(n*p)), n, p)
   beta <- runif(p)
-  y <- rpois(n, lambda = x %*% beta)
+  y <- rnorm(n, mean = x %*% beta)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
@@ -39,17 +39,17 @@ test_that(".glmnet_fancy respects intercept", {
   n <- 100; p <- 10
   x <- matrix(abs(rnorm(n*p)), n, p)
   beta <- runif(p)
-  y <- rpois(n, lambda = x %*% beta + 1)
+  y <- rnorm(n, mean = x %*% beta + 1)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
   expect_true(abs(res$val_int) <= 1e-6)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
@@ -61,21 +61,38 @@ test_that(".glmnet_fancy respects switch", {
   n <- 1000; p <- 10
   x <- matrix(abs(rnorm(n*p)), n, p)
   beta <- runif(p); beta[1:round(p/2)] <- 0
-  y <- rpois(n, lambda = x %*% beta)
+  y <- rnorm(n, mean = x %*% beta)
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = F, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
                        switch_cutoff = 10, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
   expect_true(any(abs(res$vec_coef) <= 1e-6))
   
   set.seed(10)
-  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "poisson", switch = T, 
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = T, 
                        switch_cutoff = 2, alpha = 1, standardize = F,
                        intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
                        bool_round = T)
   expect_true(all(abs(res$vec_coef) >= 1e-6))
+})
+
+test_that(".glmnet_fancy can handle when there's only one variable", {
+  set.seed(10)
+  n <- 1000; p <- 1
+  x <- matrix(abs(rnorm(n*p)), n, p)
+  beta <- runif(p); beta[1:round(p/2)] <- 0
+  y <- rnorm(n, mean = x %*% beta)
+  
+  set.seed(10)
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
+                       switch_cutoff = 10, alpha = 1, standardize = F,
+                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
+                       bool_round = T)
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("val_int", "vec_coef"))))
+  expect_true(length(res$vec_coef) == 1)
 })
 
 ########################

@@ -118,13 +118,11 @@
   n <- length(y); p <- ncol(x)
   if(bool_round) y <- round(y)
   
-  if(switch & n > p*switch_cutoff){
+  if(ncol(x) == 1 || switch & n > p*switch_cutoff){
     if(length(weights) <= 1) weights <- NULL
     # use glm
     if(intercept) x <- cbind(x,1)
-    if(family == "poisson") {
-      family_func <- stats::poisson()
-    } else if(family == "gaussian") {
+    if(family == "gaussian") {
       family_func <- stats::gaussian()
     } else {
       stop("family not found")

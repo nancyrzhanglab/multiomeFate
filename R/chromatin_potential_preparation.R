@@ -57,7 +57,7 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   list_diagnos <- list()
   df_res <- .init_chrom_df(n, vec_start, list_end, cell_name)
   if(full_options$est_options$enforce_cis){
-    if(all(is.na(ht_map))){
+    if(class(ht_map) != "hash" && all(is.na(ht_map))){
       full_options$est_options <- .gene_peak_map(df_x, df_y, full_options$est_options)
     } else {
       full_options$est_options$ht_map <- ht_map
