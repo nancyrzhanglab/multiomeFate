@@ -25,9 +25,8 @@ test_that(".glmnet_fancy works", {
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
-                       switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
-                       bool_round = T)
+                       switch_cutoff = 10, alpha = 1,
+                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se")
   expect_true(all(sort(names(res)) == c("val_int", "vec_coef")))
   expect_true(all(sapply(res, is.numeric)))
   expect_true(length(res$val_int) == 1)
@@ -43,16 +42,14 @@ test_that(".glmnet_fancy respects intercept", {
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
-                       switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
-                       bool_round = T)
+                       switch_cutoff = 10, alpha = 1,
+                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se")
   expect_true(abs(res$val_int) <= 1e-6)
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
-                       switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
-                       bool_round = T)
+                       switch_cutoff = 10, alpha = 1, 
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se")
   expect_true(abs(res$val_int) >= 1e-6)
 })
 
@@ -65,16 +62,14 @@ test_that(".glmnet_fancy respects switch", {
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
-                       switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
-                       bool_round = T)
+                       switch_cutoff = 10, alpha = 1, 
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se")
   expect_true(any(abs(res$vec_coef) <= 1e-6))
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = T, 
-                       switch_cutoff = 2, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
-                       bool_round = T)
+                       switch_cutoff = 2, alpha = 1, 
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se")
   expect_true(all(abs(res$vec_coef) >= 1e-6))
 })
 
@@ -87,11 +82,67 @@ test_that(".glmnet_fancy can handle when there's only one variable", {
   
   set.seed(10)
   res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
-                       switch_cutoff = 10, alpha = 1, standardize = F,
-                       intercept = F, cv = T, nfolds = 3, cv_choice = "lambda.1se", 
-                       bool_round = T)
+                       switch_cutoff = 10, alpha = 1,
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se")
   expect_true(is.list(res))
   expect_true(all(sort(names(res)) == sort(c("val_int", "vec_coef"))))
+  expect_true(length(res$vec_coef) == 1)
+})
+
+
+test_that(".glmnet_fancy can handle when there's no variance", {
+  set.seed(10)
+  n <- 1000; p <- 1
+  x <- matrix(abs(rnorm(n*p)), n, p)
+  beta <- runif(p); beta[1:round(p/2)] <- 0
+  y <- rep(2, n)
+  
+  set.seed(10)
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
+                       switch_cutoff = 10, alpha = 1, 
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se")
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("val_int", "vec_coef"))))
+  expect_true(length(res$vec_coef) == 1)
+  expect_true(!is.na(res$val_int))
+})
+
+########################
+
+## .threshold_glmnet_fancy is correct
+
+test_that(".threshold_glmnet_fancy works", {
+  set.seed(10)
+  n <- 1000; p <- 1
+  x <- matrix(abs(rnorm(n*p)), n, p)
+  beta <- runif(p); beta[1:round(p/2)] <- 0
+  y <- rnorm(n)
+  
+  set.seed(10)
+  res <- .threshold_glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
+                                 switch_cutoff = 10, alpha = 1, 
+                                 intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se",
+                                 num_iterations = 4, initial_quantile = 0.25)
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("val_int", "vec_coef", "val_threshold"))))
+  expect_true(length(res$vec_coef) == 1)
+  expect_true(!is.na(res$val_int))
+})
+
+test_that(".threshold_glmnet_fancy can handle when there's no variance", {
+  set.seed(10)
+  n <- 1000; p <- 1
+  x <- matrix(abs(rnorm(n*p)), n, p)
+  beta <- runif(p); beta[1:round(p/2)] <- 0
+  y <- rep(2, n)
+  
+  set.seed(10)
+  res <- .threshold_glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
+                       switch_cutoff = 10, alpha = 1, 
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se",
+                       num_iterations = 4, initial_quantile = 0.25)
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("val_int", "vec_coef", "val_threshold"))))
   expect_true(length(res$vec_coef) == 1)
 })
 

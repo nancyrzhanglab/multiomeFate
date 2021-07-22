@@ -107,7 +107,7 @@
                          switch = F, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = T,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
-                         bool_round = F, run_diagnostic = T,
+                         run_diagnostic = T,
                          hold_initial = F, parallel = F, verbose = F)
     est_options <- .fill_options(options, list_default, prefix)
   } else if(est_method == "threshold_glmnet"){
@@ -117,7 +117,6 @@
                          switch = F, switch_cutoff = 10,
                          alpha = 1, standardize = F, intercept = T,
                          cv = T, nfolds = 5, cv_choice = "lambda.1se",
-                         bool_round = F, 
                          num_iterations = 10, initial_quantile = 0.25,
                          run_diagnostic = T, hold_initial = F, 
                          parallel = F, verbose = F)
@@ -126,7 +125,6 @@
     stopifnot(est_options$family == "gaussian")
   }
   
-  if(est_options$family == "poisson") stopifnot(est_options$bool_round) # [[note to self: glmnet seems to be not handle non-integers for poisson glm...]]
   stopifnot(!est_options$standardize) # [[note to self: I should eventually code this up although it'll be quite a hassle...]]
   stopifnot(est_options$nfolds >= 3, est_options$cv_choice %in% c("lambda.1se", "lambda.min")) # requirement by glmnet
   stopifnot(est_options$cis_window > 0)

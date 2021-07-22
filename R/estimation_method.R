@@ -12,7 +12,7 @@
 #' \itemize{
 #' \item \code{glmnet}: Estimate the link from \code{mat_x1} to \code{mat_y2}
 #' using \code{glmnet::glmnet}. The options \code{est_options$family}, \code{est_options$alpha}, 
-#' \code{est_options$standardize}, and \code{est_options$intercept} are the arguments
+#'  and \code{est_options$intercept} are the arguments
 #' for \code{glmnet::glmnet}. If \code{est_options$cv} is \code{TRUE}, then
 #' \code{glmnet::cv.glmnet} is used to select the regularization parameter
 #' using \code{est_options$nfolds} folds via \code{est_options$cv_choice}.
@@ -90,17 +90,15 @@
                     weights = weights,
                     family = est_options$family, 
                     switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
-                    alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
-                    cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice,
-                    bool_round = est_options$bool_round)
+                    alpha = est_options$alpha, intercept = est_options$intercept,
+                    cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice)
     } else{
       .threshold_glmnet_fancy(mat_x1[,idx_x,drop = F], mat_y2[,idx_y],
                               weights = weights,
                               family = est_options$family, 
                               switch = est_options$switch, switch_cutoff = est_options$switch_cutoff,
-                              alpha = est_options$alpha, standardize = est_options$standardize, intercept = est_options$intercept,
+                              alpha = est_options$alpha, intercept = est_options$intercept,
                               cv = est_options$cv, nfolds = est_options$nfolds, cv_choice = est_options$cv_choice,
-                              bool_round = est_options$bool_round,
                               num_iterations = est_options$num_iterations, 
                               initial_quantile = est_options$initial_quantile)
     }
@@ -113,10 +111,13 @@
 
 .glmnet_fancy <- function(x, y, weights, family, 
                           switch, switch_cutoff,
-                          alpha, standardize, intercept,
-                          cv, nfolds, cv_choice, bool_round){
+                          alpha, intercept,
+                          cv, nfolds, cv_choice, tol = 1e-6){
   n <- length(y); p <- ncol(x)
-  if(bool_round) y <- round(y)
+  
+  if(stats::sd(y) <= tol){
+    return(list(val_int = mean(y), vec_coef = rep(0, ncol(x))))
+  }
   
   if(ncol(x) == 1 || switch & n > p*switch_cutoff){
     if(length(weights) <= 1) weights <- NULL
@@ -130,7 +131,7 @@
     res <- stats::glm.fit(x, y, weights = weights, family = family_func, intercept = F)
     vec_coef <- res$coefficients[1:p]
     vec_coef[is.na(vec_coef)] <- 0
-    val_int <- ifelse(intercept, vec_coef[p+1], 0)
+    val_int <- ifelse(intercept, res$coefficients[p+1], 0)
     
   } else {
     if(length(weights) <= 1) weights <- rep(1, length(y))
@@ -138,14 +139,14 @@
     if(cv & n > 10*nfolds){
       # use cv.glmnet
       res <- glmnet::cv.glmnet(x, y, weights = weights, family = family, nfolds = nfolds, alpha = alpha,
-                               standardize = standardize, intercept = intercept)
+                               intercept = intercept)
       lambda <- res[[cv_choice]]
       res <- glmnet::glmnet(x, y, weights = weights, family = family, alpha = alpha,
-                            standardize = standardize, intercept = intercept)
+                            intercept = intercept)
     } else {
       # use glmnet and pick the densest solution
       res <- glmnet::glmnet(x, y, weights = weights, family = family, alpha = alpha,
-                            standardize = standardize, intercept = intercept)
+                            intercept = intercept)
       tmp <- res$lambda; len <- length(tmp); stopifnot(len > 1)
       lambda <- mean(tmp[c(len-1,len)])
     }
@@ -159,8 +160,8 @@
 
 .threshold_glmnet_fancy <- function(x, y, weights, family, 
                                     switch, switch_cutoff,
-                                    alpha, standardize, intercept,
-                                    cv, nfolds, cv_choice, bool_round,
+                                    alpha, intercept,
+                                    cv, nfolds, cv_choice, 
                                     num_iterations, initial_quantile,
                                     tol = 1e-4){
   prev_threshold <- stats::quantile(y, probs = initial_quantile)
@@ -168,15 +169,20 @@
   
   while(iter <= num_iterations){
     # update the regression
-    idx <- which(y >= prev_threshold)
-    if(length(weights) == 1) weight_vec <- NA else weight_vec <- weights[idx]
-    res_glm <- .glmnet_fancy(x[idx,,drop = F], y[idx], weight_vec,
-                             family, switch, switch_cutoff,
-                             alpha, standardize, intercept,
-                             cv, nfolds, cv_choice, bool_round)
+    idx <- which(y > prev_threshold)
+    if(length(idx) > 0){
+      if(length(weights) == 1) weight_vec <- NA else weight_vec <- weights[idx]
+      res_glm <- .glmnet_fancy(x[idx,,drop = F], y[idx], weight_vec,
+                               family, switch, switch_cutoff,
+                               alpha, intercept,
+                               cv, nfolds, cv_choice)
+    } else {
+      return(list(val_int = 0, vec_coef = rep(0, ncol(x)),
+                  val_threshold = prev_threshold))
+    }
+    
     
     # update the threshold
-    # [[note to self: assumes family is Gaussian essentially]]
     next_threshold <- .update_threshold_glmnet(x, y, weights, res_glm)
     
     if(abs(next_threshold - prev_threshold) <= tol) break()
@@ -187,7 +193,11 @@
        val_threshold = next_threshold)
 }
 
-.update_threshold_glmnet <- function(x, y, weights, res_glm){
+.update_threshold_glmnet <- function(x, y, weights, res_glm, tol = 1e-6){
+  if(stats::sd(y) <= 1e-6){
+    return(mean(y))
+  }
+  
   pred_y <- as.numeric(x %*% res_glm$vec_coef) + res_glm$val_int
   
   if(length(weights) <= 1) {
