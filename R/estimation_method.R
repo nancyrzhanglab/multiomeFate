@@ -72,6 +72,8 @@
   }
   
   list_res <- my_lapply(1:p2, function(j){
+    print(j)
+    
     if(est_options$enforce_cis){
       ## find the region around each peak
       idx_x <- est_options$ht_map[[as.character(j)]]
@@ -118,9 +120,7 @@
   if(nrow(x) == 1 || all(matrixStats::colSds(x) <= tol) || stats::sd(y) <= tol){
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x))))
   }
-  
-  print(paste0("Length: ", nrow(x), " // Sd x: ", max(matrixStats::colSds(x)), " // Sd y: ", stats::sd(y)))
-  
+
   if(ncol(x) == 1 || switch & n > p*switch_cutoff){
     if(length(weights) <= 1) weights <- NULL
     # use glm
