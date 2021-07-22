@@ -112,7 +112,7 @@
 .glmnet_fancy <- function(x, y, weights, family, 
                           switch, switch_cutoff,
                           alpha, intercept,
-                          cv, nfolds, cv_choice, tol = 1e-6){
+                          cv, nfolds, cv_choice, tol = 1e-2){
   n <- length(y); p <- ncol(x)
 
   if(nrow(x) == 1 || all(matrixStats::colSds(x) <= tol) || stats::sd(y) <= tol){
@@ -163,7 +163,7 @@
                                     alpha, intercept,
                                     cv, nfolds, cv_choice, 
                                     num_iterations, initial_quantile,
-                                    tol = 1e-4){
+                                    tol = 1e-2){
   if(nrow(x) == 1 || all(matrixStats::colSds(x) <= tol) || stats::sd(y) <= tol){
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x)), val_threshold = 0))
   }
