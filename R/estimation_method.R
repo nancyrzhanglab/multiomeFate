@@ -168,6 +168,8 @@
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x)), val_threshold = 0))
   }
   
+  print(paste0("Length: ", nrow(x), " // Sd x: ", max(matrixStats::colSds(x)), " // Sd y: ", stats::sd(y)))
+  
   prev_threshold <- stats::quantile(y, probs = initial_quantile)
   iter <- 1
   
