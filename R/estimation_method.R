@@ -72,6 +72,8 @@
   }
   
   list_res <- my_lapply(1:p2, function(j){
+    if(est_options$verbose && p2 > 10 && j %% floor(p2/10) == 0) cat('*')
+    
     if(est_options$enforce_cis){
       ## find the region around each peak
       idx_x <- est_options$ht_map[[as.character(j)]]
@@ -114,9 +116,8 @@
                           alpha, intercept,
                           cv, nfolds, cv_choice, tol = 1e-6){
   n <- length(y); p <- ncol(x)
-  print(paste0("Length: ", length(y), " // Sd: ", stats::sd(y)))
-  
-  if(stats::sd(y) <= tol){
+
+  if(nrow(x) == 1 || stats::sd(y) <= tol){
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x))))
   }
   
