@@ -114,6 +114,7 @@
                           alpha, intercept,
                           cv, nfolds, cv_choice, tol = 1e-6){
   n <- length(y); p <- ncol(x)
+  print(paste0("Length: ", length(y), " // Sd: ", stats::sd(y)))
   
   if(stats::sd(y) <= tol){
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x))))
