@@ -72,8 +72,6 @@
   }
   
   list_res <- my_lapply(1:p2, function(j){
-    if(est_options$verbose && p2 > 10 && j %% floor(p2/10) == 0) cat('*')
-    
     if(est_options$enforce_cis){
       ## find the region around each peak
       idx_x <- est_options$ht_map[[as.character(j)]]
@@ -117,7 +115,7 @@
                           cv, nfolds, cv_choice, tol = 1e-6){
   n <- length(y); p <- ncol(x)
 
-  if(nrow(x) == 1 || stats::sd(y) <= tol){
+  if(nrow(x) == 1 || all(matrixStats::colSds(x) <= tol) || stats::sd(y) <= tol){
     return(list(val_int = mean(y), vec_coef = rep(0, ncol(x))))
   }
   
@@ -166,6 +164,10 @@
                                     cv, nfolds, cv_choice, 
                                     num_iterations, initial_quantile,
                                     tol = 1e-4){
+  if(nrow(x) == 1 || all(matrixStats::colSds(x) <= tol) || stats::sd(y) <= tol){
+    return(list(val_int = mean(y), vec_coef = rep(0, ncol(x)), val_threshold = 0))
+  }
+  
   prev_threshold <- stats::quantile(y, probs = initial_quantile)
   iter <- 1
   
