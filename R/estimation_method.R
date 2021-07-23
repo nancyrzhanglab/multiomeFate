@@ -138,7 +138,7 @@
   } else {
     if(length(weights) <= 1) weights <- rep(1, length(y))
     
-    if(cv & n > 10*nfolds){
+    if(cv & n > 10*nfolds & stats::IQR(y) > tol){
       # use cv.glmnet
       res <- glmnet::cv.glmnet(x, y, weights = weights, family = family, nfolds = nfolds, alpha = alpha,
                                intercept = intercept)

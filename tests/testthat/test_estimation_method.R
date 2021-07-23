@@ -106,6 +106,21 @@ test_that(".glmnet_fancy can handle when there's no variance", {
   expect_true(!is.na(res$val_int))
   
   set.seed(10)
+  n <- 50; p <- 10
+  x <- matrix(0, n, p)
+  x[sample(1:prod(dim(x)), 4)] <- 1
+  y <- c(rep(2, n-1), 1.9)
+  
+  set.seed(10)
+  res <- .glmnet_fancy(x, y, weights = rep(1,n), family = "gaussian", switch = F, 
+                       switch_cutoff = 10, alpha = 1, 
+                       intercept = T, cv = T, nfolds = 3, cv_choice = "lambda.1se")
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("val_int", "vec_coef"))))
+  expect_true(length(res$vec_coef) == 10)
+  expect_true(!is.na(res$val_int))
+  
+  set.seed(10)
   n <- 1000; p <- 10
   x <- matrix(2, n, p)
   y <- rnorm(n)
