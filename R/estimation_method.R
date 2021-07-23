@@ -178,10 +178,16 @@
     idx <- which(y > prev_threshold)
     if(length(idx) > 0){
       if(length(weights) == 1) weight_vec <- NA else weight_vec <- weights[idx]
-      res_glm <- .glmnet_fancy(x[idx,,drop = F], y[idx], weight_vec,
+      res_glm <- tryCatch({.glmnet_fancy(x[idx,,drop = F], y[idx], weight_vec,
                                family, switch, switch_cutoff,
                                alpha, intercept,
                                cv, nfolds, cv_choice)
+      }, error = function(cond){
+        .glmnet_fancy(x[idx,,drop = F], y[idx], weight_vec,
+                      family, switch = F, switch_cutoff,
+                      alpha, intercept,
+                      cv = F, nfolds, cv_choice)
+      })
     } else {
       return(list(val_int = 0, vec_coef = rep(0, ncol(x)),
                   val_threshold = prev_threshold))
