@@ -72,8 +72,6 @@
   }
   
   list_res <- my_lapply(1:p2, function(j){
-    print(j)
-    
     if(est_options$enforce_cis){
       ## find the region around each peak
       idx_x <- est_options$ht_map[[as.character(j)]]

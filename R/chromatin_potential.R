@@ -72,12 +72,14 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     }
    
     ## construct candidate set
+    if(verbose) print("Constructing candidate set")
     res_cand <- .candidate_set(mat_x, mat_y, df_res, nn_mat, cand_options)
     df_res <- .update_chrom_df_cand(df_res, res_cand$vec_cand)
     stopifnot(all(is.na(df_res$order_rec[res_cand$vec_cand])))
     list_diagnos[[as.character(iter)]]$candidate <- res_cand$diagnostic
     
     ## recruit an element from the candidate se
+    if(verbose) print("Recruiting cells")
     enforce_matched <- length(which(df_res$order_rec == 0)) > length(which(df_res$order_rec > 0)) & !bool_oracle
     res_rec <- .recruit_next(mat_x, mat_y, res_cand$vec_cand, res_g, df_res, 
                              dim_reduc_obj, nn_g, nn_mat, nn_obj, enforce_matched,
@@ -85,6 +87,7 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     list_diagnos[[as.character(iter)]]$recruit <- res_rec$diagnostic
     
     ## update
+    if(verbose) print("Updating matrices")
     tmp <- .update_estimation_matrices(mat_x, mat_y, mat_x1, mat_y2, weights,
                                        res_rec$rec, form_options)
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2; weights <- tmp$weights
