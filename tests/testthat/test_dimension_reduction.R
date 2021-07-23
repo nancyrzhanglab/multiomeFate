@@ -8,7 +8,7 @@ test_that("dimension_reduction works and has correct calculations", {
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
                             form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
-                            options = list(dim_nlatent_x = k))
+                            options = list(dim_dims_x = 1:k))
   dim_options <- options$dim_options
   
   n <- 100; p <- 50
@@ -53,7 +53,7 @@ test_that(".dimension_reduction_pca works on sparse matrices", {
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
                             form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
-                            options = list(dim_nlatent_x = k))
+                            options = list(dim_dims_x = 1:k))
   dim_options <- options$dim_options
   
   n <- 100; p <- 50
@@ -93,7 +93,7 @@ test_that(".apply_dimred works", {
   options <- .chrom_options(dim_method = "pca", nn_method = "annoy",
                             form_method = "average", est_method = "glmnet", 
                             cand_method = "nn_any", rec_method = "distant_cor",
-                            options = list(dim_nlatent_x = k))
+                            options = list(dim_dims_x = 1:k))
   dim_options <- options$dim_options
   
   n <- 100; p <- 50
