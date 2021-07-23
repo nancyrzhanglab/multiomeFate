@@ -11,7 +11,8 @@ chromatin_potential(
   vec_threshold_init = rep(0, ncol(mat_y)),
   df_cell = NA,
   bool_oracle = F,
-  verbose = T
+  verbose = T,
+  filepath = NA
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ for simulations where the true cell types are known (for \code{.recruit_next})}
 where true psuedotimes and cell-types might be known}
 
 \item{verbose}{boolean}
+
+\item{filepath}{\code{NA} or filepath}
 }
 \value{
 object of class \code{chromatin_potential}

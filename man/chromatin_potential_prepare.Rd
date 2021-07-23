@@ -17,6 +17,7 @@ chromatin_potential_prepare(
   est_method = "glmnet",
   cand_method = "nn_any",
   rec_method = "distant_cor",
+  ht_map = NA,
   options = list(),
   verbose = T
 )
@@ -45,6 +46,9 @@ chromatin_potential_prepare(
 \item{cand_method}{string}
 
 \item{rec_method}{string}
+
+\item{ht_map}{\code{NA} or a \code{hash} object denoting which variables
+in \code{mat_x} correspond to each variable (the keys) in \code{mat_y}}
 
 \item{options}{list}
 

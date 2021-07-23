@@ -10,8 +10,8 @@ dimension_reduction(mat, mode, dim_options)
 \item{mat}{full data for a modality, where each row is a cell and each column is a variable}
 
 \item{mode}{string, either \code{"x"} or \code{"y"}, which dictates
-if  \code{dim_options$nlatent_x} or 
-\code{dim_options$nlatent_y} is used as the number of latent dimensions}
+if  \code{dim_options$dims_x} or 
+\code{dim_options$dims_y} is used as the number of latent dimensions}
 
 \item{dim_options}{one of the outputs from \code{.chrom_options}}
 }
@@ -20,13 +20,13 @@ a list
 }
 \description{
 This function returns two objects: \code{scores} (the 
-matrix with \code{nrow(mat)} rows and \code{dim_options$nlatent_x} or 
-\code{dim_options$nlatent_y} columns, depending on \code{mode})
+matrix with \code{nrow(mat)} rows and \code{dim_options$dims_x} or 
+\code{dim_options$dims_y} columns, depending on \code{mode})
 representing the projection of \code{mat} into the lower-dimensional
 space, and \code{dim_reduc_obj} (a list containing \code{vec_mean}
 and \code{vec_sd} both as 
 vectors of length \code{ncol(mat)} and a matrix \code{mat_proj}
-with \code{ncol(mat)} rows and \code{dim_options$nlatent_x} or 
-\code{dim_options$nlatent_y} columns, all three of which are needed
+with \code{ncol(mat)} rows and \code{dim_options$dims_x} or 
+\code{dim_options$dims_y} columns, all three of which are needed
 to project a new vector into said lower-dimensional space)
 }

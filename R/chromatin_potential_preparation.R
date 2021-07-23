@@ -15,6 +15,8 @@
 #' @param est_method string
 #' @param cand_method string
 #' @param rec_method string
+#' @param ht_map \code{NA} or a \code{hash} object denoting which variables
+#' in \code{mat_x} correspond to each variable (the keys) in \code{mat_y}
 #' @param options list
 #' @param verbose boolean
 #'

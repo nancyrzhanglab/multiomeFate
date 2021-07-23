@@ -35,7 +35,7 @@ The options are:
 \itemize{
 \item \code{glmnet}: Estimate the link from \code{mat_x1} to \code{mat_y2}
 using \code{glmnet::glmnet}. The options \code{est_options$family}, \code{est_options$alpha}, 
-\code{est_options$standardize}, and \code{est_options$intercept} are the arguments
+ and \code{est_options$intercept} are the arguments
 for \code{glmnet::glmnet}. If \code{est_options$cv} is \code{TRUE}, then
 \code{glmnet::cv.glmnet} is used to select the regularization parameter
 using \code{est_options$nfolds} folds via \code{est_options$cv_choice}.
