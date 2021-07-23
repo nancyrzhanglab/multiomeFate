@@ -203,12 +203,16 @@
     
     # match to only cells near target cell
     } else {
+      # [[note to self: the following could definitely be better implemented,
+      #  as we recompute a lot of things unnecessarily]]
       if(!enforce_matched){
         # consider nearest neighbors that are not the immediate nn's (i.e., exclude_idx)
         list_nn_to <- .find_to_list(cell, include_idx = NA,
                                     exclude_idx = list_nn[[i]],
                                     nn_g, nn_mat, rec_options)
       } else{
+        # consider nearest neighbors that are not the immediate nn's (i.e., exclude_idx)
+        #  but must only include cells that have been previously matched (i.e., include_idx)
         list_nn_to <- .find_to_list_matched(mat_x, mat_y, cell, dim_reduc_obj, 
                               include_idx = setdiff(matched_idx, list_nn[[i]]), 
                               exclude_idx = list_nn[[i]], nn_mat,

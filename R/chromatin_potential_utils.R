@@ -54,7 +54,7 @@
   prefix <- "dim"
   
   if(dim_method == "pca"){
-    list_default <- list(mean = T, sd = T, nlatent_x = 10, nlatent_y = 10)
+    list_default <- list(mean = T, sd = T, dims_x = 1:10, dims_y = 1:10)
     dim_options <- .fill_options(options, list_default, prefix)
   } 
   

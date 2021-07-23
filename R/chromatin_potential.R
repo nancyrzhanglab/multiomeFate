@@ -31,12 +31,14 @@
 #' @param bool_oracle boolean, where \code{TRUE} is used if you want to invoke "oracle" behavior
 #' where true psuedotimes and cell-types might be known
 #' @param verbose boolean
+#' @param filepath \code{NA} or filepath
 #'
 #' @return object of class \code{chromatin_potential}
 #' @export
 chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, ncol(mat_y)),
                                 vec_threshold_init = rep(0, ncol(mat_y)),
-                                df_cell = NA, bool_oracle = F, verbose = T){
+                                df_cell = NA, bool_oracle = F, verbose = T,
+                                filepath = NA){
   # pull the appropriate objects for convenience
   mat_x <- prep_obj$mat_x; mat_y <- prep_obj$mat_y
   df_x <- prep_obj$df_x; df_y <- prep_obj$df_y
@@ -57,6 +59,10 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   list_diagnos <- list()
   iter <- 1
   weights <- .init_weights(nrow(mat_x1), form_options)
+  
+  if(!is.na(filepath)) {
+    save(mat_x, mat_y, df_res, list_diagnos, file = filepath)
+  }
   
   # while:
   while(length(ht_neighbor) < n){
@@ -93,6 +99,10 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
     mat_x1 <- tmp$mat_x1; mat_y2 <- tmp$mat_y2; weights <- tmp$weights
     ht_neighbor <- .update_chrom_ht(ht_neighbor, res_rec$rec, enforce_matched)
     df_res <- .update_chrom_df_rec(df_res, res_rec$rec, iter)
+    
+    if(!is.na(filepath)) {
+      save(mat_x, mat_y, df_res, list_diagnos, file = filepath)
+    }
     
     iter <- iter+1
   }

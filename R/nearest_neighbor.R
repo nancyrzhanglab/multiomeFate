@@ -31,7 +31,9 @@ nearest_neighbor <- function(mat, nn_options){
     nn_obj <- methods::new(RcppAnnoy::AnnoyManhattan, p)
   } else if(nn_options$metric == "hamming"){
     nn_obj <- methods::new(RcppAnnoy::AnnoyHamming, p)
-  } 
+  } else {
+    stop("nn_metric not correctly specified")
+  }
   
   for(i in 1:n){
     nn_obj$addItem(i-1, mat[i,])

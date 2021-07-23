@@ -1,20 +1,20 @@
 #' Compute the dimension reduction
 #'
 #' This function returns two objects: \code{scores} (the 
-#' matrix with \code{nrow(mat)} rows and \code{dim_options$nlatent_x} or 
-#' \code{dim_options$nlatent_y} columns, depending on \code{mode})
+#' matrix with \code{nrow(mat)} rows and \code{dim_options$dims_x} or 
+#' \code{dim_options$dims_y} columns, depending on \code{mode})
 #' representing the projection of \code{mat} into the lower-dimensional
 #' space, and \code{dim_reduc_obj} (a list containing \code{vec_mean}
 #' and \code{vec_sd} both as 
 #' vectors of length \code{ncol(mat)} and a matrix \code{mat_proj}
-#' with \code{ncol(mat)} rows and \code{dim_options$nlatent_x} or 
-#' \code{dim_options$nlatent_y} columns, all three of which are needed
+#' with \code{ncol(mat)} rows and \code{dim_options$dims_x} or 
+#' \code{dim_options$dims_y} columns, all three of which are needed
 #' to project a new vector into said lower-dimensional space)
 #'
 #' @param mat full data for a modality, where each row is a cell and each column is a variable
 #' @param mode string, either \code{"x"} or \code{"y"}, which dictates
-#' if  \code{dim_options$nlatent_x} or 
-#' \code{dim_options$nlatent_y} is used as the number of latent dimensions
+#' if  \code{dim_options$dims_x} or 
+#' \code{dim_options$dims_y} is used as the number of latent dimensions
 #' @param dim_options one of the outputs from \code{.chrom_options}
 #'
 #' @return a list
@@ -57,13 +57,18 @@ dimension_reduction <- function(mat, mode, dim_options){
   } else {
     vec_sd <- rep(1, ncol(mat))
   }
-    
-  K <- ifelse(mode == "x", dim_options$nlatent_x, dim_options$nlatent_y)
-  svd_res <- .svd_truncated(mat, K = K, K_full_rank = F, vec_mean = vec_mean, vec_sd = vec_sd)
-  scores <- .mult_mat_vec(svd_res$u, svd_res$d/svd_res$d[1])
+  
+  if(mode == "x"){
+    dims_vec <- dim_options$dims_x
+  } else {
+    dims_vec <- dim_options$dims_y
+  }
+
+  svd_res <- .svd_truncated(mat, K = max(dims_vec), K_full_rank = F, vec_mean = vec_mean, vec_sd = vec_sd)
+  scores <- .mult_mat_vec(svd_res$u[,dims_vec,drop = F], svd_res$d[dims_vec]/svd_res$d[min(dims_vec)])
   
   list(scores = scores, dim_reduc_obj = list(vec_mean = vec_mean, vec_sd = vec_sd, 
-       mat_proj = .mult_mat_vec(svd_res$v, rep(1/svd_res$d[1], ncol(svd_res$v)))))
+       mat_proj = .mult_mat_vec(svd_res$v[,dims_vec,drop = F], rep(1/svd_res$d[min(dims_vec)], length(dims_vec)))))
 }
 
 ####################
