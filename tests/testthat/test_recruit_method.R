@@ -198,10 +198,11 @@ test_that(".find_to_list works", {
   set.seed(10)
   prep_obj <- chromatin_potential_prepare(mat_x, mat_y, df_x, df_y, 
                                           vec_start, list_end)
-  
+
   vec_cand <- c(15:20); i <- 1; cell <- vec_cand[i]
+  df_res <- prep_obj$df_res
   nn_g <- prep_obj$nn_g; nn_mat <- prep_obj$nn_mat
-  list_nn <- .extract_nn_list(vec_cand, nn_mat)
+  list_nn <- .extract_nn_list(vec_cand, df_res, nn_mat)
   rec_options <- prep_obj$options$rec_options
   
   res <- .find_to_list(cell, include_idx = NA, exclude_idx = list_nn[[i]],

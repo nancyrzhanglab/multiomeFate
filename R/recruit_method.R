@@ -166,7 +166,7 @@
   
   # apply mat_g to mat_x
   if(rec_options$bool_avg_from){
-    list_nn <- .extract_nn_list(vec_cand, nn_mat)
+    list_nn <- .extract_nn_list(vec_cand, df_res, nn_mat)
     mat_avg_x <- .construct_avg_mat(mat_x, list_nn)
     mat_avg_y <- .construct_avg_mat(mat_y, list_nn)
     pred_y <- .predict_yfromx(mat_avg_x, res_g, rec_options$family)
@@ -343,9 +343,11 @@
   pmax(res, 0)
 }
 
-.extract_nn_list <- function(vec_cand, nn_mat){
+.extract_nn_list <- function(vec_cand, df_res, nn_mat){
+  idx_free <- which(is.na(df_res$order_rec))
+  
   lapply(vec_cand, function(cell){
-    c(cell, nn_mat[cell,])
+    intersect(c(cell, nn_mat[cell,]), idx_free)
   })
 }
 
