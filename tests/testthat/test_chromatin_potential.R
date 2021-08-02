@@ -78,3 +78,37 @@ test_that("chromatin potential works", {
   expect_true(all(sort(names(res$options)) == sort(c("form_options", "est_options", "rec_options", "cand_options",
                                                      "dim_options", "nn_options"))))
 })
+
+
+test_that("chromatin potential works without any start states", {
+  set.seed(10)
+  g <- igraph::graph_from_edgelist(matrix(c(4,1, 4,5, 2,5, 3,5), nrow = 4, ncol = 2, byrow = T), 
+                                   directed = F)
+  g <- igraph::set_vertex_attr(g, name = "lag", index = 4, value = 3)
+  g <- igraph::set_vertex_attr(g, name = "lag", index = 5, value = 5)
+  idx_root <- 4; num_waves <- 10; num_per_wave <- 5; distinct_waves <- 2
+  combn_wave_mat <- simulate_combn_wave_mat(g, idx_root, num_waves = num_waves,
+                                            num_per_wave = num_per_wave, 
+                                            distinct_waves = distinct_waves)
+  
+  res <- simulate_data_input(combn_wave_mat)
+  df_x <- res$df_x; df_y <- res$df_y
+  list_xnoise <- res$list_xnoise; list_ynoise <- res$list_ynoise
+  df_cell <- simulate_df_cell(100, time_max = max(df_y$time_end_scaffold, na.rm = T),
+                              num_branch = 3)
+  
+  set.seed(10)
+  dat <- simulate_data(df_x, df_y, list_xnoise, list_ynoise, df_cell)
+  mat_x <- dat$obs_x; mat_y <- dat$obs_y
+  
+  list_end <- lapply(sort(unique(df_cell$branch)), function(branch){
+    intersect(which(df_cell$branch == branch), which(df_cell$time >= 80))
+  })
+  
+  set.seed(10)
+  prep_obj <- chromatin_potential_prepare(mat_x, mat_y, df_x, df_y, 
+                                          vec_start = NA, list_end, options = list(form_bool_include_start = F))
+  res <- chromatin_potential(prep_obj, verbose = F)
+  
+  expect_true(class(res) == "chromatin_potential")
+})

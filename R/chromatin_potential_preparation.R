@@ -76,16 +76,20 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
 #################################
 
 .init_chrom_df <- function(n, vec_start, list_end, cell_name){
-  stopifnot(all(vec_start %% 1 == 0), all(vec_start > 0), all(vec_start <= n))
+  if(!all(is.na(vec_start))) stopifnot(all(vec_start %% 1 == 0), all(vec_start > 0), all(vec_start <= n))
   stopifnot(all(sapply(list_end, function(vec){all(vec %% 1 == 0) & all(vec > 0) & all(vec <= n)})))
-  tmp <- c(vec_start, unlist(list_end))
+  if(!all(is.na(vec_start))) {
+    tmp <- c(vec_start, unlist(list_end))
+  } else {
+    tmp <- unlist(list_end)
+  }
   stopifnot(length(tmp) == length(unique(tmp)))
   
   df_res <- data.frame(idx = 1:n, init_state = rep(NA, n), num_cand = rep(0, n),
                        order_rec = rep(NA, n))
   if(length(cell_name) == n) rownames(df_res) <- cell_name
   
-  df_res$init_state[vec_start] <- -1
+  if(!all(is.na(vec_start))) df_res$init_state[vec_start] <- -1
   for(i in 1:length(list_end)){
     df_res$init_state[list_end[[i]]] <- i
     df_res$order_rec[list_end[[i]]] <- 0

@@ -346,6 +346,8 @@
 .extract_nn_list <- function(vec_cand, df_res, nn_mat){
   idx_free <- which(is.na(df_res$order_rec))
   
+  stopifnot(all(vec_cand %in% idx_free))
+  
   lapply(vec_cand, function(cell){
     intersect(c(cell, nn_mat[cell,]), idx_free)
   })
