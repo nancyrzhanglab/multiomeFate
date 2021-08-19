@@ -18,19 +18,19 @@
   }
   
   # find the best subset
-  comb_mat <- utils::combn(1:K0, K)
+  combn_mat <- utils::combn(1:K0, K)
   if(max_tries < ncol(combn_mat)){
     combn_mat <- combn_mat[,sample(1:ncol(combn_mat), max_tries)]
   }
-  max_values <- rep(0, ncol(comb_mat))
-  for (i in 1:ncol(comb_mat)){
-    for (j in setdiff(1:m, comb_mat[,i])){
-      max_values[i] <- max(.simplex_dist(theta[j,], theta[comb_mat[,i],])$value, max_values[i])
+  max_values <- rep(0, ncol(combn_mat))
+  for (i in 1:ncol(combn_mat)){
+    for (j in setdiff(1:m, combn_mat[,i])){
+      max_values[i] <- max(.simplex_dist(theta[j,], theta[combn_mat[,i],])$value, max_values[i])
     }
   }
   
   min_idx <- which.min(max_values)
-  theta[comb_mat[,min_idx],]
+  theta[combn_mat[,min_idx],]
 }
 
 #' The l_2 distance between a point and a simplex

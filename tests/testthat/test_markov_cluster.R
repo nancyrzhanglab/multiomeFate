@@ -37,7 +37,8 @@ generate_markov <- function(){
   # sample with multiple restarts
   tmp <- 10000*abs(Re(eigen(t(P))$vectors[,1]))
   N <- round(.mult_mat_vec(P, tmp))
-  N
+  
+  list(N = N, U = U, V = V)
 }
 
 ##########################
@@ -145,4 +146,22 @@ test_that(".weighting_optimization is correct", {
   expect_true(all(bool_vec))
 })
 
+##############################
 
+## markov_cluster is correct
+
+test_that("markov_cluster works", {
+  set.seed(10)
+  tmp <- generate_markov()
+  count_mat <- tmp$N
+  K <- 3
+  res <- markov_cluster(count_mat, K = K, m = 50, K0 = 10)
+  
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("u", "v", "anchor_idx"))))
+  expect_true(all(dim(res$u) == c(nrow(count_mat), K)))
+  expect_true(all(dim(res$v) == c(nrow(count_mat), K)))
+  
+  expect_true(diff(range(rowSums(res$u))) <= 1e-3)
+  expect_true(diff(range(colSums(res$v))) <= 1e-3)
+})
