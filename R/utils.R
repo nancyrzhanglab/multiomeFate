@@ -1,3 +1,5 @@
+.l2norm <- function(x){sqrt(sum(x^2))}
+
 # return idx such that vec1[idx] == vec2
 .matching_idx <- function(vec1, vec2){
   stopifnot(length(vec1) == length(vec2))
