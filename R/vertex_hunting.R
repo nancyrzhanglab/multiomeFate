@@ -1,5 +1,6 @@
 .vertex_hunting <- function(mat, fixed_clustering, 
-                            m, K0, num_restart, max_tries){
+                            m, K0, num_restart, max_tries,
+                            verbose = T){
   stopifnot(m > K0, K0 > ncol(mat))
   all_fixed_cell <- unlist(fixed_clustering)
   has_fixed <- length(all_fixed_cell) > 0
@@ -8,11 +9,12 @@
               all(all_fixed_cell %% 1 == 0),
               all(all_fixed_cell <= nrow(mat)),
               length(unique(all_fixed_cell)) == length(all_fixed_cell),
-              length(all_fixed_cell) < ncol(mat)
+              length(fixed_clustering) < ncol(mat)
               )
   }
   
   # initialize centers
+  if(verbose) print("Initializing cluster centers")
   K <- ncol(mat)+1
   if(has_fixed){
     mat <- mat[-all_fixed_cell,,drop = F]
@@ -28,6 +30,7 @@
   dist_mat <- as.matrix(stats::dist(theta, method = "euclidean"))
   
   # greedy selection
+  if(verbose) print("Greedy selecting")
   if(has_fixed) {
     len_fixed <- length(fixed_clustering)
     fixed_idx <- (nrow(theta)-len_fixed+1):nrow(theta)
@@ -46,6 +49,7 @@
   }
   
   # find the best subset
+  if(verbose) print("Finding best vertices")
   combn_mat <- utils::combn(1:K0, K-len_fixed)
   if(has_fixed) {
     for(i in fixed_idx) combn_mat <- rbind(combn_mat, i)
@@ -55,6 +59,7 @@
   }
   max_values <- rep(0, ncol(combn_mat))
   for (i in 1:ncol(combn_mat)){
+    if(verbose) print(i)
     for (j in setdiff(1:m, combn_mat[,i])){
       max_values[i] <- max(.simplex_dist(theta[j,], theta[combn_mat[,i],])$value, max_values[i])
     }
