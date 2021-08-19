@@ -1,24 +1,55 @@
-.vertex_hunting <- function(mat, m, K0, num_restart, max_tries){
+.vertex_hunting <- function(mat, fixed_clustering, 
+                            m, K0, num_restart, max_tries){
   stopifnot(m > K0, K0 > ncol(mat))
+  all_fixed_cell <- unlist(fixed_clustering)
+  has_fixed <- length(all_fixed_cell) > 0
+  if(has_fixed){
+    stopifnot(all(all_fixed_cell > 0), 
+              all(all_fixed_cell %% 1 == 0),
+              all(all_fixed_cell <= nrow(mat)),
+              length(unique(all_fixed_cell)) == length(all_fixed_cell),
+              length(all_fixed_cell) < ncol(mat)
+              )
+  }
   
   # initialize centers
   K <- ncol(mat)+1
+  if(has_fixed){
+    mat <- mat[-all_fixed_cell,,drop = F]
+  }
   res <- stats::kmeans(mat, m, iter.max = 100, nstart = num_restart)
   theta <- res$centers
+  if(has_fixed){
+    extra_means <- t(sapply(fixed_clustering, function(x){
+      colMeans(mat[x,,drop = F])
+    }))
+    theta <- rbind(theta, extra_means)
+  }
   dist_mat <- as.matrix(stats::dist(theta, method = "euclidean"))
   
   # greedy selection
-  idx <- unique(as.numeric(which(dist_mat == max(dist_mat), arr.ind = T)))
-  if(K0 > 2){
-    while(length(idx) <= K0) {
-      remaining_idx <- c(1:m)[-idx]
-      tmp <- remaining_idx[which.max(apply(dist_mat[remaining_idx,idx], 1, mean))]
+  if(has_fixed) {
+    len_fixed <- length(fixed_clustering)
+    fixed_idx <- (nrow(theta)-len_fixed+1):nrow(theta)
+    idx <- fixed_idx
+  } else {
+    len_fixed <- 0
+    idx <- unique(as.numeric(which(dist_mat == max(dist_mat), arr.ind = T)))
+  }
+  #length(idx)-len_fixed is the number of "free vertices"
+  if(K0 > length(idx)-len_fixed){
+    while(length(idx)-len_fixed <= K0) {
+      remaining_idx <- c(1:nrow(theta))[-idx]
+      tmp <- remaining_idx[which.max(apply(dist_mat[remaining_idx,idx,drop = F], 1, mean))]
       idx <- c(idx, tmp)
     }
   }
   
   # find the best subset
-  combn_mat <- utils::combn(1:K0, K)
+  combn_mat <- utils::combn(1:K0, K-len_fixed)
+  if(has_fixed) {
+    for(i in fixed_idx) combn_mat <- rbind(combn_mat, i)
+  }
   if(max_tries < ncol(combn_mat)){
     combn_mat <- combn_mat[,sample(1:ncol(combn_mat), max_tries)]
   }

@@ -1,4 +1,5 @@
 markov_cluster <- function(count_mat, K, 
+                           fixed_clustering = list(),
                            m = round(min(c(10*K, nrow(count_mat)/5))), 
                            K0 = min(c(2*K, m-1)), 
                            delta = 0.9,
@@ -22,8 +23,10 @@ markov_cluster <- function(count_mat, K,
   d_mat <- .mult_vec_mat(1/svd_res$v[,1], svd_res$v[,-1])
   
   # step 2: vertex hunting
-  vertices <- .vertex_hunting(d_mat, m = m, K0 = K0, 
-                              num_restart = num_restart, max_tries = max_tries)
+  vertices <- .vertex_hunting(d_mat, fixed_clustering = fixed_clustering,
+                              m = m, K0 = K0, 
+                              num_restart = num_restart, 
+                              max_tries = max_tries)
   
   # step 3: optimization
   w_mat <- t(sapply(1:n, function(i){
@@ -42,6 +45,7 @@ markov_cluster <- function(count_mat, K,
   }
   p_mat <- .mult_vec_mat(1/row_sum, count_mat)
   u_est <- p_mat %*% v_est %*% solve(crossprod(v_est))
+  u_est <- t(apply(u_est, 1, function(x){x/sum(x)}))
   
   anchor_idx <- which(apply(w_mat, 1, max) > delta)
   

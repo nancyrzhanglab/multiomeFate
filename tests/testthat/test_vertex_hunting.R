@@ -94,7 +94,8 @@ test_that(".vertex_hunting works", {
   }))
   mat <- mat + matrix(rnorm(prod(dim(mat)), sd = 0.01), nrow = nrow(mat), ncol = ncol(mat))
   
-  res <- .vertex_hunting(mat, m = 20, K0 = 8, num_restart = 10, max_tries = 500)
+  res <- .vertex_hunting(mat, fixed_clustering = list(),
+                         m = 20, K0 = 8, num_restart = 10, max_tries = 500)
   
   expect_true(is.matrix(res))
   expect_true(all(dim(res) == c(ncol(mat)+1, ncol(mat))))

@@ -28,7 +28,8 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
                         cand_method = "nn_any", rec_method = "distant_cor", 
                         ht_map = NA, options = list(), verbose = T){
   stopifnot(nrow(mat_x) == nrow(mat_y), ncol(mat_x) == nrow(df_x), 
-            ncol(mat_y) == nrow(df_y), is.list(options))
+            ncol(mat_y) == nrow(df_y), is.list(options),
+            length(unlist(list_end)) > 0)
   stopifnot(all(mat_x >= 0), all(mat_y >= 0))
   n <- nrow(mat_x); p1 <- ncol(mat_x); p2 <- ncol(mat_y); cell_name <- rownames(mat_x)
   

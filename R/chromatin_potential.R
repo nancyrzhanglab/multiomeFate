@@ -68,7 +68,8 @@ chromatin_potential <- function(prep_obj, mat_g_init = NA, vec_g_init = rep(0, n
   while(length(ht_neighbor) < n){
     # [[note to self: put a better statement here]]
     if(verbose) print(paste0("Iteration ", iter, ": Recruited percentage (", 
-                             round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), ")"))
+                             round(sum(!is.na(df_res$order_rec))/nrow(df_res), 2), "), Total: ",
+                             sum(!is.na(df_res$order_rec)), " cells"))
     if(verbose & !any(is.na(weights))) print(paste0("Weights range from ", round(min(weights),2), " to ", round(max(weights),2)))
     ## estimate res_g
     if((iter == 1 | est_options$hold_initial) && !any(is.na(mat_g_init)) && !any(is.na(vec_g_init))){
