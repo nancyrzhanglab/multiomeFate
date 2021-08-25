@@ -67,10 +67,12 @@
   
   if(nn_method == "annoy"){
     list_default <- list(nn = 20, parallel = F, ntrees = 50, metric = "euclidean",
-                         verbose = F)
+                         verbose = F, 
+                         include_x = T, include_y = T)
     nn_options <- .fill_options(options, list_default, prefix)
   } 
   
+  stopifnot(nn_options$include_x | nn_options$include_y)
   nn_options$method <- nn_method
   nn_options
 }

@@ -17,9 +17,9 @@
   if(verbose) print("Initializing cluster centers")
   K <- ncol(mat)+1
   if(has_fixed){
-    mat <- mat[-all_fixed_cell,,drop = F]
+    mat2 <- mat[-all_fixed_cell,,drop = F]
   }
-  res <- stats::kmeans(mat, m, iter.max = 100, nstart = num_restart)
+  res <- stats::kmeans(mat2, m, iter.max = 100, nstart = num_restart)
   theta <- res$centers
   if(has_fixed){
     extra_means <- t(sapply(fixed_clustering, function(x){

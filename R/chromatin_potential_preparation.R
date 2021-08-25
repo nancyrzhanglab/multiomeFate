@@ -49,7 +49,14 @@ chromatin_potential_prepare <- function(mat_x, mat_y, df_x, df_y, vec_start, lis
   
   # form the nn
   n <- nrow(mat_x)
-  all_scores <- cbind(x_scores, y_scores)
+  if(nn_options$include_x & nn_options$include_y){
+    all_scores <- cbind(x_scores, y_scores)
+  } else if(nn_options$include_x){
+    all_scores <- x_scores
+  } else{
+    all_scores <- y_scores
+  }
+ 
   nn_obj <- nearest_neighbor(all_scores, nn_options)
   
   # query each point's nn's
