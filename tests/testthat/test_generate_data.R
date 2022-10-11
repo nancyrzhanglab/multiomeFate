@@ -11,10 +11,17 @@ test_that(".generate_ygivenx works", {
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj))
   
-  res <- .generate_ygivenx(obj_next, obj_next$vec_startx)
+  x_true <- obj_next$vec_startx
+  x_obs <- stats::rbinom(length(x_true), size = 1, prob = x_true)
+  res <- .generate_ygivenx(obj_next, x_true = x_true, x_obs = x_obs)
   
-  expect_true(length(res) == p2)
-  expect_true(all(res >= 0))
+  expect_true(is.list(res))
+  expect_true(all(sort(names(res)) == sort(c("y_true", "y_obs", "idx_time"))))
+  expect_true(length(res$y_true) == p2)
+  expect_true(all(res$y_true >= 0))
+  expect_true(length(res$y_obs) == p2)
+  expect_true(all(res$y_obs >= 0))
+  expect_true(length(res$y_obs) == length(res$y_true))
 })
 
 #########################
@@ -30,13 +37,19 @@ test_that(".generate_xgiveny works", {
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
   obj_next <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj))
   
-  res <- .generate_xgiveny(obj_next, obj_next$vec_starty)
+  y_true <- obj_next$vec_starty
+  y_obs <- stats::rpois(length(y_true), lambda = y_true)
+  res <- .generate_xgiveny(obj_next, y_true = y_true, y_obs = y_obs, idx_time = NA)
   
   expect_true(is.list(res))
-  expect_true(all(sort(names(res)) == sort(c("x", "time"))))
-  expect_true(length(res$x) == p1)
-  expect_true(all(res$x >= 0))
-  expect_true(all(res$x <= 1))
+  expect_true(all(sort(names(res)) == sort(c("x_true", "x_obs", "time"))))
+  expect_true(length(res$x_true) == p1)
+  expect_true(all(res$x_true >= 0))
+  expect_true(all(res$x_true <= 1))
+  expect_true(length(res$x_obs) == p1)
+  expect_true(all(res$x_obs >= 0))
+  expect_true(all(res$x_obs <= 1))
+  expect_true(length(res$x_obs) == length(res$x_true))
   expect_true(res$time >= 0)
   expect_true(res$time <= 1)
 })

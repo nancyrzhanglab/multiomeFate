@@ -73,8 +73,8 @@ test_that("prepare_obj_nextcell works", {
   
   expect_true(is.list(res))
   expect_true(class(res) == "mf_obj_next")
-  expect_true(all(sort(names(res)) == sort(c("df_x", "df_y", "mat_g", "ht", "mat_y2all",
-                                             "vec_startx", "vec_starty"))))
+  expect_true(all(sort(names(res)) == sort(c("df_x", "df_y", "mat_g", "ht",
+                                             "obj_blueprint", "vec_startx", "vec_starty"))))
   
   mat_traj <- generate_traj_cascading(df$df_y, timepoints = timepoints, max_val = exp(3), min_val = 1)
   res <- prepare_obj_nextcell(df$df_x, df$df_y, mat_g, list(mat_traj), verbose = F)
