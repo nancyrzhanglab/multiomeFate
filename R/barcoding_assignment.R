@@ -1,5 +1,7 @@
 # cells as columns, lineage as rows
 barcoding_assignment <- function(lin_mat,
+                                 bool_force_rebase = F,
+                                 tol = 1e-8,
                                  verbose = 0){
   stopifnot(is.matrix(lin_mat))
   library_size <- Matrix::colSums(lin_mat)
@@ -9,73 +11,57 @@ barcoding_assignment <- function(lin_mat,
   
   # to initialize the estimator, find the maximum count for each cell
   if(verbose) print("Starting barcoding assignment")
-  cell_max_barcode <- apply(lin_mat, 2, which.max)
   cell_max_barcode_count <- apply(lin_mat, 2, max)
+  lineage_maximizing <- lapply(1:nlineages, function(b){
+    which(lin_mat[b,] == cell_max_barcode_count & lin_mat[b,] > 0)
+  })
+  lin_num_winner <- sapply(lineage_maximizing, length)
+  # quantile(lin_num_winner)
 
   beta0 <- rep(NA, nlineages)
+  names(beta0) <- names(lin_mat)
   beta1 <- rep(NA, nlineages)
-  n_won <- rep(NA, nlineages)
-  n_nonzero <- rep(NA, nlineages)
+  names(beta1) <- names(lin_mat)
   
   for(b in 1:nlineages){
     if(verbose == 1 && b %% 100==0) print(paste0(b," out of ", nlineages," done"))
     if(verbose == 2) print(paste0(b," out of ", nlineages," done"))
     
     # for barcode b, first find all the cells that have its maximum count in barcode b
-    won_cells <- which(cell_max_barcode_count == b & lin_mat[b,] > 0)
-    nonzero_cells <- which(lin_mat[b,] > 0)
-    zero_cells <- which(lin_mat[b,] == 0)
-    # cells with nonzero counts that didn't have its maximum in barcode b
-    lost_cells <- which(lin_mat[b,] > 0 & cell_max_barcode_count != b) 
-    
-    n_won[b] <- length(won_cells)
-    n_nonzero[b] <- length(nonzero_cells)
+    won_cells <- lineage_maximizing[[b]]
+    other_cells <- setdiff(1:n, lineage_maximizing[[b]])
     
     # beta1 estimate among maximizing cells
     if(length(won_cells) > 0) beta1[b] <- mean(lin_mat[b,won_cells] / (library_size[won_cells]+1))
     # beta0 estimate among all non-maximizing cells
-    beta0[b] <- mean(lin_mat[b,c(lost_cells,zero_cells)] / (library_size[c(lost_cells,zero_cells)]+1))
+    beta0[b] <- mean(lin_mat[b,c(other_cells)] / (library_size[c(other_cells)]+1))
   }
   
   # global averages
-  beta1_mean <- mean(beta1[!is.na(beta1)])
+  beta1_mean <- mean(beta1, na.rm = T)
   
   # prevent underflow
-  beta0_thresh <- pmax(pmin(beta0, quantile(beta0, 0.98)), quantile(beta0, 0.02))
+  beta0_thresh <- pmax(pmin(beta0, quantile(beta0[beta0 > tol], 0.98)), max(quantile(beta0[beta0 > tol], 0.02)))
   
   gamma <- beta1_mean/beta0_thresh # vector of length nlineages
   names(gamma) <- rownames(lin_mat)
-  lgamma <- log(gamma)
-  Bhat <- matrix(0, ncol = n, nrow = nlineages)
-  colnames(Bhat) <- colnames(lin_mat)
-  rownames(Bhat) <- rownames(lin_mat)
   
-  # we do calculation on the log-scale and then exponentiate
-  for(i in 1:n){
-    if(verbose > 0 && i %% floor(n/10) == 0) cat('*')
-    if(max(lin_mat[,i]) > 10){
-      # high counts, avoid overflow.
-      bstarc <-  which.max(lin_mat[,i])
-      ldeltabc <- lgamma - lgamma[bstarc]
-      diff_vec <- lin_mat[,i] - lin_mat[bstarc,i]
-      temp <- exp(lin_mat[,i]*ldeltabc + diff_vec*lgamma[bstarc])
-      Bhat[,i] <- temp/sum(temp)
-      
-    } else {
-      lgammaX <- lin_mat[,i]*lgamma
-      denom <- sum(exp(lgammaX))
-      Bhat[,i] <- exp(lgammaX)/denom
-    }
-  }
+  Bhat <- .assignment_multinomial_posterior(bool_force_rebase = bool_force_rebase,
+                                            gamma = gamma,
+                                            lin_mat = lin_mat)
   
-  list(Bhat = Bhat,
-       gamma = gamma)
+  list(beta0 = beta0,
+       beta1 = beta1,
+       beta1_mean = beta1_mean,
+       Bhat = Bhat,
+       gamma = gamma,
+       lineage_num_winner = lin_num_winner)
 }
 
 barcode_clustering <- function(lin_mat,
                                cell_lower_limit = 100,
-                               check_contradictions = T,
                                cor_threshold = 0.55,
+                               warn_merging = T,
                                verbose = 0){
   stopifnot(inherits(lin_mat, "dgCMatrix"))
   
@@ -111,11 +97,14 @@ barcode_clustering <- function(lin_mat,
         val <- uniq_lineage[lineage_idx,2]
         val <- val[!is.na(val)]
         val <- unique(val)
-        if(check_contradictions & length(val) > 1) {
-          stop(paste0("Contradiction among lineages", unique(sort(lineage_list[[val[1]]], lineage_list[[val[2]]], arr_idx[i,]))))
+        if(length(val) > 1) {
+          if(warn_merging) {stop("Merging happening")}
+          ## THIS CODE ISN'T MADE YET. KL: I suspect implementing this as part of an igraph is easier
+        } else {
+          lineage_list[[val]] <- sort(unique(c(lineage_list[[val]], arr_idx[i,])))
+          uniq_lineage[lineage_idx,2] <- val
         }
-        lineage_list[[val]] <- sort(unique(c(lineage_list[[val]], arr_idx[i,])))
-        uniq_lineage[lineage_idx,2] <- val
+       
       }
     }
   }
@@ -125,29 +114,41 @@ barcode_clustering <- function(lin_mat,
     lineage_name[vec]
   })
   
-  list(lineage_clusters = lineage_list_name)
+  list(arr_idx = arr_idx,
+       lineage_clusters = lineage_list_name,
+       uniq_lineage = uniq_lineage)
 }
 
 barcode_combine <- function(lin_mat,
-                            lineage_clusters){
+                            lineage_clusters,
+                            verbose = 0){
   stopifnot(is.matrix(lin_mat))
   nlineages <- nrow(lin_mat)
   
+  print("Starting combination")
   lineage_included_names <- sort(unique(unlist(lineage_clusters)))
   lineage_included_idx <- which(rownames(lin_mat) %in% lineage_included_names)
   lineage_excluded_idx <- setdiff(1:nlineages, lineage_included_idx)
   
+  print("Extracting unaffected lineages")
   lin_untounced <- lin_mat[lineage_excluded_idx,]
   len <- length(lineage_clusters)
   lin_list <- lapply(lineage_clusters, function(vec){
-    lin_idx <- which(rownames(lin_mat) %in% lineage_names)
+    lin_idx <- which(rownames(lin_mat) %in% vec)
     lin_mat[lin_idx,]
   })
   
+  print("Adding lineages to be combined")
   for(i in 1:len){
-    lin_list[[i]] <- Matrix::colSums(lin_list[[i]])
+    if(verbose >0 && len > 10 && i %% floor(len/10) == 0) cat('*')
+    vec <- rownames(lin_list[[i]])
+    colname_vec <- colnames(lin_list[[i]])
+    lin_list[[i]] <- matrix(Matrix::colSums(lin_list[[i]]), ncol = ncol(lin_list[[i]]), nrow = 1)
+    rownames(lin_list[[i]]) <- vec[1]
+    colnames(lin_list[[i]]) <- colname_vec
   }
   
+  print("Formatting final matrix")
   rbind(lin_untounced, do.call(rbind, lin_list))
 }
 
@@ -168,4 +169,53 @@ barcode_combine <- function(lin_mat,
     # return the row index
     mat@i[(val1+1):val2]+1
   }
+}
+
+.assignment_multinomial_posterior <- function(bool_force_rebase,
+                                              gamma,
+                                              lin_mat){
+  n <- ncol(lin_mat)
+  nlineages <- nrow(lin_mat)
+  
+  lgamma <- log(gamma)
+  Bhat <- matrix(0, ncol = n, nrow = nlineages)
+  colnames(Bhat) <- colnames(lin_mat)
+  rownames(Bhat) <- rownames(lin_mat)
+  
+  # we do calculation on the log-scale and then exponentiate
+  for(i in 1:n){
+    if(verbose > 0 && i %% floor(n/10) == 0) cat('*')
+    Bhat[,i] <- .assignment_multinomial_posterior_vector(
+      bool_force_rebase = bool_force_rebase,
+      lgamma = lgamma,
+      lin_count = lin_mat[,i]
+    )
+  }
+  
+  Bhat
+}
+
+.assignment_multinomial_posterior_vector <- function(bool_force_rebase,
+                                                     lgamma,
+                                                     lin_count){
+  lgammaX <- lin_count*lgamma
+  
+  if(bool_force_rebase || max(lgammaX) > 10){
+    # high counts, avoid overflow
+    max_val <- max(lgammaX)
+    tmp <- exp(lgammaX-max_val)
+    vec <- tmp/sum(tmp)
+    
+    # bstarc <-  which.max(lin_mat[,i])
+    # ldeltabc <- lgamma - lgamma[bstarc]
+    # diff_vec <- lin_mat[,i] - lin_mat[bstarc,i]
+    # temp <- exp(lin_mat[,i]*ldeltabc + diff_vec*lgamma[bstarc])
+    # Bhat[,i] <- temp/sum(temp)
+    
+  } else {
+    denom <- sum(exp(lgammaX))
+    vec <- exp(lgammaX)/denom
+  }
+  
+  vec
 }
