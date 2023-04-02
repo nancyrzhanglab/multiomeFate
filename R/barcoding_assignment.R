@@ -1,11 +1,11 @@
 # cells as columns, lineage as rows
-barcoding_assignment <- function(lin_mat,
-                                 bool_force_rebase = F,
-                                 tol = 1e-8,
-                                 verbose = 0){
+barcoding_posterior <- function(lin_mat,
+                                bool_force_rebase = F,
+                                tol = 1e-8,
+                                verbose = 0){
   stopifnot(is.matrix(lin_mat))
   library_size <- Matrix::colSums(lin_mat)
-    
+  
   n <- ncol(lin_mat)
   nlineages <- nrow(lin_mat)
   
@@ -17,7 +17,7 @@ barcoding_assignment <- function(lin_mat,
   })
   lin_num_winner <- sapply(lineage_maximizing, length)
   # quantile(lin_num_winner)
-
+  
   beta0 <- rep(NA, nlineages)
   names(beta0) <- names(lin_mat)
   beta1 <- rep(NA, nlineages)
@@ -46,14 +46,14 @@ barcoding_assignment <- function(lin_mat,
   gamma <- beta1_mean/beta0_thresh # vector of length nlineages
   names(gamma) <- rownames(lin_mat)
   
-  Bhat <- .assignment_multinomial_posterior(bool_force_rebase = bool_force_rebase,
-                                            gamma = gamma,
-                                            lin_mat = lin_mat)
+  posterior_mat <- .multinomial_posterior(bool_force_rebase = bool_force_rebase,
+                                          gamma = gamma,
+                                          lin_mat = lin_mat)
   
   list(beta0 = beta0,
        beta1 = beta1,
        beta1_mean = beta1_mean,
-       Bhat = Bhat,
+       posterior_mat = posterior_mat,
        gamma = gamma,
        lineage_num_winner = lin_num_winner)
 }
@@ -104,7 +104,7 @@ barcode_clustering <- function(lin_mat,
           lineage_list[[val]] <- sort(unique(c(lineage_list[[val]], arr_idx[i,])))
           uniq_lineage[lineage_idx,2] <- val
         }
-       
+        
       }
     }
   }
@@ -152,10 +152,35 @@ barcode_combine <- function(lin_mat,
   rbind(lin_untounced, do.call(rbind, lin_list))
 }
 
+barcoding_assignment <- function(posterior_mat,
+                                 difference_val = 0.2,
+                                 verbose = 0){
+  n <- ncol(posterior_mat)
+  
+  lineage_names <- rownames(posterior_mat)
+  lineage_idx <- apply(posterior_mat, 2, which.max)
+  if(verbose) print("Computing difference between maximizing and second-maximizing")
+  difference_vec <- apply(posterior_mat, 2, function(x){
+    abs(diff(sort(x, decreasing = T)[1:2]))
+  })
+  
+  assignment_vec <- sapply(1:n, function(i){
+    if(verbose && n > 10 && i %% floor(n/10) == 0) cat('*')
+    if(difference_vec[i] >= difference_val){
+      return(lineage_names[lineage_idx[i]]) 
+    } else {
+      return(NA)
+    }
+  })
+  
+  names(assignment_vec) <- colnames(posterior_mat)
+  assignment_vec
+}
+
 ###################################
 
 .nonzero_col <- function(mat, col_idx, bool_value){
-  stopifnot(inherits(mat, "dgCMatrix"), col_idx %% 1 == 0,
+  stopifnot(inherits(mat, c("dgCMatrix", "lgCMatrix")), col_idx %% 1 == 0,
             col_idx > 0, col_idx <= ncol(mat))
   
   val1 <- mat@p[col_idx]
@@ -171,9 +196,10 @@ barcode_combine <- function(lin_mat,
   }
 }
 
-.assignment_multinomial_posterior <- function(bool_force_rebase,
-                                              gamma,
-                                              lin_mat){
+.multinomial_posterior <- function(bool_force_rebase,
+                                   gamma,
+                                   lin_mat,
+                                   verbose = 0){
   n <- ncol(lin_mat)
   nlineages <- nrow(lin_mat)
   
@@ -185,7 +211,7 @@ barcode_combine <- function(lin_mat,
   # we do calculation on the log-scale and then exponentiate
   for(i in 1:n){
     if(verbose > 0 && i %% floor(n/10) == 0) cat('*')
-    Bhat[,i] <- .assignment_multinomial_posterior_vector(
+    Bhat[,i] <- .multinomial_posterior_vector(
       bool_force_rebase = bool_force_rebase,
       lgamma = lgamma,
       lin_count = lin_mat[,i]
@@ -195,9 +221,9 @@ barcode_combine <- function(lin_mat,
   Bhat
 }
 
-.assignment_multinomial_posterior_vector <- function(bool_force_rebase,
-                                                     lgamma,
-                                                     lin_count){
+.multinomial_posterior_vector <- function(bool_force_rebase,
+                                          lgamma,
+                                          lin_count){
   lgammaX <- lin_count*lgamma
   
   if(bool_force_rebase || max(lgammaX) > 10){
@@ -205,12 +231,6 @@ barcode_combine <- function(lin_mat,
     max_val <- max(lgammaX)
     tmp <- exp(lgammaX-max_val)
     vec <- tmp/sum(tmp)
-    
-    # bstarc <-  which.max(lin_mat[,i])
-    # ldeltabc <- lgamma - lgamma[bstarc]
-    # diff_vec <- lin_mat[,i] - lin_mat[bstarc,i]
-    # temp <- exp(lin_mat[,i]*ldeltabc + diff_vec*lgamma[bstarc])
-    # Bhat[,i] <- temp/sum(temp)
     
   } else {
     denom <- sum(exp(lgammaX))
