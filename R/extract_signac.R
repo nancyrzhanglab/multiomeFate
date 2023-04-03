@@ -70,7 +70,7 @@ extract_cutmatrix <- function(
   # make sure gene exists
   if(all(is.null(tmp))) return(NULL)
   
-  region <- Signac::FindRegion(
+  region <- Signac:::FindRegion(
     object = object,
     region = gene,
     sep = sep,
