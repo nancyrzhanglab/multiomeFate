@@ -96,7 +96,42 @@ test_that(".compute_bin_matrix works", {
 
 ####################################
 
+# load("tests/assets/test.RData")
 ## .compute_loglikelihood is correct
+test_that(".compute_loglikelihood works", {
+  load("assets/test.RData")
+  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
+                                 bin_midpoints = bin_midpoints,
+                                 cutmat = cutmat_dying,
+                                 peak_locations = peak_locations)
+  theta_vec <- .initialize_theta(bin_mat = bin_mat,
+                                 num_bins = length(bin_midpoints))
+  res <- .compute_loglikelihood(bin_mat = bin_mat,
+                                prior_vec = peak_prior,
+                                theta_vec = theta_vec,
+                                tol = 1e-6)
+  
+  expect_true(is.numeric(res))
+})
+
+####################################
+
+# load("tests/assets/test.RData")
+## .e_step is correct
+test_that(".e_step works", {
+  load("assets/test.RData")
+  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
+                                 bin_midpoints = bin_midpoints,
+                                 cutmat = cutmat_dying,
+                                 peak_locations = peak_locations)
+  theta_vec <- .initialize_theta(bin_mat = bin_mat,
+                                 num_bins = length(bin_midpoints))
+  res <- .e_step(bin_mat = bin_mat,
+                 prior_vec = peak_prior,
+                 theta_vec = theta_vec)
+  
+  expect_true(all(abs(Matrix::rowSums(res)-1)<=1e-6))
+})
 
 ####################################
 
@@ -105,13 +140,35 @@ test_that(".compute_bin_matrix works", {
 
 test_that("peak_mixture_modeling works", {
   load("assets/test.RData")
-  bin_limits <- c(bin_midpoints[1] - abs(bin_midpoints[2]-bin_midpoints[1]),
-                  bin_midpoints[7] + abs(bin_midpoints[2]-bin_midpoints[1]))
-  res <- peak_mixture_modeling(bin_midpoints = bin_midpoints, 
+  res1 <- peak_mixture_modeling(bin_limits = bin_limits,
+                               bin_midpoints = bin_midpoints, 
                                cutmat = cutmat_dying, 
                                peak_locations = peak_locations,
                                peak_prior = peak_prior,
                                bool_freeze_prior = F,
                                return_bin_mat = T,
                                verbose = 3)
+  expect_true(inherits(res1, "peakDistribution"))
+  
+  res2 <- peak_mixture_modeling(bin_limits = bin_limits,
+                               bin_midpoints = bin_midpoints, 
+                               cutmat = cutmat_winning, 
+                               peak_locations = peak_locations,
+                               peak_prior = peak_prior,
+                               bool_freeze_prior = T,
+                               return_bin_mat = T,
+                               verbose = 3)
+  expect_true(inherits(res2, "peakDistribution"))
+  
+  res3 <- peak_mixture_modeling(bin_limits = bin_limits,
+                                bin_midpoints = bin_midpoints, 
+                                cutmat = rbind(cutmat_dying, cutmat_winning), 
+                                peak_locations = peak_locations,
+                                peak_prior = peak_prior,
+                                bool_freeze_prior = F,
+                                return_bin_mat = T,
+                                verbose = 3)
+  expect_true(inherits(res3, "peakDistribution"))
+  
 })
+

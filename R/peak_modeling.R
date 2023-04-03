@@ -5,7 +5,10 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
                                   peak_prior,
                                   bool_freeze_prior = F, # set to T if optimization is done to too few fragments. this is the prior over peaks
                                   max_iter = 100,
+                                  return_assignment_mat = F, # set to T usually for only debugging purposes
+                                  return_assignment_intial = F, # set to T usually for only debugging purposes
                                   return_bin_mat = F, # set to T usually for only debugging purposes
+                                  return_theta_initial = F, # set to T usually for only debugging purposes
                                   tol = 1e-6,
                                   verbose = 1){
   stopifnot(length(bin_midpoints) %% 2 == 1,
@@ -22,6 +25,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
  
   theta_vec <- .initialize_theta(bin_mat = bin_mat,
                                  num_bins = num_bins)
+  if(return_theta_initial) theta_init <- theta_vec else theta_init <- NULL
   if(verbose > 2) print(round(theta_vec, 2))
   
   # start iteration
@@ -43,6 +47,9 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
       prior_vec = prior_vec,
       theta_vec = theta_vec
     )
+    if(iter == 1){
+      if(return_assignment_intial) assignment_init <- assignment_mat else assignment_init <- NULL
+    }
     
     if(verbose > 1) print("M-step")
     theta_vec_new <- .m_step(
@@ -71,18 +78,17 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
     theta_vec <- theta_vec_new
   }
   
-  if(return_bin_mat){
-    bin_mat2 <- bin_mat
-  } else {
-    bin_mat2 <- NULL
-  }
+  if(!return_bin_mat) bin_mat <- NULL
+  if(!return_assignment_mat) assignment_mat <- NULL
  
-  structure(list(assignment_mat = assignment_mat,
-                 bin_mat = bin_mat2,
+  structure(list(assignment_init = assignment_init,
+                 assignment_mat = assignment_mat,
+                 bin_mat = bin_mat,
                  iter = length(likelihood_vec),
                  likelihood_vec = likelihood_vec,
                  prior_vec = prior_vec,
                  theta_diff = theta_diff,
+                 theta_init = theta_init,
                  theta_vec = theta_vec),
             class = "peakDistribution")
 }
@@ -202,38 +208,47 @@ compute_peak_prior <- function(mat,
                                    tol = 1e-6){
   m <- nrow(bin_mat) # number of fragments
   p <- ncol(bin_mat) # number of peaks
-  stopifnot(length(theta_vec) >= max(bin_mat),
+  stopifnot(length(theta_vec) >= max(bin_mat, na.rm = T),
             abs(sum(prior_vec) - 1) <= tol)
   
+  # handling NAs: fragment-peak pairs that are too far
   mask_idx <- which(is.na(bin_mat))
   bin_mat[mask_idx] <- 0
-  num_bins <- length(theta_vec)
-  reidx <- (num_bins-1)/2+1
-  # remember values in bin_mat are from -(num_bins-1)/2 to (num_bins-1)/2, so we need to re-index them
-  tmp1 <- matrix(prior_vec[bin_mat + reidx], nrow = m, ncol = p)
-  tmp1[mask_idx] <- 0
-  tmp2 <- matrix(theta_vec[bin_mat + reidx], nrow = m, ncol = p)
-  tmp2[mask_idx] <- 0
-  tmp3 <- tmp1 * tmp2
-  sum_vec <- Matrix::rowSums(tmp3)
-  sum(log(sum_vec[which(sum_vec >= tol)]))
-}
-
-# compute assignment_mat
-.e_step <- function(bin_mat,
-                    prior_vec,
-                    theta_vec){
-  m <- nrow(bin_mat) # number of fragments
-  p <- ncol(bin_mat) # number of peaks
-  stopifnot(length(prior_vec) == p)
   
   num_bins <- length(theta_vec)
   reidx <- (num_bins-1)/2+1
   # remember values in bin_mat are from -(num_bins-1)/2 to (num_bins-1)/2, so we need to re-index them
   tmp <- matrix(theta_vec[bin_mat + reidx], nrow = m, ncol = p)
+  tmp[mask_idx] <- 0
+  tmp <- tmp %*% diag(prior_vec)
+  sum_vec <- Matrix::rowSums(tmp)
+  sum(log(sum_vec[sum_vec >= tol]))
+}
+
+# compute assignment_mat
+.e_step <- function(bin_mat,
+                    prior_vec,
+                    theta_vec,
+                    tol = 1e-6){
+  m <- nrow(bin_mat) # number of fragments
+  p <- ncol(bin_mat) # number of peaks
+  stopifnot(length(prior_vec) == p)
+  
+  # handling NAs: fragment-peak pairs that are too far
+  mask_idx <- which(is.na(bin_mat))
+  bin_mat[mask_idx] <- 0
+  
+  num_bins <- length(theta_vec)
+  reidx <- (num_bins-1)/2+1
+  # remember values in bin_mat are from -(num_bins-1)/2 to (num_bins-1)/2, so we need to re-index them
+  tmp <- matrix(theta_vec[bin_mat + reidx], nrow = m, ncol = p)
+  tmp[mask_idx] <- 0
   tmp <- tmp %*% diag(prior_vec)
   sum_vec <- rowSums(tmp)
+  idx <- which(sum_vec <= tol)
+  if(length(idx) > 0) sum_vec[sum_vec <= tol] <- 1
   assignment_mat <-  diag(1/sum_vec) %*% tmp
+  if(length(idx) > 0) assignment_mat[idx,] <- NA
   
   rownames(assignment_mat) <- rownames(bin_mat)
   colnames(assignment_mat) <- colnames(bin_mat)
