@@ -61,7 +61,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
       bin_mat = bin_mat,
       num_bins = num_bins
     )
-    if(bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
+    if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
     if(verbose > 2) print(round(theta_vec_new, 2))
     
     if(verbose) print("Computing likelihood")
@@ -120,7 +120,7 @@ compute_peak_locations <- function(peak_mat){
 
 compute_peak_prior <- function(mat,
                                peak_mat,
-                               min_prob = 0.01){
+                               min_prior = 0.01){
   peak_bp <- as.numeric(colnames(mat))
   count_vec <- sapply(1:nrow(peak_mat), function(i){
     idx <- intersect(which(peak_bp >= peak_mat[i,"start"]),
@@ -133,11 +133,11 @@ compute_peak_prior <- function(mat,
   })
   
   prior_vec <- count_vec/sum(count_vec)
-  if(any(prior_vec <= min_prob)){
-    if(min_prob*length(prior_vec) > 1) {
-      min_prob <- 1/(2*length(prior_vec))
+  if(any(prior_vec <= min_prior)){
+    if(min_prior*length(prior_vec) > 1) {
+      min_prior <- 1/(2*length(prior_vec))
     }
-    prior_vec <- prior_vec + min_prob/(1-min_prob*length(prior_vec))
+    prior_vec <- prior_vec + min_prior/(1-min_prior*length(prior_vec))
     prior_vec <- prior_vec/sum(prior_vec)
   }
   names(prior_vec) <- paste0("p:", 1:nrow(peak_mat))
@@ -320,8 +320,8 @@ compute_peak_prior <- function(mat,
   prior_vec <- prior_vec/sum(prior_vec)
   
   if(any(prior_vec <= min_prior)){
-    if(min_prob*length(prior_vec) > 1) {
-      min_prob <- 1/(2*length(prior_vec))
+    if(min_prior*length(prior_vec) > 1) {
+      min_prior <- 1/(2*length(prior_vec))
     }
     prior_vec <- prior_vec + min_prior/(1-min_prior*length(prior_vec))
     prior_vec <- prior_vec/sum(prior_vec)
