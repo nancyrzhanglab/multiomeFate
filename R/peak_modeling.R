@@ -33,7 +33,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
   # start iteration
   if(verbose > 0) print("Starting initialization")
   iter <- 1
-  likelihood_vec <- .compute_loglikelihood(
+  loglikelihood_vec <- .compute_loglikelihood(
     bin_mat = bin_mat,
     prior_vec = peak_prior,
     theta_vec = theta_vec
@@ -63,18 +63,18 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
     if(verbose > 2) print(round(theta_vec_new, 2))
     
     if(verbose) print("Computing likelihood")
-    likelihood_val <- .compute_loglikelihood(
+    loglikelihood_val <- .compute_loglikelihood(
       bin_mat = bin_mat,
       prior_vec = prior_vec,
       theta_vec = theta_vec_new
     )
     
-    likelihood_vec <- c(likelihood_vec, likelihood_val)
+    loglikelihood_vec <- c(loglikelihood_vec, loglikelihood_val)
     theta_diff <- c(theta_diff, sum(abs(theta_vec_new - theta_vec)))
-    iter <- length(likelihood_vec)
-    if(length(likelihood_vec) >= 2){
-      if(verbose > 0) print(paste0("Iteration: ", iter, ", likelihood: ", round(likelihood_vec[iter],2)))
-      if(abs(likelihood_vec[iter] - likelihood_vec[iter-1]) <= tol &
+    iter <- length(loglikelihood_vec)
+    if(length(loglikelihood_vec) >= 2){
+      if(verbose > 0) print(paste0("Iteration: ", iter, ", likelihood: ", round(loglikelihood_vec[iter],2)))
+      if(abs(loglikelihood_vec[iter] - loglikelihood_vec[iter-1]) <= tol &
          theta_diff[iter] <= tol) break()
     }
     theta_vec <- theta_vec_new
@@ -86,8 +86,9 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
   structure(list(assignment_init = assignment_init,
                  assignment_mat = assignment_mat,
                  bin_mat = bin_mat,
-                 iter = length(likelihood_vec),
-                 likelihood_vec = likelihood_vec,
+                 iter = length(loglikelihood_vec),
+                 loglikelihood_val = loglikelihood_vec[length(loglikelihood_vec)],
+                 loglikelihood_vec = loglikelihood_vec,
                  prior_vec = prior_vec,
                  theta_diff = theta_diff,
                  theta_init = theta_init,
