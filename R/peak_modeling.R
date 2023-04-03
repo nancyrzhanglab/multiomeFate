@@ -3,6 +3,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
                                   cutmat, # rows = cells, columns = basepairs
                                   peak_locations,
                                   peak_prior,
+                                  bool_lock_within_peak = T, 
                                   bool_freeze_prior = F, # set to T if optimization is done to too few fragments. this is the prior over peaks
                                   max_iter = 100,
                                   return_assignment_mat = F, # set to T usually for only debugging purposes
@@ -19,6 +20,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
   bin_mat <- .compute_bin_matrix(
     bin_limits = bin_limits,
     bin_midpoints = bin_midpoints,
+    bool_lock_within_peak = bool_lock_within_peak,
     cutmat = cutmat,
     peak_locations = peak_locations
   )
@@ -135,6 +137,7 @@ compute_peak_prior <- function(mat,
 
 .compute_bin_matrix <- function(bin_limits,
                                 bin_midpoints,
+                                bool_lock_within_peak,
                                 cutmat,
                                 peak_locations){
   stopifnot(all(bin_midpoints >= bin_limits[1]), 
@@ -153,20 +156,34 @@ compute_peak_prior <- function(mat,
                                  bool_value = F)
     if(length(fragment_idx) == 0) return(numeric(0))
     fragment_locations <- as.numeric(colnames(cutmat))[fragment_idx]
+    frag_len <- length(fragment_locations)
     
+    # for each fragment, return a vector (length of peaks) of which distance-bin is used
     tmp <- sapply(fragment_locations, function(j){
       distance_vec <- peak_locations - j
-      sapply(distance_vec, function(dist){
-        min_val <- min(abs(dist - bin_midpoints))
-        if(min_val >= bin_limits[1] & (min_val <= bin_limits[2])){
-          bin_index[which.min(abs(dist - bin_midpoints))]
-        } else {
-          NA
-        }
-      })
+      # two settings: one if any least one peak is within bin_limits
+      if(length(intersect(which(distance_vec >= bin_limits[1]), which(distance_vec <= bin_limits[2])))){
+        tmp2 <- sapply(distance_vec, function(dist){
+          min_val <- min(abs(dist - bin_midpoints))
+          if(min_val >= bin_limits[1] & (min_val <= bin_limits[2])){
+            bin_index[which.min(abs(dist - bin_midpoints))]
+          } else {
+            NA
+          }
+        })
+      } else {
+        # the other if no peaks is within bin_limits
+        tmp2 <- rep(NA, p)
+        idx <- which.min(abs(distance_vec))
+        tmp2[idx] <- bin_index[which.min(abs(distance_vec[idx] - bin_midpoints))]
+      }
+      
+      tmp2
     })
+    
     if(!is.matrix(tmp)) tmp <- matrix(tmp, nrow = length(tmp), ncol = p)
-    if(all(dim(tmp) == c(p,length(fragment_locations)))) tmp <- t(tmp)
+    if(all(dim(tmp) == c(p,frag_len))) tmp <- t(tmp)
+    stopifnot(all(dim(tmp) == c(frag_len,p)))
     rownames(tmp) <- paste0("c:", i, "_loc:", fragment_locations)
     tmp
   })
@@ -174,6 +191,18 @@ compute_peak_prior <- function(mat,
   
   res <- do.call(rbind, cell_list)
   colnames(res) <- paste0("p:", 1:p)
+  
+  # apply bool_lock_within_peak
+  if(bool_lock_within_peak) {
+    for(i in 1:nrow(res)){
+      idx <- which(res[i,] == 0)
+      if(length(idx) > 0){
+        if(length(idx) > 1) idx <- sample(idx, 1)
+        res[i,-idx] <- NA
+      }
+    }
+  }
+  
   res
 }
 
