@@ -315,7 +315,7 @@ compute_peak_prior <- function(mat,
   prior_vec <- prior_vec/sum(prior_vec)
   
   if(any(prior_vec <= min_prior)){
-    prior_vec <- prior_vec + min_prob/(1-min_prob*length(prior_vec))
+    prior_vec <- prior_vec + min_prior/(1-min_prior*length(prior_vec))
     prior_vec <- prior_vec/sum(prior_vec)
   }
   
