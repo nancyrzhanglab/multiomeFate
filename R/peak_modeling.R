@@ -38,6 +38,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
     prior_vec = peak_prior,
     theta_vec = theta_vec
   )
+  if(verbose > 1) print(paste0("Initial log-likelihood: ", round(loglikelihood_vec[1],2)))
   theta_diff <- NA
   prior_vec <- peak_prior
   while(TRUE){
@@ -59,7 +60,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
       bin_mat = bin_mat,
       num_bins = num_bins
     )
-    if(bool_freeze_prior) { prior_vec <- colSums(assignment_mat); prior_vec <- prior_vec/sum(prior_vec) }
+    if(bool_freeze_prior) { prior_vec <- Matrix::colSums(assignment_mat, na.rm = T); prior_vec <- prior_vec/sum(prior_vec) }
     if(verbose > 2) print(round(theta_vec_new, 2))
     
     if(verbose) print("Computing likelihood")
@@ -73,7 +74,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
     theta_diff <- c(theta_diff, sum(abs(theta_vec_new - theta_vec)))
     iter <- length(loglikelihood_vec)
     if(length(loglikelihood_vec) >= 2){
-      if(verbose > 0) print(paste0("Iteration: ", iter, ", likelihood: ", round(loglikelihood_vec[iter],2)))
+      if(verbose > 0) print(paste0("Iteration: ", iter, ", log-likelihood: ", round(loglikelihood_vec[iter],2)))
       if(abs(loglikelihood_vec[iter] - loglikelihood_vec[iter-1]) <= tol &
          theta_diff[iter] <= tol) break()
     }
