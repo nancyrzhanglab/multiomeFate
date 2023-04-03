@@ -6,6 +6,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
                                   bool_lock_within_peak = T, 
                                   bool_freeze_prior = F, # set to T if optimization is done to too few fragments. this is the prior over peaks
                                   max_iter = 100,
+                                  min_prior = 0.01,
                                   return_assignment_mat = F, # set to T usually for only debugging purposes
                                   return_assignment_intial = F, # set to T usually for only debugging purposes
                                   return_bin_mat = F, # set to T usually for only debugging purposes
@@ -60,7 +61,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
       bin_mat = bin_mat,
       num_bins = num_bins
     )
-    if(bool_freeze_prior) { prior_vec <- Matrix::colSums(assignment_mat, na.rm = T); prior_vec <- prior_vec/sum(prior_vec) }
+    if(bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
     if(verbose > 2) print(round(theta_vec_new, 2))
     
     if(verbose) print("Computing likelihood")
@@ -306,4 +307,17 @@ compute_peak_prior <- function(mat,
   beta_vec <- beta_vec/sum(beta_vec)
   names(beta_vec) <- paste0("bin:", bin_index)
   beta_vec
+}
+
+.compute_prior <- function(assignment_mat,
+                           min_prior){
+  prior_vec <- Matrix::colSums(assignment_mat, na.rm = T)
+  prior_vec <- prior_vec/sum(prior_vec)
+  
+  if(any(prior_vec <= min_prior)){
+    prior_vec <- prior_vec + min_prob/(1-min_prob*length(prior_vec))
+    prior_vec <- prior_vec/sum(prior_vec)
+  }
+  
+  prior_vec
 }
