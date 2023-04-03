@@ -132,13 +132,18 @@ compute_peak_prior <- function(mat,
     }))
   })
   
-  count_vec <- count_vec/sum(count_vec)
-  if(any(count_vec <= min_prob)){
-    count_vec <- count_vec + min_prob/(1-min_prob*length(count_vec))
-    count_vec <- count_vec/sum(count_vec)
+  prior_vec <- count_vec/sum(count_vec)
+  if(any(prior_vec <= min_prob)){
+    if(min_prob*length(prior_vec) > 1) {
+      min_prob <- 1/(2*length(prior_vec))
+    }
+    prior_vec <- prior_vec + min_prob/(1-min_prob*length(prior_vec))
+    prior_vec <- prior_vec/sum(prior_vec)
   }
-  names(count_vec) <- paste0("p:", 1:nrow(peak_mat))
-  count_vec
+  names(prior_vec) <- paste0("p:", 1:nrow(peak_mat))
+  
+  stopifnot(all(prior_vec > 0))
+  prior_vec
 }
 
 ##################
@@ -315,9 +320,13 @@ compute_peak_prior <- function(mat,
   prior_vec <- prior_vec/sum(prior_vec)
   
   if(any(prior_vec <= min_prior)){
+    if(min_prob*length(prior_vec) > 1) {
+      min_prob <- 1/(2*length(prior_vec))
+    }
     prior_vec <- prior_vec + min_prior/(1-min_prior*length(prior_vec))
     prior_vec <- prior_vec/sum(prior_vec)
   }
   
+  stopifnot(all(prior_vec > 0))
   prior_vec
 }
