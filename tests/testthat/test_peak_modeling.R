@@ -63,3 +63,55 @@ test_that(".initialize_theta works", {
   res <- .initialize_theta(bin_mat = bin_mat, num_bins = 5)
   expect_true(sum(abs(res - c(0,0,2/3,0,1/3))) <= 1e-6)
 })
+
+##########################################
+# load("tests/assets/test.RData")
+## .compute_bin_matrix is correct
+test_that(".compute_bin_matrix works", {
+  load("assets/test.RData")
+  res <- .compute_bin_matrix(bin_limits = bin_limits,
+                             bin_midpoints = bin_midpoints,
+                             cutmat = cutmat_dying,
+                             peak_locations = peak_locations)
+  
+  expect_true(all(dim(res) == c(length(cutmat_dying@x), length(peak_locations))))
+})
+
+####################################
+
+# load("tests/assets/test.RData")
+## .initialize_theta is correct
+test_that(".compute_bin_matrix works", {
+  load("assets/test.RData")
+  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
+                                 bin_midpoints = bin_midpoints,
+                                 cutmat = cutmat_dying,
+                                 peak_locations = peak_locations)
+  
+  res <- .initialize_theta(bin_mat = bin_mat,
+                           num_bins = length(bin_midpoints))
+  
+  expect_true(abs(sum(res)-1) <= 1e-5)
+})
+
+####################################
+
+## .compute_loglikelihood is correct
+
+####################################
+
+# load("tests/assets/test.RData")
+## peak_mixture_modeling is correct
+
+test_that("peak_mixture_modeling works", {
+  load("assets/test.RData")
+  bin_limits <- c(bin_midpoints[1] - abs(bin_midpoints[2]-bin_midpoints[1]),
+                  bin_midpoints[7] + abs(bin_midpoints[2]-bin_midpoints[1]))
+  res <- peak_mixture_modeling(bin_midpoints = bin_midpoints, 
+                               cutmat = cutmat_dying, 
+                               peak_locations = peak_locations,
+                               peak_prior = peak_prior,
+                               bool_freeze_prior = F,
+                               return_bin_mat = T,
+                               verbose = 3)
+})
