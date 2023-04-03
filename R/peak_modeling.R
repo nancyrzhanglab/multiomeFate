@@ -118,7 +118,8 @@ compute_peak_locations <- function(peak_mat){
 }
 
 compute_peak_prior <- function(mat,
-                               peak_mat){
+                               peak_mat,
+                               min_prob = 0.01){
   peak_bp <- as.numeric(colnames(mat))
   count_vec <- sapply(1:nrow(peak_mat), function(i){
     idx <- intersect(which(peak_bp >= peak_mat[i,"start"]),
@@ -131,6 +132,10 @@ compute_peak_prior <- function(mat,
   })
   
   count_vec <- count_vec/sum(count_vec)
+  if(any(count_vec <= min_prob)){
+    count_vec <- count_vec + min_prob/(1-min_prob*length(count_vec))
+    count_vec <- count_vec/sum(count_vec)
+  }
   names(count_vec) <- paste0("p:", 1:nrow(peak_mat))
   count_vec
 }

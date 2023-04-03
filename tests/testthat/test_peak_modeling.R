@@ -172,22 +172,22 @@ test_that(".e_step works", {
 test_that("peak_mixture_modeling works", {
   load("assets/test.RData")
   res1 <- peak_mixture_modeling(bin_limits = bin_limits,
-                               bin_midpoints = bin_midpoints, 
-                               cutmat = cutmat_dying, 
-                               peak_locations = peak_locations,
-                               peak_prior = peak_prior,
-                               bool_freeze_prior = F,
-                               verbose = 0)
+                                bin_midpoints = bin_midpoints, 
+                                cutmat = cutmat_dying, 
+                                peak_locations = peak_locations,
+                                peak_prior = peak_prior,
+                                bool_freeze_prior = F,
+                                verbose = 3)
   expect_true(inherits(res1, "peakDistribution"))
   # round(res1$theta_vec,2)
   
   res2 <- peak_mixture_modeling(bin_limits = bin_limits,
-                               bin_midpoints = bin_midpoints, 
-                               cutmat = cutmat_winning, 
-                               peak_locations = peak_locations,
-                               peak_prior = peak_prior,
-                               bool_freeze_prior = T,
-                               verbose = 0)
+                                bin_midpoints = bin_midpoints, 
+                                cutmat = cutmat_winning, 
+                                peak_locations = peak_locations,
+                                peak_prior = peak_prior,
+                                bool_freeze_prior = T,
+                                verbose = 0)
   expect_true(inherits(res2, "peakDistribution"))
   # round(res2$theta_vec,2)
   

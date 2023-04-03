@@ -17,7 +17,7 @@ extract_peaks <- function(
   if(all(is.null(tmp))) return(NULL)
   
   if(verbose > 0) print("Finding gene coordinates")
-  region <- FindRegion(
+  region <- Signac:::FindRegion(
     object = object,
     region = gene,
     sep = sep,
@@ -37,8 +37,8 @@ extract_peaks <- function(
     if(verbose > 0) print("Intersecting regions")
     region_gene_peaks <- all_atac_peak[overlap_res@from]
     for(i in 1:length(region_gene_peaks)){
-      region_gene_peaks[i] <- intersect(x = region_gene_peaks[i],
-                                        y = region)
+      region_gene_peaks[i] <- GenomicRanges::intersect(x = region_gene_peaks[i],
+                                                       y = region)
     }
   }
   
@@ -80,7 +80,6 @@ extract_cutmatrix <- function(
   )
   
   # form cutmatrix
-  # [[EDIT: I need to pull this function into the package I think?]]
   cutmat <- Signac:::CutMatrix(
     object = object,
     region = region,
@@ -95,40 +94,40 @@ extract_cutmatrix <- function(
 
 ###########################
 
-# taken directly from https://github.com/stuart-lab/signac/blob/master/R/utilities.R
-# here only because FindRegion is not exported
-FindRegion <- function(
-    object,
-    region,
-    sep = c("-", "-"),
-    assay = NULL,
-    extend.upstream = 0,
-    extend.downstream = 0
-) {
-  if (!is(object = region, class2 = "GRanges")) {
-    # first try to convert to coordinates, if not lookup gene
-    region <- tryCatch(
-      expr = suppressWarnings(
-        expr = Signac::StringToGRanges(regions = region, sep = sep)
-      ),
-      error = function(x) {
-        region <- Signac::LookupGeneCoords(
-          object = object,
-          assay = assay,
-          gene = region
-        )
-        return(region)
-      }
-    )
-    if (is.null(x = region)) {
-      stop("Gene not found")
-    }
-  }
-  region <- suppressWarnings(expr = Signac::Extend(
-    x = region,
-    upstream = extend.upstream,
-    downstream = extend.downstream
-  )
-  )
-  return(region)
-}
+# # taken directly from https://github.com/stuart-lab/signac/blob/master/R/utilities.R
+# # here only because FindRegion is not exported
+# FindRegion <- function(
+    #     object,
+#     region,
+#     sep = c("-", "-"),
+#     assay = NULL,
+#     extend.upstream = 0,
+#     extend.downstream = 0
+# ) {
+#   if (!is(object = region, class2 = "GRanges")) {
+#     # first try to convert to coordinates, if not lookup gene
+#     region <- tryCatch(
+#       expr = suppressWarnings(
+#         expr = Signac::StringToGRanges(regions = region, sep = sep)
+#       ),
+#       error = function(x) {
+#         region <- Signac::LookupGeneCoords(
+#           object = object,
+#           assay = assay,
+#           gene = region
+#         )
+#         return(region)
+#       }
+#     )
+#     if (is.null(x = region)) {
+#       stop("Gene not found")
+#     }
+#   }
+#   region <- suppressWarnings(expr = Signac::Extend(
+#     x = region,
+#     upstream = extend.upstream,
+#     downstream = extend.downstream
+#   )
+#   )
+#   return(region)
+# }
