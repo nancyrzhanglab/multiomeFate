@@ -25,6 +25,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
     cutmat = cutmat,
     peak_locations = peak_locations
   )
+  num_frags <- nrow(bin_mat)
  
   theta_vec <- .initialize_theta(bin_mat = bin_mat,
                                  num_bins = num_bins)
@@ -91,6 +92,7 @@ peak_mixture_modeling <- function(bin_limits, # vector of length 2
                  iter = length(loglikelihood_vec),
                  loglikelihood_val = loglikelihood_vec[length(loglikelihood_vec)],
                  loglikelihood_vec = loglikelihood_vec,
+                 num_frags = num_frags,
                  prior_vec = prior_vec,
                  theta_diff = theta_diff,
                  theta_init = theta_init,
