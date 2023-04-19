@@ -64,7 +64,7 @@ test_that(".epanechnikov_kernel_all works", {
   
   expect_true(is.list(res))
   expect_true(inherits(res, "grenander"))
-  expect_true(all(sort(names(res)) == sort(c("x", "pdf"))))
+  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "param"))))
   expect_true(sum(abs(res$x - x)) <= 1e-6)
   expect_true(all(diff(res$pdf) <= 0))
 })
@@ -80,12 +80,14 @@ test_that(".smooth_stepdensity works", {
   stepdensity_res <- .compute_decreasing_density(cdf = cdf_res$cdf,
                                                  x = cdf_res$x)
   res <- .smooth_stepdensity(bandwidth = 0.5,
+                             discretization_stepsize = 0.01,
                              stepdensity_res = stepdensity_res)
   
   expect_true(is.list(res))
   expect_true(inherits(res, "grenander"))
-  expect_true(all(sort(names(res)) == sort(c("x", "pdf"))))
+  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "param"))))
   expect_true(all(diff(res$pdf) <= 0))
+  expect_true(all(diff(res$x) >= 0))
 })
 
 test_that(".smooth_stepdensity roughly integrates to 1", {
@@ -95,7 +97,8 @@ test_that(".smooth_stepdensity roughly integrates to 1", {
   cdf_res <- .weighted_cdf(values = values, weights = weights)
   stepdensity_res <- .compute_decreasing_density(cdf = cdf_res$cdf,
                                                  x = cdf_res$x)
-  res <- .smooth_stepdensity(bandwidth = 0.005,
+  res <- .smooth_stepdensity(bandwidth = 0.01,
+                             discretization_stepsize = 0.0005,
                              stepdensity_res = stepdensity_res)
   
   right_area <- sum(res$pdf[-length(res$pdf)] * diff(res$x))
@@ -104,4 +107,42 @@ test_that(".smooth_stepdensity roughly integrates to 1", {
   expect_true(abs(right_area - 1) <= .001)
   expect_true(abs(left_area - 1) <= .001)
   expect_true(right_area >= left_area)
+})
+
+########################
+
+## estimate_grenander is correct
+
+test_that("estimate_grenander works", {
+  set.seed(10)
+  values <- rexp(1000)
+  weights <- runif(1000)
+  
+  res <- estimate_grenander(values = values,
+                            weights = weights)
+  
+  expect_true(is.list(res))
+  expect_true(inherits(res, "grenander"))
+  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "param"))))
+  expect_true(all(diff(res$pdf) <= 1e-6))
+  expect_true(all(diff(res$x) >= 0))
+  expect_true(all(sort(names(res$param)) == sort(c("bandwidth", "discretization_stepsize", "left_area", "right_area"))))
+})
+
+test_that("estimate_grenander works for a non-decreasing density", {
+  set.seed(10)
+  n <- 1000
+  values <- sapply(1:n, function(i){
+    mixture <- stats::rbinom(1, 1, 0.5)
+    if(mixture == 0) stats::rexp(1) else stats::rnorm(1, mean = 5, sd = 0.5)
+  })
+  weights <- rep(1, n)
+  
+  res <- estimate_grenander(values = values,
+                            weights = weights)
+  
+  expect_true(is.list(res))
+  expect_true(inherits(res, "grenander"))
+  expect_true(all(diff(res$pdf) <= 1e-6))
+  expect_true(all(diff(res$x) >= 0))
 })

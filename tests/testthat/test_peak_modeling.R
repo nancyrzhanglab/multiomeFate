@@ -46,6 +46,7 @@ test_that(".initialize_theta works", {
   
   set.seed(10)
   bin_midpoints <- c(-100, -50, 0, 50, 100)
+  bin_limits <- c(-200,200)
   names(bin_midpoints) <- paste0("bin:", seq(-2,2,by=1))
   peak_locations <- c(1500, 1900)
   names(peak_locations) <- paste0("p:", 1:2)
@@ -62,7 +63,7 @@ test_that(".initialize_theta works", {
   bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
                                  bin_midpoints = bin_midpoints,
                                  bool_lock_within_peak = T,
-                                 cutmat = cutmat_dying,
+                                 cutmat = cutmat,
                                  peak_locations = peak_locations)
   
   res <- .initialize_theta(bin_mat = bin_mat, num_bins = 5)
@@ -73,7 +74,7 @@ test_that(".initialize_theta works", {
 # load("tests/assets/test.RData")
 ## .compute_bin_matrix is correct
 test_that(".compute_bin_matrix works", {
-  load("assets/test.RData")
+  load("../assets/test.RData")
   res <- .compute_bin_matrix(bin_limits = bin_limits,
                              bin_midpoints = bin_midpoints,
                              bool_lock_within_peak = F,
@@ -85,7 +86,7 @@ test_that(".compute_bin_matrix works", {
 
 
 test_that(".compute_bin_matrix works", {
-  load("assets/test.RData")
+  load("../assets/test.RData")
   bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
                                  bin_midpoints = bin_midpoints,
                                  bool_lock_within_peak = T,
@@ -110,7 +111,7 @@ test_that(".compute_bin_matrix works", {
 # load("tests/assets/test.RData")
 ## .initialize_theta is correct
 test_that(".initialize_theta works", {
-  load("assets/test.RData")
+  load("../assets/test.RData")
   bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
                                  bin_midpoints = bin_midpoints,
                                  bool_lock_within_peak = T,
@@ -128,7 +129,7 @@ test_that(".initialize_theta works", {
 # load("tests/assets/test.RData")
 ## .compute_loglikelihood is correct
 test_that(".compute_loglikelihood works", {
-  load("assets/test.RData")
+  load("../assets/test.RData")
   bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
                                  bin_midpoints = bin_midpoints,
                                  bool_lock_within_peak = T,
@@ -149,7 +150,7 @@ test_that(".compute_loglikelihood works", {
 # load("tests/assets/test.RData")
 ## .e_step is correct
 test_that(".e_step works", {
-  load("assets/test.RData")
+  load("../assets/test.RData")
   bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
                                  bin_midpoints = bin_midpoints,
                                  bool_lock_within_peak = T,
@@ -170,14 +171,14 @@ test_that(".e_step works", {
 ## peak_mixture_modeling is correct
 
 test_that("peak_mixture_modeling works", {
-  load("assets/test.RData")
+  load("../assets/test.RData")
   res1 <- peak_mixture_modeling(bin_limits = bin_limits,
                                 bin_midpoints = bin_midpoints, 
                                 cutmat = cutmat_dying, 
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 bool_freeze_prior = F,
-                                verbose = 3)
+                                verbose = 0)
   expect_true(inherits(res1, "peakDistribution"))
   # round(res1$theta_vec,2)
   

@@ -1,7 +1,8 @@
 # return a smoothed density returned at a lot of different points
-estimate_grenander <- function(bandwidth,
-                               values,
-                               weights){
+estimate_grenander <- function(values,
+                               weights,
+                               bandwidth = diff(stats::quantile(values, probs = c(0.25,0.75)))/10,
+                               discretization_stepsize = bandwidth/5){
   cdf_empirical <- .weighted_cdf(
     values = values,
     weights = weights
@@ -14,10 +15,18 @@ estimate_grenander <- function(bandwidth,
   
   smooth_pdf_est <- .smooth_stepdensity(
     bandwidth = bandwidth,
+    discretization_stepsize = discretization_stepsize,
     stepdensity_res = stepdensity_res
   )
   
-  smooth_pdf_est
+  res <- smooth_pdf_est
+  right_area <- sum(res$pdf[-length(res$pdf)] * diff(res$x))
+  left_area <- sum(res$pdf[-1] * diff(res$x))
+  res$param <- c(res$param, 
+                 left_area = left_area,
+                 right_area = right_area)
+
+  res
 }
 
 # construct the weighted CDF function
@@ -69,7 +78,8 @@ estimate_grenander <- function(bandwidth,
   }
   
   structure(list(x = x,
-                 pdf = pdf_smooth),
+                 pdf = pdf_smooth,
+                 param = list(bandwidth = bandwidth)),
             class = "grenander")
 }
 
@@ -80,13 +90,14 @@ estimate_grenander <- function(bandwidth,
 }
 
 .smooth_stepdensity <- function(bandwidth,
+                                discretization_stepsize,
                                 stepdensity_res){
   x <- stepdensity_res$x.knots # assumed to be ordered and starts at 0
   pdf <- stepdensity_res$slope.knots # has a length 1 shorter than x
   pdf <- c(pdf[1], pdf)
   
   # create a lot of discretizations
-  x1 <- seq(0, max(x)+2*bandwidth, by = bandwidth/10)
+  x1 <- seq(0, max(x)+2*bandwidth, by = discretization_stepsize)
   x1 <- c(x1, x)
   
   # remove duplicated x1's
@@ -114,7 +125,11 @@ estimate_grenander <- function(bandwidth,
   )
   
   structure(list(x = res$x,
-                 pdf = res$pdf),
+                 pdf = res$pdf,
+                 param = list(
+                   bandwidth = bandwidth,
+                   discretization_stepsize = discretization_stepsize
+                 )),
             class = "grenander")
 }
 
