@@ -29,6 +29,15 @@ estimate_grenander <- function(values,
   res
 }
 
+evaluate_grenander <- function(obj,
+                               x){
+  stopifnot(inherits(obj, "grenander"), x>=0)
+  idx <- which.min(abs(obj$x - x))
+  obj$pdf[idx]
+}
+
+##########################################
+
 # construct the weighted CDF function
 .weighted_cdf <- function(values,
                           weights,
