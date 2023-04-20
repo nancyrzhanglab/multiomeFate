@@ -10,32 +10,31 @@ peak_mixture_modeling <- function(bandwidth,
                                   min_prior = 0.01,
                                   num_peak_limit = 4,
                                   return_assignment_mat = F, # set to T usually for only debugging purposes
-                                  return_bin_mat = F, # set to T usually for only debugging purposes
+                                  return_dist_mat = F, # set to T usually for only debugging purposes
                                   tol = 1e-6,
                                   verbose = 1){
-  stopifnot(length(bin_midpoints) %% 2 == 1,
-            inherits(cutmat, c("dgCMatrix", "matrix")))
+  stopifnot(inherits(cutmat, c("dgCMatrix", "matrix")))
   
   # initial assignment
   num_bins <- length(bin_midpoints)
-  bin_mat <- .compute_frag_peak_matrix(
+  dist_mat <- .compute_frag_peak_matrix(
     bool_lock_within_peak = bool_lock_within_peak,
     cutmat = cutmat,
     num_peak_limit = num_peak_limit,
     peak_locations = peak_locations,
     peak_width = peak_width
   )
-  num_frags <- nrow(bin_mat)
+  num_frags <- nrow(dist_mat)
   
   grenander_obj <- .initialize_grenander(bandwidth = bandwidth,
-                                         bin_mat = bin_mat,
+                                         dist_mat = dist_mat,
                                          discretization_stepsize = discretization_stepsize)
   
   # start iteration
   if(verbose > 0) print("Starting initialization")
   iter <- 1
   loglikelihood_vec <- .compute_loglikelihood(
-    bin_mat = bin_mat,
+    dist_mat = dist_mat,
     grenander_obj = grenander_obj,
     prior_vec = peak_prior
   )
@@ -49,7 +48,7 @@ peak_mixture_modeling <- function(bandwidth,
     
     if(verbose > 1) print("E-step")
     assignment_mat <- .e_step(
-      bin_mat = bin_mat,
+      dist_mat = dist_mat,
       grenander_obj = grenander_obj,
       prior_vec = prior_vec
     )
@@ -57,14 +56,15 @@ peak_mixture_modeling <- function(bandwidth,
     if(verbose > 1) print("M-step")
     grenander_obj_new <- .m_step(
       assignment_mat = assignment_mat,
-      bin_mat = bin_mat,
-      num_bins = num_bins
+      bandwidth = bandwidth,
+      dist_mat = dist_mat,
+      discretization_stepsize = discretization_stepsize
     )
     if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
    
     if(verbose) print("Computing likelihood")
     loglikelihood_val <- .compute_loglikelihood(
-      bin_mat = bin_mat,
+      dist_mat = dist_mat,
       grenander_obj = grenander_obj,
       prior_vec = peak_prior
     )
@@ -78,11 +78,11 @@ peak_mixture_modeling <- function(bandwidth,
     grenander_obj <- grenander_obj_new
   }
   
-  if(!return_bin_mat) bin_mat <- NULL
+  if(!return_dist_mat) dist_mat <- NULL
   if(!return_assignment_mat) assignment_mat <- NULL
   
   structure(list(assignment_mat = assignment_mat,
-                 bin_mat = bin_mat,
+                 dist_mat = dist_mat,
                  grenander_obj = grenander_obj,
                  iter = length(loglikelihood_vec),
                  loglikelihood_val = loglikelihood_vec[length(loglikelihood_vec)],
@@ -90,18 +90,6 @@ peak_mixture_modeling <- function(bandwidth,
                  num_frags = num_frags,
                  prior_vec = prior_vec),
             class = "peakDistribution")
-}
-
-compute_bin_midpoints <- function(peak_mat,
-                                  num_bins = 7){
-  width_vec <- sapply(1:nrow(peak_mat), function(i){
-    peak_mat[i,"end"] - peak_mat[i,"start"] + 1
-  })
-  width <- stats::median(width_vec)
-  
-  res <- seq(-(num_bins-1)/2, (num_bins-1)/2, by=1)*width
-  names(res) <- paste0("bin:", (-(num_bins-1)/2):((num_bins-1)/2))
-  res
 }
 
 compute_peak_locations <- function(peak_mat){
@@ -153,7 +141,7 @@ compute_peak_prior <- function(mat,
   p <- length(peak_locations)
   cutmat_t <- Matrix::t(cutmat) # basepair-by-cell
   
-  # a list, where each entry is a matrix of "fragments by peaks" where its entry is which distance-bin it is
+  # a list, where each entry is a matrix of "fragments by peaks" where its entry is the distance
   cell_list <- lapply(1:n, function(i){
     fragment_idx <- .nonzero_col(mat = cutmat_t,
                                  col_idx = i,
@@ -216,10 +204,10 @@ compute_peak_prior <- function(mat,
 }
 
 .initialize_grenander <- function(bandwidth,
-                                  bin_mat,
+                                  dist_mat,
                                   discretization_stepsize){
-  idx <- which(!is.na(bin_mat))
-  values <- as.numeric(bin_mat[idx])
+  idx <- which(!is.na(dist_mat))
+  values <- as.numeric(dist_mat[idx])
   weights <- rep(1, length(values))
   
   estimate_grenander(values = values,
@@ -228,73 +216,73 @@ compute_peak_prior <- function(mat,
                      discretization_stepsize = discretization_stepsize)
 }
 
-.compute_loglikelihood <- function(bin_mat,
+.compute_loglikelihood <- function(dist_mat,
                                    grenander_obj,
                                    prior_vec,
                                    tol = 1e-6){
-  m <- nrow(bin_mat) # number of fragments
-  p <- ncol(bin_mat) # number of peaks
+  m <- nrow(dist_mat) # number of fragments
+  p <- ncol(dist_mat) # number of peaks
   stopifnot(abs(sum(prior_vec) - 1) <= tol)
   
   # compute all the densities based on grenander
-  idx <- which(!is.na(bin_mat))
+  idx <- which(!is.na(dist_mat))
   if(length(idx) == 0 || m == 0) return(NA) # if no fragments
   for(i in 1:idx){
-    bin_mat[i] <- evaluate_grenander(
+    dist_mat[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = bin_mat[i]
+      x = dist_mat[i]
     )
   }
-  if(length(idx) != prod(dim(bin_mat))) {
-    bin_mat[-idx] <- 0
+  if(length(idx) != prod(dim(dist_mat))) {
+    dist_mat[-idx] <- 0
   }
   
-  tmp <- bin_mat %*% diag(prior_vec)
+  tmp <- dist_mat %*% diag(prior_vec)
   sum_vec <- Matrix::rowSums(tmp)
   sum(log(sum_vec[sum_vec >= tol]))
 }
 
 # compute assignment_mat
-.e_step <- function(bin_mat,
+.e_step <- function(dist_mat,
                     grenander_obj,
                     prior_vec,
                     tol = 1e-6){
-  m <- nrow(bin_mat) # number of fragments
-  p <- ncol(bin_mat) # number of peaks
+  m <- nrow(dist_mat) # number of fragments
+  p <- ncol(dist_mat) # number of peaks
   stopifnot(abs(sum(prior_vec) - 1) <= tol, m > 0, p > 0)
   
   # compute all the densities based on grenander
-  idx <- which(!is.na(bin_mat))
+  idx <- which(!is.na(dist_mat))
   for(i in 1:idx){
-    bin_mat[i] <- evaluate_grenander(
+    dist_mat[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = bin_mat[i]
+      x = dist_mat[i]
     )
   }
-  if(length(idx) != prod(dim(bin_mat))) {
-    bin_mat[-idx] <- 0
+  if(length(idx) != prod(dim(dist_mat))) {
+    dist_mat[-idx] <- 0
   }
   
-  tmp <- bin_mat %*% diag(prior_vec)
+  tmp <- dist_mat %*% diag(prior_vec)
   sum_vec <- rowSums(tmp)
   idx <- which(sum_vec <= tol)
   if(length(idx) > 0) sum_vec[sum_vec <= tol] <- 1
   assignment_mat <-  diag(1/sum_vec) %*% tmp
   if(length(idx) > 0) assignment_mat[idx,] <- NA
   
-  rownames(assignment_mat) <- rownames(bin_mat)
-  colnames(assignment_mat) <- colnames(bin_mat)
+  rownames(assignment_mat) <- rownames(dist_mat)
+  colnames(assignment_mat) <- colnames(dist_mat)
   assignment_mat
 }
 
 .m_step <- function(assignment_mat,
                     bandwidth,
-                    bin_mat,
+                    dist_mat,
                     discretization_stepsize){
-  idx <- which(!is.na(bin_mat))
-  stopifnot(all(dim(assignment_mat) == dim(bin_mat)), length(idx) > 0)
+  idx <- which(!is.na(dist_mat))
+  stopifnot(all(dim(assignment_mat) == dim(dist_mat)), length(idx) > 0)
   
-  values <- as.numeric(bin_mat[idx])
+  values <- as.numeric(dist_mat[idx])
   weights <- as.numeric(assignment_mat[idx])
   
   estimate_grenander(values = values,
