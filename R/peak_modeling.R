@@ -155,7 +155,11 @@ compute_peak_prior <- function(mat,
       peak_locations - j
     })
     
-    if(!is.matrix(tmp)) tmp <- matrix(tmp, nrow = frag_len, ncol = p)
+    if(!is.matrix(tmp)) {
+      stopifnot(p == 1)
+      tmp <- matrix(tmp, nrow = 1, ncol = frag_len)
+    }
+    tmp <- t(tmp)
     stopifnot(all(dim(tmp) == c(frag_len,p)))
     rownames(tmp) <- paste0("c:", i, "_loc:", fragment_locations)
     tmp
@@ -199,15 +203,26 @@ compute_peak_prior <- function(mat,
     }
   }
   
-  # convert all signed distances into unsigned distances
-  abs(res)
+  # convert into sparse matrix
+  # also convert all signed distances into unsigned distances
+  idx_vec <- which(!is.na(res), arr.ind = F)
+  idx_mat <- which(!is.na(res), arr.ind = T)
+  values <- res[idx_vec]
+  values[values == 0] <- 1 # prevent any distances of 0
+  res2 <- Matrix::sparseMatrix(
+    i = idx_mat[,1],
+    j = idx_mat[,2],
+    x = abs(values),
+    dims = dim(res)
+  )
+  
+  res2
 }
 
 .initialize_grenander <- function(bandwidth,
                                   dist_mat,
                                   discretization_stepsize){
-  idx <- which(!is.na(dist_mat))
-  values <- as.numeric(dist_mat[idx])
+  values <- dist_mat@x
   weights <- rep(1, length(values))
   
   estimate_grenander(values = values,
@@ -225,19 +240,18 @@ compute_peak_prior <- function(mat,
   stopifnot(abs(sum(prior_vec) - 1) <= tol)
   
   # compute all the densities based on grenander
-  idx <- which(!is.na(dist_mat))
-  if(length(idx) == 0 || m == 0) return(NA) # if no fragments
-  for(i in 1:idx){
-    dist_mat[i] <- evaluate_grenander(
+  prob_mat <- dist_mat
+  vec <- prob_mat@x
+  if(length(vec) == 0 || m == 0) return(NA) # if no fragments
+  for(i in 1:length(vec)){
+    vec[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = dist_mat[i]
+      x = vec[i]
     )
   }
-  if(length(idx) != prod(dim(dist_mat))) {
-    dist_mat[-idx] <- 0
-  }
+  prob_mat@x <- vec
   
-  tmp <- dist_mat %*% diag(prior_vec)
+  tmp <- .mult_mat_vec(dist_mat, prior_vec)
   sum_vec <- Matrix::rowSums(tmp)
   sum(log(sum_vec[sum_vec >= tol]))
 }
@@ -252,23 +266,23 @@ compute_peak_prior <- function(mat,
   stopifnot(abs(sum(prior_vec) - 1) <= tol, m > 0, p > 0)
   
   # compute all the densities based on grenander
-  idx <- which(!is.na(dist_mat))
-  for(i in 1:idx){
-    dist_mat[i] <- evaluate_grenander(
+  prob_mat <- dist_mat
+  vec <- prob_mat@x
+  if(length(vec) == 0 || m == 0) return(NA) # if no fragments
+  for(i in 1:length(vec)){
+    vec[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = dist_mat[i]
+      x = vec[i]
     )
   }
-  if(length(idx) != prod(dim(dist_mat))) {
-    dist_mat[-idx] <- 0
-  }
+  prob_mat@x <- vec
   
-  tmp <- dist_mat %*% diag(prior_vec)
+  tmp <- .mult_mat_vec(dist_mat, prior_vec)
   sum_vec <- rowSums(tmp)
   idx <- which(sum_vec <= tol)
   if(length(idx) > 0) sum_vec[sum_vec <= tol] <- 1
-  assignment_mat <-  diag(1/sum_vec) %*% tmp
-  if(length(idx) > 0) assignment_mat[idx,] <- NA
+  assignment_mat <-  .mult_vec_mat(1/sum_vec, tmp)
+  if(length(idx) > 0) assignment_mat[idx,] <- 0
   
   rownames(assignment_mat) <- rownames(dist_mat)
   colnames(assignment_mat) <- colnames(dist_mat)
@@ -279,11 +293,10 @@ compute_peak_prior <- function(mat,
                     bandwidth,
                     dist_mat,
                     discretization_stepsize){
-  idx <- which(!is.na(dist_mat))
-  stopifnot(all(dim(assignment_mat) == dim(dist_mat)), length(idx) > 0)
+  stopifnot(all(dim(assignment_mat) == dim(dist_mat)), length(dist_mat@x) > 0)
   
-  values <- as.numeric(dist_mat[idx])
-  weights <- as.numeric(assignment_mat[idx])
+  values <- dist_mat@x
+  weights <- assignment_mat@x
   
   estimate_grenander(values = values,
                      weights = weights,

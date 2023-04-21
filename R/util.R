@@ -26,3 +26,16 @@
     vec * mat
   }
 }
+
+# for mat %*% diag(vec)
+# see https://stackoverflow.com/questions/17080099/fastest-way-to-multiply-matrix-columns-with-vector-elements-in-r
+.mult_mat_vec <- function(mat, vec){
+  stopifnot(inherits(mat, c("matrix", "dgCMatrix")), 
+            !is.matrix(vec), length(vec) == ncol(mat))
+  
+  if(inherits(mat, "dgCMatrix")) {
+    mat %*% Matrix::Diagonal(x = vec)
+  } else {
+    mat * rep(vec, rep(nrow(mat), length(vec)))
+  }
+}

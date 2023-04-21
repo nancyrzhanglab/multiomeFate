@@ -2,19 +2,15 @@ context("Testing peak modeling")
 
 ## .compute_bin_matrix is correct
 
-test_that(".compute_bin_matrix works", {
+test_that(".compute_frag_peak_matrix works", {
   # hypothetical genome from base-pairs 1001 to 2000
   # 120 fragments, one per cell
-  # 2 peaks (at 1500 and at 1900), most fragments at 1500, 1900 or 1100
-  
+  # 2 peaks (at 1500 and at 1900), most fragments at 1300, 1800 or 1100
   set.seed(10)
-  bin_midpoints <- c(-100, -50, 0, 50, 100)
-  names(bin_midpoints) <- paste0("bin:", seq(-2,2,by=1))
-  bin_limits <- c(-200,200)
   peak_locations <- c(1500, 1900)
   names(peak_locations) <- paste0("p:", 1:2)
   num_frags <- 120
-  frag_location <- rep(c(1100,1500,1900), each = num_frags/3)
+  frag_location <- rep(c(1100,1300,1800), each = num_frags/3)
   cutmat <- sapply(frag_location, function(x){
     vec <- rep(0, length = 1000)
     names(vec) <- c(1001:2000)
@@ -24,34 +20,24 @@ test_that(".compute_bin_matrix works", {
   cutmat <- Matrix::Matrix(t(cutmat), sparse = T)
   rownames(cutmat) <- paste0("cell:", 1:nrow(cutmat))
   
-  res <- .compute_bin_matrix(bin_limits = bin_limits,
-                             bin_midpoints = bin_midpoints,
-                             bool_lock_within_peak = T,
-                             cutmat = cutmat,
-                             peak_locations = peak_locations)
+  res <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                   cutmat = cutmat,
+                                   num_peak_limit = 3,
+                                   peak_locations = peak_locations,
+                                   peak_width = 250)
   
-  for(i in 1:40) expect_true(res[i,1] == 2, is.na(res[i,2]))
-  for(i in 41:80) expect_true(res[i,1] == 0, is.na(res[i,2]))
-  for(i in 81:120) expect_true(is.na(res[i,1]), res[i,2] == 0)
+  expect_true(inherits(res, "dgCMatrix"))
+  for(i in 1:40) expect_true(all(res[i,] == c(400,800)))
+  for(i in 41:80) expect_true(all(res[i,] == c(200,600)))
+  for(i in 81:120) expect_true(all(res[i,] == c(0,100)))
 })
 
-##########################################
-
-## .initialize_theta is correct
-
-test_that(".initialize_theta works", {
-  # hypothetical genome from base-pairs 1001 to 2000
-  # 120 fragments, one per cell
-  # 2 peaks (at 1500 and at 1900), most fragments at 1500, 1900 or 1100
-  
+test_that(".compute_frag_peak_matrix respects num_peak_limit", {
   set.seed(10)
-  bin_midpoints <- c(-100, -50, 0, 50, 100)
-  bin_limits <- c(-200,200)
-  names(bin_midpoints) <- paste0("bin:", seq(-2,2,by=1))
   peak_locations <- c(1500, 1900)
   names(peak_locations) <- paste0("p:", 1:2)
   num_frags <- 120
-  frag_location <- rep(c(1100,1500,1900), each = num_frags/3)
+  frag_location <- rep(c(1100,1300,1800), each = num_frags/3)
   cutmat <- sapply(frag_location, function(x){
     vec <- rep(0, length = 1000)
     names(vec) <- c(1001:2000)
@@ -60,41 +46,33 @@ test_that(".initialize_theta works", {
   })
   cutmat <- Matrix::Matrix(t(cutmat), sparse = T)
   rownames(cutmat) <- paste0("cell:", 1:nrow(cutmat))
-  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
-                                 bin_midpoints = bin_midpoints,
-                                 bool_lock_within_peak = T,
-                                 cutmat = cutmat,
-                                 peak_locations = peak_locations)
   
-  res <- .initialize_theta(bin_mat = bin_mat, num_bins = 5)
-  expect_true(sum(abs(res - c(0,0,2/3,0,1/3))) <= 1e-6)
+  res <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                   cutmat = cutmat,
+                                   num_peak_limit = 1,
+                                   peak_locations = peak_locations,
+                                   peak_width = 250)
+  
+  expect_true(inherits(res, "dgCMatrix"))
+  for(i in 1:40) expect_true(all(res[i,] == c(400,0)))
+  for(i in 41:80) expect_true(all(res[i,] == c(200,0)))
+  for(i in 81:120) expect_true(all(res[i,] == c(0,100)))
 })
 
-##########################################
 # load("tests/assets/test.RData")
-## .compute_bin_matrix is correct
-test_that(".compute_bin_matrix works", {
+test_that(".compute_frag_peak_matrix works on a real cutmatrix", {
   load("../assets/test.RData")
-  res <- .compute_bin_matrix(bin_limits = bin_limits,
-                             bin_midpoints = bin_midpoints,
-                             bool_lock_within_peak = F,
-                             cutmat = cutmat_dying,
-                             peak_locations = peak_locations)
+  peak_width <- 750
+  res <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                   cutmat = cutmat_dying,
+                                   num_peak_limit = 3,
+                                   peak_locations = peak_locations,
+                                   peak_width = peak_width)
   
   expect_true(all(dim(res) == c(length(cutmat_dying@x), length(peak_locations))))
-})
-
-
-test_that(".compute_bin_matrix works", {
-  load("../assets/test.RData")
-  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
-                                 bin_midpoints = bin_midpoints,
-                                 bool_lock_within_peak = T,
-                                 cutmat = cutmat_dying,
-                                 peak_locations = peak_locations)
   
-  bool_vec <- sapply(1:nrow(bin_mat), function(i){
-    idx <- which(bin_mat[i,] == 0)
+  bool_vec <- sapply(1:nrow(res), function(i){
+    idx <- intersect(which(res[i,] <= peak_width/2), which(res[i,] != 0))
     if(length(idx) > 0){
       if(length(idx) == 1) return(TRUE) else return(FALSE)
     } else{
@@ -105,6 +83,40 @@ test_that(".compute_bin_matrix works", {
   expect_true(all(bool_vec))
 })
 
+##########################################
+
+## .initialize_grenander is correct
+
+test_that(".initialize_grenander works", {
+  # hypothetical genome from base-pairs 1001 to 2000
+  # 120 fragments, one per cell
+  # 2 peaks (at 1500 and at 1900), most fragments at 1300, 1800 or 1100
+  set.seed(10)
+  peak_locations <- c(1500, 1900)
+  names(peak_locations) <- paste0("p:", 1:2)
+  num_frags <- 120
+  frag_location <- rep(c(1100,1300,1800), each = num_frags/3)
+  cutmat <- sapply(frag_location, function(x){
+    vec <- rep(0, length = 1000)
+    names(vec) <- c(1001:2000)
+    vec[as.character(x)] <- 1
+    vec
+  })
+  cutmat <- Matrix::Matrix(t(cutmat), sparse = T)
+  rownames(cutmat) <- paste0("cell:", 1:nrow(cutmat))
+  dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                       cutmat = cutmat,
+                                       num_peak_limit = 3,
+                                       peak_locations = peak_locations,
+                                       peak_width = 100)
+  
+  res <- .initialize_grenander(bandwidth = 100,
+                               dist_mat = dist_mat,
+                               discretization_stepsize = 15)
+  expect_true(all(res$pdf[res$x > 900] == 0))
+  expect_true(abs(res$param$left_area - 1) <= 0.1)
+  expect_true(abs(res$param$right_area - 1) <= 0.1)
+})
 
 ####################################
 
