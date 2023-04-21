@@ -3,7 +3,7 @@ peak_mixture_modeling <- function(bandwidth,
                                   peak_locations,
                                   peak_prior,
                                   peak_width,
-                                  discretization_stepsize = bandwidth/5,
+                                  discretization_stepsize = NA, #if NA, it defaults to max(round(max(dist_mat@x)/50),5)
                                   bool_lock_within_peak = T, 
                                   bool_freeze_prior = F, # set to T if optimization is done to too few fragments. this is the prior over peaks
                                   max_iter = 100,
@@ -25,6 +25,7 @@ peak_mixture_modeling <- function(bandwidth,
     peak_width = peak_width
   )
   num_frags <- nrow(dist_mat)
+  if(is.na(discretization_stepsize)) discretization_stepsize <- max(round(max(dist_mat@x)/2000),5)
   
   grenander_obj <- .initialize_grenander(bandwidth = bandwidth,
                                          dist_mat = dist_mat,
@@ -251,7 +252,7 @@ compute_peak_prior <- function(mat,
   }
   prob_mat@x <- vec
   
-  tmp <- .mult_mat_vec(dist_mat, prior_vec)
+  tmp <- .mult_mat_vec(prob_mat, prior_vec)
   sum_vec <- Matrix::rowSums(tmp)
   sum(log(sum_vec[sum_vec >= tol]))
 }
@@ -277,8 +278,8 @@ compute_peak_prior <- function(mat,
   }
   prob_mat@x <- vec
   
-  tmp <- .mult_mat_vec(dist_mat, prior_vec)
-  sum_vec <- rowSums(tmp)
+  tmp <- .mult_mat_vec(prob_mat, prior_vec)
+  sum_vec <- Matrix::rowSums(tmp)
   idx <- which(sum_vec <= tol)
   if(length(idx) > 0) sum_vec[sum_vec <= tol] <- 1
   assignment_mat <-  .mult_vec_mat(1/sum_vec, tmp)

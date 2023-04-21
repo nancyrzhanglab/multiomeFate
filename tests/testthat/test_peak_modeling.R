@@ -105,10 +105,10 @@ test_that(".initialize_grenander works", {
   cutmat <- Matrix::Matrix(t(cutmat), sparse = T)
   rownames(cutmat) <- paste0("cell:", 1:nrow(cutmat))
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
-                                       cutmat = cutmat,
-                                       num_peak_limit = 3,
-                                       peak_locations = peak_locations,
-                                       peak_width = 100)
+                                        cutmat = cutmat,
+                                        num_peak_limit = 3,
+                                        peak_locations = peak_locations,
+                                        peak_width = 100)
   
   res <- .initialize_grenander(bandwidth = 100,
                                dist_mat = dist_mat,
@@ -121,19 +121,25 @@ test_that(".initialize_grenander works", {
 ####################################
 
 # load("tests/assets/test.RData")
-## .initialize_theta is correct
-test_that(".initialize_theta works", {
+## .initialize_grenander is correct
+test_that(".initialize_grenander works", {
   load("../assets/test.RData")
-  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
-                                 bin_midpoints = bin_midpoints,
-                                 bool_lock_within_peak = T,
-                                 cutmat = cutmat_dying,
-                                 peak_locations = peak_locations)
+  peak_width <- 750
+  dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                        cutmat = cutmat_dying,
+                                        num_peak_limit = 3,
+                                        peak_locations = peak_locations,
+                                        peak_width = peak_width)
   
-  res <- .initialize_theta(bin_mat = bin_mat,
-                           num_bins = length(bin_midpoints))
+  res <- .initialize_grenander(bandwidth = 200,
+                               dist_mat = dist_mat,
+                               discretization_stepsize = 10)
   
-  expect_true(abs(sum(res)-1) <= 1e-5)
+  expect_true(inherits(res, "grenander"))
+  expect_true(all(diff(res$x) >= 0))
+  expect_true(all(diff(res$pdf) <= 1e-6))
+  expect_true(abs(res$param$left_area - 1) <= 0.1)
+  expect_true(abs(res$param$right_area - 1) <= 0.1)
 })
 
 ####################################
@@ -142,19 +148,22 @@ test_that(".initialize_theta works", {
 ## .compute_loglikelihood is correct
 test_that(".compute_loglikelihood works", {
   load("../assets/test.RData")
-  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
-                                 bin_midpoints = bin_midpoints,
-                                 bool_lock_within_peak = T,
-                                 cutmat = cutmat_dying,
-                                 peak_locations = peak_locations)
-  theta_vec <- .initialize_theta(bin_mat = bin_mat,
-                                 num_bins = length(bin_midpoints))
-  res <- .compute_loglikelihood(bin_mat = bin_mat,
-                                prior_vec = peak_prior,
-                                theta_vec = theta_vec,
-                                tol = 1e-6)
+  peak_width <- 750
+  dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                        cutmat = cutmat_dying,
+                                        num_peak_limit = 3,
+                                        peak_locations = peak_locations,
+                                        peak_width = peak_width)
+  grenander_obj <- .initialize_grenander(bandwidth = 200,
+                                         dist_mat = dist_mat,
+                                         discretization_stepsize = 10)
+  
+  res <- .compute_loglikelihood(dist_mat = dist_mat,
+                                grenander_obj = grenander_obj,
+                                prior_vec = peak_prior)
   
   expect_true(is.numeric(res))
+  expect_true(res < 0)
 })
 
 ####################################
@@ -163,16 +172,19 @@ test_that(".compute_loglikelihood works", {
 ## .e_step is correct
 test_that(".e_step works", {
   load("../assets/test.RData")
-  bin_mat <- .compute_bin_matrix(bin_limits = bin_limits,
-                                 bin_midpoints = bin_midpoints,
-                                 bool_lock_within_peak = T,
-                                 cutmat = cutmat_dying,
-                                 peak_locations = peak_locations)
-  theta_vec <- .initialize_theta(bin_mat = bin_mat,
-                                 num_bins = length(bin_midpoints))
-  res <- .e_step(bin_mat = bin_mat,
-                 prior_vec = peak_prior,
-                 theta_vec = theta_vec)
+  peak_width <- 750
+  dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                        cutmat = cutmat_dying,
+                                        num_peak_limit = 3,
+                                        peak_locations = peak_locations,
+                                        peak_width = peak_width)
+  grenander_obj <- .initialize_grenander(bandwidth = 200,
+                                         dist_mat = dist_mat,
+                                         discretization_stepsize = 10)
+  
+  res <- .e_step(dist_mat = dist_mat,
+                 grenander_obj = grenander_obj,
+                 prior_vec = peak_prior)
   
   expect_true(all(abs(Matrix::rowSums(res)-1)<=1e-6))
 })
@@ -180,39 +192,74 @@ test_that(".e_step works", {
 ####################################
 
 # load("tests/assets/test.RData")
-## peak_mixture_modeling is correct
+## .m_step is correct
+test_that(".m_step works", {
+  load("../assets/test.RData")
+  peak_width <- 750
+  dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                        cutmat = cutmat_dying,
+                                        num_peak_limit = 3,
+                                        peak_locations = peak_locations,
+                                        peak_width = peak_width)
+  grenander_obj <- .initialize_grenander(bandwidth = 200,
+                                         dist_mat = dist_mat,
+                                         discretization_stepsize = 10)
+  assignment_mat <- .e_step(dist_mat = dist_mat,
+                            grenander_obj = grenander_obj,
+                            prior_vec = peak_prior)
+  
+  res <- .m_step(
+    assignment_mat = assignment_mat,
+    bandwidth = 200,
+    dist_mat = dist_mat,
+    discretization_stepsize = 10
+  )
+  
+  expect_true(inherits(res, "grenander"))
+  expect_true(all(diff(res$x) >= 0))
+  expect_true(all(diff(res$pdf) <= 1e-6))
+  expect_true(abs(res$param$left_area - 1) <= 0.1)
+  expect_true(abs(res$param$right_area - 1) <= 0.1)
+})
 
+####################################
+
+## peak_mixture_modeling is correct
+# load("tests/assets/test.RData")
 test_that("peak_mixture_modeling works", {
   load("../assets/test.RData")
-  res1 <- peak_mixture_modeling(bin_limits = bin_limits,
-                                bin_midpoints = bin_midpoints, 
-                                cutmat = cutmat_dying, 
+  peak_width <- 750
+  res1 <- peak_mixture_modeling(bandwidth = 200,
+                                cutmat = cutmat_dying,
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
+                                peak_width = peak_width,
                                 bool_freeze_prior = F,
                                 verbose = 0)
   expect_true(inherits(res1, "peakDistribution"))
-  # round(res1$theta_vec,2)
+  # plot(res1$grenander_obj$x, res1$grenander_obj$pdf, main = "Dying")
+  # res1$grenander_obj$param
   
-  res2 <- peak_mixture_modeling(bin_limits = bin_limits,
-                                bin_midpoints = bin_midpoints, 
-                                cutmat = cutmat_winning, 
+  res2 <- peak_mixture_modeling(bandwidth = 200,
+                                cutmat = cutmat_winning,
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
+                                peak_width = peak_width,
                                 bool_freeze_prior = T,
                                 verbose = 0)
   expect_true(inherits(res2, "peakDistribution"))
-  # round(res2$theta_vec,2)
+  # plot(res2$grenander_obj$x, res2$grenander_obj$pdf, main = "Winning")
+  # res2$grenander_obj$param
   
-  res3 <- peak_mixture_modeling(bin_limits = bin_limits,
-                                bin_midpoints = bin_midpoints, 
+  res3 <- peak_mixture_modeling(bandwidth = 200,
                                 cutmat = rbind(cutmat_dying, cutmat_winning), 
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
+                                peak_width = peak_width,
                                 bool_freeze_prior = F,
                                 verbose = 0)
   expect_true(inherits(res3, "peakDistribution"))
-  # round(res3$theta_vec,2)
-  
+  # plot(res3$grenander_obj$x, res3$grenander_obj$pdf, main = "Both")
+  # res3$grenander_obj$param
 })
 
