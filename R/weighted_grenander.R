@@ -2,9 +2,10 @@
 estimate_grenander <- function(values,
                                weights,
                                bandwidth = diff(stats::quantile(values, probs = c(0.25,0.75)))/10,
-                               discretization_stepsize = bandwidth/5){
+                               discretization_stepsize = bandwidth/5,
+                               scaling_factor = 1){
   cdf_empirical <- .weighted_cdf(
-    values = values,
+    values = values/scaling_factor,
     weights = weights
   )
   
@@ -14,8 +15,8 @@ estimate_grenander <- function(values,
   )
   
   smooth_pdf_est <- .smooth_stepdensity(
-    bandwidth = bandwidth,
-    discretization_stepsize = discretization_stepsize,
+    bandwidth = bandwidth/scaling_factor,
+    discretization_stepsize = discretization_stepsize/scaling_factor,
     stepdensity_res = stepdensity_res
   )
   
@@ -24,7 +25,8 @@ estimate_grenander <- function(values,
   left_area <- sum(res$pdf[-1] * diff(res$x))
   res$param <- c(res$param, 
                  left_area = left_area,
-                 right_area = right_area)
+                 right_area = right_area,
+                 scaling_factor = scaling_factor)
 
   res
 }
@@ -32,7 +34,7 @@ estimate_grenander <- function(values,
 evaluate_grenander <- function(obj,
                                x){
   stopifnot(inherits(obj, "grenander"), x>=0)
-  idx <- which.min(abs(obj$x - x))
+  idx <- which.min(abs(obj$x - x/obj$param$scaling_factor))
   obj$pdf[idx]
 }
 

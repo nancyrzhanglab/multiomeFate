@@ -26,11 +26,13 @@ peak_mixture_modeling <- function(bandwidth,
     peak_width = peak_width
   )
   num_frags <- nrow(dist_mat)
+  scaling_factor <- stats::median(diff(peak_locations))/10 # scaling factor so the PDF has values that don't underflow
   if(is.na(discretization_stepsize)) discretization_stepsize <- max(round(max(dist_mat@x)/2000),5)
   
   grenander_obj <- .initialize_grenander(bandwidth = bandwidth,
                                          dist_mat = dist_mat,
-                                         discretization_stepsize = discretization_stepsize)
+                                         discretization_stepsize = discretization_stepsize,
+                                         scaling_factor = scaling_factor)
   
   # start iteration
   if(verbose > 0) print("Starting initialization")
@@ -60,7 +62,8 @@ peak_mixture_modeling <- function(bandwidth,
       assignment_mat = assignment_mat,
       bandwidth = bandwidth,
       dist_mat = dist_mat,
-      discretization_stepsize = discretization_stepsize
+      discretization_stepsize = discretization_stepsize,
+      scaling_factor = scaling_factor
     )
     if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
     
@@ -218,14 +221,16 @@ compute_peak_prior <- function(mat,
 
 .initialize_grenander <- function(bandwidth,
                                   dist_mat,
-                                  discretization_stepsize){
+                                  discretization_stepsize,
+                                  scaling_factor){
   values <- dist_mat@x
   weights <- rep(1, length(values))
   
   estimate_grenander(values = values,
                      weights = weights,
                      bandwidth = bandwidth,
-                     discretization_stepsize = discretization_stepsize)
+                     discretization_stepsize = discretization_stepsize,
+                     scaling_factor = scaling_factor)
 }
 
 .compute_loglikelihood <- function(dist_mat,
@@ -289,7 +294,8 @@ compute_peak_prior <- function(mat,
 .m_step <- function(assignment_mat,
                     bandwidth,
                     dist_mat,
-                    discretization_stepsize){
+                    discretization_stepsize,
+                    scaling_factor){
   stopifnot(all(dim(assignment_mat) == dim(dist_mat)), length(dist_mat@x) > 0)
   
   values <- dist_mat@x
@@ -302,7 +308,8 @@ compute_peak_prior <- function(mat,
   estimate_grenander(values = values,
                      weights = weights,
                      bandwidth = bandwidth,
-                     discretization_stepsize = discretization_stepsize)
+                     discretization_stepsize = discretization_stepsize,
+                     scaling_factor = scaling_factor)
 }
 
 .compute_prior <- function(assignment_mat,
