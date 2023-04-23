@@ -26,7 +26,8 @@ peak_mixture_modeling <- function(bandwidth,
     peak_width = peak_width
   )
   num_frags <- nrow(dist_mat)
-  scaling_factor <- stats::median(diff(peak_locations))/10 # scaling factor so the PDF has values that don't underflow
+  scaling_factor <- 1 # [[TURN THIS OFF FOR NOW]]
+  # scaling_factor <- stats::median(diff(peak_locations))/10 # scaling factor so the PDF has values that don't underflow
   if(is.na(discretization_stepsize)) discretization_stepsize <- max(round(max(dist_mat@x)/2000),5)
   
   grenander_obj <- .initialize_grenander(bandwidth = bandwidth,
