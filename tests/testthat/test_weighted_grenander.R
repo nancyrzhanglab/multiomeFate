@@ -19,7 +19,7 @@ test_that(".weighted_cdf works", {
 ######################
 
 ## .compute_decreasing_density is correct
-test_that(".weighted_cdf works", {
+test_that(".compute_decreasing_density works", {
   set.seed(10)
   values <- rexp(1000)
   weights <- runif(1000)

@@ -14,28 +14,35 @@ estimate_grenander <- function(values,
     x = cdf_empirical$x
   )
   
-  smooth_pdf_est <- .smooth_stepdensity(
-    bandwidth = bandwidth/scaling_factor,
-    discretization_stepsize = discretization_stepsize/scaling_factor,
-    stepdensity_res = stepdensity_res
-  )
+  class(stepdensity_res) <- "grenander"
+  stepdensity_res
   
-  res <- smooth_pdf_est
-  right_area <- sum(res$pdf[-length(res$pdf)] * diff(res$x))
-  left_area <- sum(res$pdf[-1] * diff(res$x))
-  res$param <- c(res$param, 
-                 left_area = left_area,
-                 right_area = right_area,
-                 scaling_factor = scaling_factor)
-
-  res
+  # smooth_pdf_est <- .smooth_stepdensity(
+  #   bandwidth = bandwidth/scaling_factor,
+  #   discretization_stepsize = discretization_stepsize/scaling_factor,
+  #   stepdensity_res = stepdensity_res
+  # )
+  # 
+  # res <- smooth_pdf_est
+  # right_area <- sum(res$pdf[-length(res$pdf)] * diff(res$x))
+  # left_area <- sum(res$pdf[-1] * diff(res$x))
+  # res$param <- c(res$param, 
+  #                left_area = left_area,
+  #                right_area = right_area,
+  #                scaling_factor = scaling_factor)
+  # 
+  # res
 }
 
 evaluate_grenander <- function(obj,
                                x){
   stopifnot(inherits(obj, "grenander"), x>=0)
-  idx <- which.min(abs(obj$x - x/obj$param$scaling_factor))
-  obj$pdf[idx]
+  # idx <- which.min(abs(obj$x - x/obj$param$scaling_factor))
+  # obj$pdf[idx]
+  
+  idx <- min(which(obj$x >= x))
+  stopifnot(idx > 1)
+  obj$slope.knots[idx-1]
 }
 
 ##########################################
