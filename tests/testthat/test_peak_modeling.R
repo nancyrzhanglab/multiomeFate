@@ -22,6 +22,7 @@ test_that(".compute_frag_peak_matrix works", {
   
   res <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                    cutmat = cutmat,
+                                   fragment_locations = NULL,
                                    num_peak_limit = 3,
                                    peak_locations = peak_locations,
                                    peak_width = 250)
@@ -49,6 +50,7 @@ test_that(".compute_frag_peak_matrix respects num_peak_limit", {
   
   res <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                    cutmat = cutmat,
+                                   fragment_locations = NULL,
                                    num_peak_limit = 1,
                                    peak_locations = peak_locations,
                                    peak_width = 250)
@@ -62,9 +64,9 @@ test_that(".compute_frag_peak_matrix respects num_peak_limit", {
 # load("tests/assets/test.RData")
 test_that(".compute_frag_peak_matrix works on a real cutmatrix", {
   load("../assets/test.RData")
-  peak_width <- 750
   res <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                    cutmat = cutmat_dying,
+                                   fragment_locations = NULL,
                                    num_peak_limit = 3,
                                    peak_locations = peak_locations,
                                    peak_width = peak_width)
@@ -106,6 +108,7 @@ test_that(".initialize_grenander works", {
   rownames(cutmat) <- paste0("cell:", 1:nrow(cutmat))
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                         cutmat = cutmat,
+                                        fragment_locations = NULL,
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = 100)
@@ -124,9 +127,9 @@ test_that(".initialize_grenander works", {
 ## .initialize_grenander is correct
 test_that(".initialize_grenander works", {
   load("../assets/test.RData")
-  peak_width <- 750
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                         cutmat = cutmat_dying,
+                                        fragment_locations = NULL,
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
@@ -148,9 +151,9 @@ test_that(".initialize_grenander works", {
 ## .compute_loglikelihood is correct
 test_that(".compute_loglikelihood works", {
   load("../assets/test.RData")
-  peak_width <- 750
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                         cutmat = cutmat_dying,
+                                        fragment_locations = NULL,
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
@@ -172,9 +175,9 @@ test_that(".compute_loglikelihood works", {
 ## .e_step is correct
 test_that(".e_step works", {
   load("../assets/test.RData")
-  peak_width <- 750
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                         cutmat = cutmat_dying,
+                                        fragment_locations = NULL,
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
@@ -195,9 +198,9 @@ test_that(".e_step works", {
 ## .m_step is correct
 test_that(".m_step works", {
   load("../assets/test.RData")
-  peak_width <- 750
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                         cutmat = cutmat_dying,
+                                        fragment_locations = NULL,
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
@@ -228,7 +231,6 @@ test_that(".m_step works", {
 # load("tests/assets/test.RData")
 test_that("peak_mixture_modeling works", {
   load("../assets/test.RData")
-  peak_width <- 750
   res1 <- peak_mixture_modeling(bandwidth = 200,
                                 cutmat = cutmat_dying,
                                 peak_locations = peak_locations,

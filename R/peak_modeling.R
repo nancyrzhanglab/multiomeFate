@@ -6,6 +6,7 @@ peak_mixture_modeling <- function(bandwidth,
                                   discretization_stepsize = NA, #if NA, it defaults to max(round(max(dist_mat@x)/50),5)
                                   bool_lock_within_peak = T, 
                                   bool_freeze_prior = F, # set to T if optimization is done to too few fragments. this is the prior over peaks
+                                  fragment_locations = NULL, # one of cutmat and fragment_locations should be NULL
                                   max_iter = 100,
                                   min_prior = 0.01,
                                   num_peak_limit = 4,
@@ -16,10 +17,10 @@ peak_mixture_modeling <- function(bandwidth,
   stopifnot(inherits(cutmat, c("dgCMatrix", "matrix")))
   
   # initial assignment
-  num_bins <- length(bin_midpoints)
   dist_mat <- .compute_frag_peak_matrix(
     bool_lock_within_peak = bool_lock_within_peak,
     cutmat = cutmat,
+    fragment_locations = fragment_locations,
     num_peak_limit = num_peak_limit,
     peak_locations = peak_locations,
     peak_width = peak_width
@@ -62,7 +63,7 @@ peak_mixture_modeling <- function(bandwidth,
       discretization_stepsize = discretization_stepsize
     )
     if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
-   
+    
     if(verbose) print("Computing likelihood")
     loglikelihood_val <- .compute_loglikelihood(
       dist_mat = dist_mat,
@@ -134,40 +135,43 @@ compute_peak_prior <- function(mat,
 # compute a frag-by-peak matrix that denotes the distance from each frag to each peak, and NA otherwise
 .compute_frag_peak_matrix <- function(bool_lock_within_peak,
                                       cutmat,
+                                      fragment_locations, # one of cutmat and fragment_locations should be NULL
                                       num_peak_limit,
                                       peak_locations,
                                       peak_width){
+  stopifnot((!is.null(cutmat) & is.null(fragment_locations)) || (is.null(cutmat) & !is.null(fragment_locations)))
+  
   # a matrix with nrow = number of fragments, and ncol = number of peaks
   n <- nrow(cutmat)
   p <- length(peak_locations)
-  cutmat_t <- Matrix::t(cutmat) # basepair-by-cell
   
   # a list, where each entry is a matrix of "fragments by peaks" where its entry is the distance
-  cell_list <- lapply(1:n, function(i){
-    fragment_idx <- .nonzero_col(mat = cutmat_t,
-                                 col_idx = i,
-                                 bool_value = F)
-    if(length(fragment_idx) == 0) return(numeric(0))
+  if(is.null(fragment_locations)){
+    cutmat_t <- Matrix::t(cutmat) # basepair-by-cell
+    
+    fragment_idx <- unlist(lapply(1:n, function(i){
+      .nonzero_col(mat = cutmat_t,
+                   col_idx = i,
+                   bool_value = F)
+    }))
+    
     fragment_locations <- as.numeric(colnames(cutmat))[fragment_idx]
-    frag_len <- length(fragment_locations)
-    
-    # for each fragment, return a vector (length of peaks) of the distance to the peak
-    tmp <- sapply(fragment_locations, function(j){
-      peak_locations - j
-    })
-    
-    if(!is.matrix(tmp)) {
-      stopifnot(p == 1)
-      tmp <- matrix(tmp, nrow = 1, ncol = frag_len)
-    }
-    tmp <- t(tmp)
-    stopifnot(all(dim(tmp) == c(frag_len,p)))
-    rownames(tmp) <- paste0("c:", i, "_loc:", fragment_locations)
-    tmp
-  })
-  cell_list <- cell_list[sapply(cell_list, length) > 0]
+  }
   
-  res <- do.call(rbind, cell_list)
+  frag_len <- length(fragment_locations)
+  res <- sapply(fragment_locations, function(j){
+    peak_locations - j
+  })
+  if(!is.matrix(res)) {
+    stopifnot(p == 1)
+    res <- matrix(res, nrow = frag_len, ncol = 1)
+  } else {
+    res <- t(res)
+  }
+  stopifnot(all(dim(res) == c(frag_len,p)))
+  rownames(res) <- sapply(1:nrow(res), function(i){
+    paste0("frag:", i, "_loc:", fragment_locations[i])
+  })
   colnames(res) <- paste0("p:", 1:p)
   
   # apply bool_lock_within_peak
