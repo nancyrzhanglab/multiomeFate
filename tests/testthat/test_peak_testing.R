@@ -145,6 +145,49 @@ test_that(".compute_crossfit_teststat works on a real cutmatrix", {
                                              "teststat"))))
 })
 
+# load("tests/assets/test.RData")
+test_that(".compute_crossfit_teststat fails to reject under the sharp null", {
+  load("../assets/test.RData")
+  bandwidth <- 200
+  discretization_stepsize <- 10
+  
+  frag_win <- .extract_fragment_from_cutmat(cutmat_winning)
+  frag_die <- .extract_fragment_from_cutmat(cutmat_dying)
+  frag_all <- c(frag_win, frag_die)
+  
+  trials <- 10
+  
+  pvalue_vec <- sapply(1:trials, function(i){
+    set.seed(10*i)
+    idx <- sample(1:length(frag_all), size = round(length(frag_all)/2))
+    idx_die <- sample(1:length(idx), size = round(length(idx)/2))
+    idx_win <- sample(1:(length(frag_all) - length(idx)),
+                      size = round((length(frag_all) - length(idx))/2))
+    
+    res <- .compute_crossfit_teststat(
+      bandwidth = bandwidth,
+      frag_die = frag_all[idx], 
+      frag_win = frag_all[-idx],
+      idx_die = idx_die,
+      idx_win = idx_win,
+      peak_locations = peak_locations,
+      peak_prior = peak_prior,
+      peak_width = peak_width,
+      discretization_stepsize = discretization_stepsize, 
+      bool_lock_within_peak = T, 
+      max_iter = 100,
+      min_fragments = 6,
+      min_prior = 0.01,
+      num_peak_limit = 4,
+      tol = 1e-6,
+      verbose = 0
+    )
+    print(paste0("Trial ", i, ": p-value of ", round(min(1/res$teststat,1),5)))
+    
+    min(1/res$teststat,1)
+  })
+})
+
 #######################
 
 ## peak_testing is correct
@@ -180,31 +223,4 @@ test_that("peak_testing works on a real cutmatrix", {
                                              "teststat"))))
 })
 
-# load("tests/assets/test.RData")
-test_that("peak_testing fails to reject under the sharp null", {
-  load("../assets/test.RData")
-  bandwidth <- 200
-  discretization_stepsize <- 10
-  
-  cutmat_all <- rbind(cutmat_dying, cutmat_winning)
-  
-  trials <- 10
-  pvalue_vec <- sapply(1:trials, function(i){
-    set.seed(10*i)
-    idx1 <- sample(1:nrow(cutmat_all), round(nrow(cutmat_all)/2))
-    
-    res <- peak_testing(
-      bandwidth = bandwidth,
-      cutmat_dying = cutmat_all[idx1,], 
-      cutmat_winning = cutmat_all[-idx1,], 
-      peak_locations = peak_locations,
-      peak_prior = peak_prior,
-      peak_width = peak_width,
-      discretization_stepsize = discretization_stepsize,
-      verbose = 0
-    )
-    print(paste0("Trial ", i, ": p-value of ", round(res$pvalue,5)))
-    
-    res$pvalue
-  })
-})
+
