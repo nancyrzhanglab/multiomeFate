@@ -71,6 +71,7 @@ peak_testing <- function(bandwidth,
             length(idx_win) > floor(min_fragments/2),
             floor(min_fragments/2) > 1)
   
+  print("fit1")
   fit1 <- .lrt_onefold(
     bandwidth = bandwidth,
     frag_die = frag_die, 
@@ -91,6 +92,7 @@ peak_testing <- function(bandwidth,
   
   idx_die2 <- c(1:length(frag_die))[-idx_die]
   idx_win2 <- c(1:length(frag_win))[-idx_win]
+  print("fit2")
   fit2 <- .lrt_onefold(
     bandwidth = bandwidth,
     frag_die = frag_die, 
@@ -146,6 +148,7 @@ peak_testing <- function(bandwidth,
  
   # p1 is for the alternative (unconstrained)
   # compute win!=die on the first fold
+  print("fit win")
   fit_win <- peak_mixture_modeling(
     bandwidth = bandwidth,
     cutmat = NULL, 
@@ -164,6 +167,7 @@ peak_testing <- function(bandwidth,
     verbose = verbose
   )
   
+  print("fit die")
   fit_die <- peak_mixture_modeling(
     bandwidth = bandwidth,
     cutmat = NULL, 
@@ -184,6 +188,7 @@ peak_testing <- function(bandwidth,
   
   # p0 is for the null
   # compute the win=die on the second fold
+  print("fit both")
   fit_both <- peak_mixture_modeling(
     bandwidth = bandwidth,
     cutmat = NULL, 

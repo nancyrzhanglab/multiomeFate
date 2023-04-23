@@ -67,7 +67,7 @@ peak_mixture_modeling <- function(bandwidth,
     if(verbose) print("Computing likelihood")
     loglikelihood_val <- .compute_loglikelihood(
       dist_mat = dist_mat,
-      grenander_obj = grenander_obj,
+      grenander_obj = grenander_obj_new,
       prior_vec = peak_prior
     )
     
@@ -294,6 +294,10 @@ compute_peak_prior <- function(mat,
   
   values <- dist_mat@x
   weights <- assignment_mat@x
+  if(length(values) != length(weights)){
+    idx <- which(as.matrix(dist_mat) != 0)
+    weights <- assignment_mat[idx]
+  }
   
   estimate_grenander(values = values,
                      weights = weights,

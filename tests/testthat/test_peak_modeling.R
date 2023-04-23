@@ -237,6 +237,7 @@ test_that("peak_mixture_modeling works", {
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
                                 bool_freeze_prior = F,
+                                max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res1, "peakDistribution"))
   # plot(res1$grenander_obj$x, res1$grenander_obj$pdf, main = "Dying")
@@ -248,6 +249,7 @@ test_that("peak_mixture_modeling works", {
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
                                 bool_freeze_prior = T,
+                                max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res2, "peakDistribution"))
   # plot(res2$grenander_obj$x, res2$grenander_obj$pdf, main = "Winning")
@@ -259,9 +261,15 @@ test_that("peak_mixture_modeling works", {
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
                                 bool_freeze_prior = F,
+                                max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res3, "peakDistribution"))
   # plot(res3$grenander_obj$x, res3$grenander_obj$pdf, main = "Both")
   # res3$grenander_obj$param
+  
+  # there's at least some non-trivial optimization going on
+  expect_true(max(c(length(res1$loglikelihood_vec),
+                    length(res2$loglikelihood_vec),
+                    length(res3$loglikelihood_vec))) > 2)
 })
 

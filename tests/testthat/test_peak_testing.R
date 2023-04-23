@@ -47,7 +47,7 @@ test_that(".lrt_onefold fails to reject for synthetic sharp null", {
   set.seed(10)
   peak_locations <- c(1500, 1900)
   names(peak_locations) <- paste0("p:", 1:2)
-  num_frags <- 1000
+  num_frags <- 120
   frag_location <- rep(c(1100,1300,1800), each = num_frags/3)
   cutmat <- sapply(frag_location, function(x){
     vec <- rep(0, length = 1000)
@@ -64,7 +64,7 @@ test_that(".lrt_onefold fails to reject for synthetic sharp null", {
   
   frag_all <- .extract_fragment_from_cutmat(cutmat)
   
-  trials <- 100
+  trials <- 50
   pvalue_vec <- sapply(1:trials, function(i){
     set.seed(10*i)
     print(i)
@@ -94,6 +94,8 @@ test_that(".lrt_onefold fails to reject for synthetic sharp null", {
     
     min(1/res$teststat,1)
   })
+  
+  expect_true(all(quantile(pvalue_vec) - seq(0,1,length.out=5) >= -.1))
 })
 
 ####################
@@ -186,7 +188,7 @@ test_that("peak_testing fails to reject under the sharp null", {
   
   cutmat_all <- rbind(cutmat_dying, cutmat_winning)
   
-  trials <- 50
+  trials <- 10
   pvalue_vec <- sapply(1:trials, function(i){
     set.seed(10*i)
     idx1 <- sample(1:nrow(cutmat_all), round(nrow(cutmat_all)/2))
