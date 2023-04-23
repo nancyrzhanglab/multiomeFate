@@ -14,7 +14,7 @@ peak_mixture_modeling <- function(bandwidth,
                                   return_dist_mat = F, # set to T usually for only debugging purposes
                                   tol = 1e-6,
                                   verbose = 1){
-  stopifnot(inherits(cutmat, c("dgCMatrix", "matrix")))
+  stopifnot(all(is.null(cutmat)) || inherits(cutmat, c("dgCMatrix", "matrix")))
   
   # initial assignment
   dist_mat <- .compute_frag_peak_matrix(
@@ -147,15 +147,7 @@ compute_peak_prior <- function(mat,
   
   # a list, where each entry is a matrix of "fragments by peaks" where its entry is the distance
   if(is.null(fragment_locations)){
-    cutmat_t <- Matrix::t(cutmat) # basepair-by-cell
-    
-    fragment_idx <- unlist(lapply(1:n, function(i){
-      .nonzero_col(mat = cutmat_t,
-                   col_idx = i,
-                   bool_value = F)
-    }))
-    
-    fragment_locations <- as.numeric(colnames(cutmat))[fragment_idx]
+    fragment_locations <- .extract_fragment_from_cutmat(cutmat)
   }
   
   frag_len <- length(fragment_locations)
@@ -324,4 +316,17 @@ compute_peak_prior <- function(mat,
   
   stopifnot(all(prior_vec > 0))
   prior_vec
+}
+
+.extract_fragment_from_cutmat <- function(cutmat){
+  n <- nrow(cutmat)
+  cutmat_t <- Matrix::t(cutmat) # basepair-by-cell
+  
+  fragment_idx <- unlist(lapply(1:n, function(i){
+    .nonzero_col(mat = cutmat_t,
+                 col_idx = i,
+                 bool_value = F)
+  }))
+  
+  as.numeric(colnames(cutmat))[fragment_idx]
 }
