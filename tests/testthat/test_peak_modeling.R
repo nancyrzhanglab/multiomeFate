@@ -266,6 +266,7 @@ test_that("peak_mixture_modeling works", {
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
                                 bool_freeze_prior = F,
+                                return_lowerbound = T,
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res1, "peakDistribution"))
@@ -278,6 +279,7 @@ test_that("peak_mixture_modeling works", {
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
                                 bool_freeze_prior = F,
+                                return_lowerbound = T,
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res2, "peakDistribution"))
@@ -290,6 +292,7 @@ test_that("peak_mixture_modeling works", {
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
                                 bool_freeze_prior = F,
+                                return_lowerbound = T,
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res3, "peakDistribution"))

@@ -8,6 +8,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
                                   max_iter = 100,
                                   min_prior = 0.01,
                                   num_peak_limit = 4,
+                                  return_lowerbound = F,
                                   return_assignment_mat = F, # set to T usually for only debugging purposes
                                   return_dist_mat = F, # set to T usually for only debugging purposes
                                   tol = 1e-6,
@@ -43,12 +44,13 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
   )
   if(verbose > 1) print(paste0("Initial log-likelihood: ", round(loglikelihood_vec[1],2)))
   prior_vec <- peak_prior
+  lb_vec <- numeric(0)
   
   # TODO: Return if there are no fragments
   
   while(TRUE){
     if(iter > max_iter) break()
-    
+  
     if(verbose > 1) print("E-step")
     assignment_mat <- .e_step(
       dist_mat = dist_mat,
@@ -56,12 +58,32 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
       prior_vec = prior_vec
     )
     
+    if(return_lowerbound) {
+      tmp <- .compute_loglikelihood_lowerbound(
+        assignment_mat = assignment_mat,
+        dist_mat = dist_mat,
+        grenander_obj = grenander_obj
+      )
+      lb_vec <- c(lb_vec, tmp)
+      if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) stop("Failed on E step")
+    }
+    
     if(verbose > 1) print("M-step")
     grenander_obj_new <- .m_step(
       assignment_mat = assignment_mat,
       dist_mat = dist_mat,
       scaling_factor = scaling_factor
     )
+    
+    if(return_lowerbound) {
+      tmp <- .compute_loglikelihood_lowerbound(
+        assignment_mat = assignment_mat,
+        dist_mat = dist_mat,
+        grenander_obj = grenander_obj_new
+      )
+      lb_vec <- c(lb_vec, tmp)
+      if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) stop("Failed on M step")
+    }
     if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
     
     if(verbose) print("Computing likelihood")
@@ -90,6 +112,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
                  iter = length(loglikelihood_vec),
                  loglikelihood_val = loglikelihood_vec[length(loglikelihood_vec)],
                  loglikelihood_vec = loglikelihood_vec,
+                 lowerbound_vec = lb_vec,
                  num_frags = num_frags,
                  prior_vec = prior_vec),
             class = "peakDistribution")
@@ -250,6 +273,20 @@ compute_peak_prior <- function(mat,
   tmp <- .mult_mat_vec(prob_mat, prior_vec)
   sum_vec <- Matrix::rowSums(tmp)
   sum(log(sum_vec[sum_vec >= tol]))
+}
+
+.compute_loglikelihood_lowerbound <- function(assignment_mat,
+                                              dist_mat,
+                                              grenander_obj,
+                                              tol = 1e-6){
+  idx <- which(as.matrix(dist_mat) != 0)
+  sum(sapply(idx, function(i){
+    prob <- evaluate_grenander(
+      obj = grenander_obj,
+      x = dist_mat[i]
+    )
+    assignment_mat[i] * log(prob) - assignment_mat[i]*log(assignment_mat[i])
+  }))
 }
 
 # compute assignment_mat
