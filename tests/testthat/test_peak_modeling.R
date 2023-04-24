@@ -128,7 +128,7 @@ test_that(".initialize_grenander works on a real cutmat", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  scaling_factor <- max(dist_mat@x)
+  scaling_factor <- max(dist_mat@x)/10
   
   res <- .initialize_grenander(dist_mat = dist_mat,
                                scaling_factor = scaling_factor)
@@ -200,9 +200,10 @@ test_that(".e_step works", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  grenander_obj <- .initialize_grenander(bandwidth = 200,
-                                         dist_mat = dist_mat,
-                                         discretization_stepsize = 10)
+  scaling_factor <- max(dist_mat@x)/10
+  
+  grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
+                                         scaling_factor = scaling_factor)
   
   res <- .e_step(dist_mat = dist_mat,
                  grenander_obj = grenander_obj,
@@ -223,25 +224,34 @@ test_that(".m_step works", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  grenander_obj <- .initialize_grenander(bandwidth = 200,
-                                         dist_mat = dist_mat,
-                                         discretization_stepsize = 10)
+  scaling_factor <- max(dist_mat@x)/10
+  
+  grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
+                                         scaling_factor = scaling_factor)
+  ll1 <- .compute_loglikelihood(dist_mat = dist_mat,
+                                grenander_obj = grenander_obj,
+                                prior_vec = peak_prior)
+  
   assignment_mat <- .e_step(dist_mat = dist_mat,
                             grenander_obj = grenander_obj,
                             prior_vec = peak_prior)
   
   res <- .m_step(
     assignment_mat = assignment_mat,
-    bandwidth = 200,
     dist_mat = dist_mat,
-    discretization_stepsize = 10
+    scaling_factor = scaling_factor
   )
   
   expect_true(inherits(res, "grenander"))
   expect_true(all(diff(res$x) >= 0))
   expect_true(all(diff(res$pdf) <= 1e-6))
-  expect_true(abs(res$param$left_area - 1) <= 0.1)
-  expect_true(abs(res$param$right_area - 1) <= 0.1)
+  
+  # likelihood went up
+  peak_prior2 <- .compute_prior(assignment_mat = assignment_mat, min_prior = 0.01)
+  ll2 <- .compute_loglikelihood(dist_mat = dist_mat,
+                                grenander_obj = res,
+                                prior_vec = peak_prior2)
+  expect_true(ll2 >= ll1)
 })
 
 ####################################

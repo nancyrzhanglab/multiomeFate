@@ -64,7 +64,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
     loglikelihood_val <- .compute_loglikelihood(
       dist_mat = dist_mat,
       grenander_obj = grenander_obj_new,
-      prior_vec = peak_prior
+      prior_vec = prior_vec
     )
     
     loglikelihood_vec <- c(loglikelihood_vec, loglikelihood_val)
