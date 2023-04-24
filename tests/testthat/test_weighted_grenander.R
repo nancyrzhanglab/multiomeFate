@@ -89,6 +89,80 @@ test_that("estimate_grenander yields a density that integrates to 1", {
   expect_true(abs(area - 1) <= 1e-6)
 })
 
+test_that("estimate_grenander is the MLE for the unweighted samples", {
+  trials <- 10
+  nboot <- 100
+  
+  bool_vec <- sapply(1:trials, function(i){
+    set.seed(10*i)
+    
+    n <- 100
+    values <- sapply(1:n, function(i){
+      mixture <- stats::rbinom(1, 1, 0.5)
+      if(mixture == 0) stats::rexp(1) else stats::rnorm(1, mean = 5, sd = 0.5)
+    })
+    weights <- rep(1, n)
+    
+    res <- estimate_grenander(values = values,
+                              weights = weights)
+    
+    ll <- sum(log(sapply(values, function(x){
+      evaluate_grenander(obj = res, x = x)
+    })))
+    
+    ll_others <- sapply(1:nboot, function(j){
+      set.seed(j)
+      weights <- stats::runif(n)
+      res_alt <- estimate_grenander(values = values,
+                                    weights = weights)
+      sum(log(sapply(values, function(x){
+        evaluate_grenander(obj = res_alt, x = x)
+      })))
+    })
+    
+    ll >= max(ll_others)
+  })
+  
+  expect_true(all(bool_vec))
+})
+
+test_that("estimate_grenander is the MLE for the weighted samples", {
+  trials <- 10
+  nboot <- 1000
+  
+  bool_vec <- sapply(1:trials, function(i){
+    set.seed(10*i)
+    
+    n <- 10
+    values <- sapply(1:n, function(i){
+      mixture <- stats::rbinom(1, 1, 0.5)
+      if(mixture == 0) stats::rexp(1) else stats::rnorm(1, mean = 5, sd = 0.5)
+    })
+    weights <- stats::runif(n)
+    
+    res <- estimate_grenander(values = values,
+                              weights = weights)
+    
+    ll <- sum(weights*log(sapply(values, function(x){
+      evaluate_grenander(obj = res, x = x)
+    })))
+    
+    ll_others <- sapply(1:nboot, function(j){
+      set.seed(j)
+      weights2 <- stats::runif(n)
+      res_alt <- estimate_grenander(values = values,
+                                    weights = weights2)
+      sum(weights*log(sapply(values, function(x){
+        evaluate_grenander(obj = res_alt, x = x)
+      })))
+    })
+    
+    ll >= max(ll_others)
+  })
+  
+  expect_true(all(bool_vec))
+})
+
 #######################
 
 ## evaluate_grenander is correct
@@ -102,8 +176,8 @@ test_that("evaluate_grenander works", {
   weights <- runif(n)
   
   obj1 <- estimate_grenander(values = values*10,
-                            weights = weights,
-                            scaling_factor = 10)
+                             weights = weights,
+                             scaling_factor = 10)
   stopifnot(abs(obj1$scaling_factor - 10) <= 1e-6)
   
   obj2 <- estimate_grenander(values = values,
@@ -127,3 +201,5 @@ test_that("evaluate_grenander works", {
   
   expect_true(all(bool_vec))
 })
+
+

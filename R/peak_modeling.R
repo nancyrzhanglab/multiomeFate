@@ -75,6 +75,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
     iter <- length(loglikelihood_vec)
     if(length(loglikelihood_vec) >= 2){
       if(verbose > 0) print(paste0("Iteration: ", iter, ", log-likelihood: ", round(loglikelihood_vec[iter],2)))
+      if(loglikelihood_vec[iter] < loglikelihood_vec[iter-1]-tol) stop("Error: Likelihood decreased")
       if(abs(loglikelihood_vec[iter] - loglikelihood_vec[iter-1]) <= tol) break()
     }
     grenander_obj <- grenander_obj_new
@@ -261,15 +262,16 @@ compute_peak_prior <- function(mat,
   stopifnot(abs(sum(prior_vec) - 1) <= tol, m > 0, p > 0)
   
   # compute all the densities based on grenander
-  prob_mat <- dist_mat
-  vec <- prob_mat@x
+  dist_vec <- dist_mat@x
+  vec <- rep(NA, length(dist_vec))
   if(length(vec) == 0 || m == 0) return(NA) # if no fragments
-  for(i in 1:length(vec)){
+  for(i in 1:length(dist_vec)){
     vec[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = vec[i]
+      x = dist_vec[i]
     )
   }
+  prob_mat <- dist_mat
   prob_mat@x <- vec
   
   tmp <- .mult_mat_vec(prob_mat, prior_vec)

@@ -21,7 +21,7 @@ evaluate_grenander <- function(obj,
                                x){
   stopifnot(inherits(obj, "grenander"), x>=0)
   
-  idx <- max(which(obj$x <= x/obj$scaling_factor))
+  idx <- max(which(obj$x < x/obj$scaling_factor))
   obj$pdf[idx]
 }
 
