@@ -113,19 +113,14 @@ test_that(".initialize_grenander works", {
                                         peak_locations = peak_locations,
                                         peak_width = 100)
   
-  res <- .initialize_grenander(bandwidth = 100,
-                               dist_mat = dist_mat,
-                               discretization_stepsize = 15)
+  res <- .initialize_grenander(dist_mat = dist_mat,
+                               scaling_factor = 1)
+  expect_true(inherits(res, "grenander"))
   expect_true(all(res$pdf[res$x > 900] == 0))
-  expect_true(abs(res$param$left_area - 1) <= 0.1)
-  expect_true(abs(res$param$right_area - 1) <= 0.1)
 })
 
-####################################
-
 # load("tests/assets/test.RData")
-## .initialize_grenander is correct
-test_that(".initialize_grenander works", {
+test_that(".initialize_grenander works on a real cutmat", {
   load("../assets/test.RData")
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                         cutmat = cutmat_dying,
@@ -133,23 +128,25 @@ test_that(".initialize_grenander works", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
+  scaling_factor <- max(dist_mat@x)
   
-  res <- .initialize_grenander(bandwidth = 200,
-                               dist_mat = dist_mat,
-                               discretization_stepsize = 10)
+  res <- .initialize_grenander(dist_mat = dist_mat,
+                               scaling_factor = scaling_factor)
   
   expect_true(inherits(res, "grenander"))
   expect_true(all(diff(res$x) >= 0))
   expect_true(all(diff(res$pdf) <= 1e-6))
-  expect_true(abs(res$param$left_area - 1) <= 0.1)
-  expect_true(abs(res$param$right_area - 1) <= 0.1)
+  
+  area <- sum(diff(res$x)*res$pdf[-length(res$pdf)])
+  expect_true(abs(area - 1) <= 1e-6)
 })
 
 ####################################
 
-# load("tests/assets/test.RData")
 ## .compute_loglikelihood is correct
-test_that(".compute_loglikelihood works", {
+
+# load("tests/assets/test.RData")
+test_that(".compute_loglikelihood is correct", {
   load("../assets/test.RData")
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
                                         cutmat = cutmat_dying,
@@ -157,9 +154,10 @@ test_that(".compute_loglikelihood works", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  grenander_obj <- .initialize_grenander(bandwidth = 200,
-                                         dist_mat = dist_mat,
-                                         discretization_stepsize = 10)
+  scaling_factor <- max(dist_mat@x)/10
+  
+  grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
+                                         scaling_factor = scaling_factor)
   
   res <- .compute_loglikelihood(dist_mat = dist_mat,
                                 grenander_obj = grenander_obj,
@@ -167,6 +165,27 @@ test_that(".compute_loglikelihood works", {
   
   expect_true(is.numeric(res))
   expect_true(res < 0)
+  
+  # manual calculation
+  res2 <- 0
+  for(i in 1:nrow(dist_mat)){
+    tmp <- 0
+    peak_idxs <- which(as.numeric(dist_mat[i,]) != 0)
+    stopifnot(length(peak_idxs) <= 6)
+    
+    for(j in 1:length(peak_idxs)){
+      dist_val <- dist_mat[i,peak_idxs[j]]
+      prob_dist_given_peak <- evaluate_grenander(
+        obj = grenander_obj,
+        x = dist_val
+      )
+      tmp <- tmp + peak_prior[peak_idxs[j]] * prob_dist_given_peak
+    }
+    
+    res2 <- res2 + log(tmp)
+  }
+  
+  expect_true(abs(res - res2) <= 1e-6)
 })
 
 ####################################

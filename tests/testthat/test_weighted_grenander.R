@@ -73,6 +73,22 @@ test_that("estimate_grenander works for a non-decreasing density", {
   expect_true(all(diff(res$x) >= 0))
 })
 
+test_that("estimate_grenander yields a density that integrates to 1", {
+  set.seed(10)
+  n <- 1000
+  values <- sapply(1:n, function(i){
+    mixture <- stats::rbinom(1, 1, 0.5)
+    if(mixture == 0) stats::rexp(1) else stats::rnorm(1, mean = 5, sd = 0.5)
+  })
+  weights <- rep(1, n)
+  
+  res <- estimate_grenander(values = values,
+                            weights = weights)
+  
+  area <- sum(diff(res$x)*res$pdf[-length(res$pdf)])
+  expect_true(abs(area - 1) <= 1e-6)
+})
+
 #######################
 
 ## evaluate_grenander is correct
