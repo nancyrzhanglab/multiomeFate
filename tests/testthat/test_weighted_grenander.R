@@ -35,81 +35,7 @@ test_that(".compute_decreasing_density works", {
   expect_true(all(diff(res$slope.knots) <= 0))
 })
 
-#####################
-
-## .epanechnikov_weights is correct
-
-test_that(".epanechnikov_weights works", {
-  res <- .epanechnikov_weights(c(-1, -.5, .2, .7, 1))
-  expect_true(abs(sum(res)-1) <= 1e-6)
-  expect_true(all(abs(res[c(1,5)]) <= 1e-6))
-})
-
-#####################
-
-## .epanechnikov_kernel_all is 
-test_that(".epanechnikov_kernel_all works", {
-  set.seed(10)
-  values <- rexp(1000)
-  weights <- runif(1000)
-  cdf_res <- .weighted_cdf(values = values, weights = weights)
-  stepdensity_res <- .compute_decreasing_density(cdf = cdf_res$cdf,
-                                             x = cdf_res$x)
-  x <- stepdensity_res$x.knots 
-  pdf <- stepdensity_res$slope.knots
-  pdf <- c(pdf[1], pdf)
-  res <- .epanechnikov_kernel_all(bandwidth = 0.5,
-                                  x = x,
-                                  pdf = pdf)
-  
-  expect_true(is.list(res))
-  expect_true(inherits(res, "grenander"))
-  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "param"))))
-  expect_true(sum(abs(res$x - x)) <= 1e-6)
-  expect_true(all(diff(res$pdf) <= 0))
-})
-
-########################
-
-## .smooth_stepdensity is correct
-test_that(".smooth_stepdensity works", {
-  set.seed(10)
-  values <- rexp(1000)
-  weights <- runif(1000)
-  cdf_res <- .weighted_cdf(values = values, weights = weights)
-  stepdensity_res <- .compute_decreasing_density(cdf = cdf_res$cdf,
-                                                 x = cdf_res$x)
-  res <- .smooth_stepdensity(bandwidth = 0.5,
-                             discretization_stepsize = 0.01,
-                             stepdensity_res = stepdensity_res)
-  
-  expect_true(is.list(res))
-  expect_true(inherits(res, "grenander"))
-  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "param"))))
-  expect_true(all(diff(res$pdf) <= 0))
-  expect_true(all(diff(res$x) >= 0))
-})
-
-test_that(".smooth_stepdensity roughly integrates to 1", {
-  set.seed(10)
-  values <- rexp(1000)
-  weights <- runif(1000)
-  cdf_res <- .weighted_cdf(values = values, weights = weights)
-  stepdensity_res <- .compute_decreasing_density(cdf = cdf_res$cdf,
-                                                 x = cdf_res$x)
-  res <- .smooth_stepdensity(bandwidth = 0.01,
-                             discretization_stepsize = 0.0005,
-                             stepdensity_res = stepdensity_res)
-  
-  right_area <- sum(res$pdf[-length(res$pdf)] * diff(res$x))
-  left_area <- sum(res$pdf[-1] * diff(res$x))
-  
-  expect_true(abs(right_area - 1) <= .001)
-  expect_true(abs(left_area - 1) <= .001)
-  expect_true(right_area >= left_area)
-})
-
-########################
+#############################
 
 ## estimate_grenander is correct
 
@@ -123,7 +49,7 @@ test_that("estimate_grenander works", {
   
   expect_true(is.list(res))
   expect_true(inherits(res, "grenander"))
-  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "param"))))
+  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "scaling_factor"))))
   expect_true(all(diff(res$pdf) <= 1e-6))
   expect_true(all(diff(res$x) >= 0))
   expect_true(all(sort(names(res$param)) == sort(c("bandwidth", "discretization_stepsize", "left_area", "right_area"))))
@@ -145,4 +71,43 @@ test_that("estimate_grenander works for a non-decreasing density", {
   expect_true(inherits(res, "grenander"))
   expect_true(all(diff(res$pdf) <= 1e-6))
   expect_true(all(diff(res$x) >= 0))
+})
+
+#######################
+
+## evaluate_grenander is correct
+test_that("evaluate_grenander works", {
+  set.seed(10)
+  n <- 1000
+  values <- sapply(1:n, function(i){
+    mixture <- stats::rbinom(1, 1, 0.5)
+    if(mixture == 0) stats::rexp(1) else stats::rnorm(1, mean = 5, sd = 0.5)
+  })
+  weights <- runif(n)
+  
+  obj1 <- estimate_grenander(values = values*10,
+                            weights = weights,
+                            scaling_factor = 10)
+  stopifnot(abs(obj1$scaling_factor - 10) <= 1e-6)
+  
+  obj2 <- estimate_grenander(values = values,
+                             weights = weights,
+                             scaling_factor = 1)
+  stopifnot(abs(obj2$scaling_factor - 1) <= 1e-6)
+  
+  obj3 <- estimate_grenander(values = values*10,
+                             weights = weights,
+                             scaling_factor = 1)
+  stopifnot(abs(obj3$scaling_factor - 1) <= 1e-6)
+  
+  test_values <- runif(100)
+  bool_vec <- sapply(test_values, function(x){
+    res1 <- evaluate_grenander(obj = obj1, x = 10*x)
+    res2 <- evaluate_grenander(obj = obj2, x = x)
+    res3 <- evaluate_grenander(obj = obj3, x = x)
+    
+    abs(res1 - res2) <= 1e-6 & abs(res1 - res3) >= 1e-6
+  })
+  
+  expect_true(all(bool_vec))
 })

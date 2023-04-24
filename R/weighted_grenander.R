@@ -22,7 +22,7 @@ evaluate_grenander <- function(obj,
   stopifnot(inherits(obj, "grenander"), x>=0)
   
   idx <- max(which(obj$x <= x/obj$scaling_factor))
-  obj$slope.knots
+  obj$pdf[idx]
 }
 
 ##########################################
@@ -52,9 +52,12 @@ evaluate_grenander <- function(obj,
 # run LCM from https://search.r-project.org/CRAN/refmans/fdrtool/html/gcmlcm.html
 # outputs are: x.knots, y.knots, slope.knots
 .compute_decreasing_density <- function(cdf, x){
-  fdrtool::gcmlcm(x = x,
-                  y = cdf,
-                  type = "lcm")
+  res <- fdrtool::gcmlcm(x = x,
+                         y = cdf,
+                         type = "lcm")
+  
+  list(x = res$x,
+       pdf = c(res$slope.knots,0))
 }
 
 #######################################
