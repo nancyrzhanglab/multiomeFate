@@ -24,7 +24,11 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
     peak_width = peak_width
   )
   num_frags <- nrow(dist_mat)
-  scaling_factor <- max(dist_mat@x)/10
+  if(length(peak_locations) >= 2){
+    scaling_factor <- max(diff(peak_locations))/2
+  } else {
+    scaling_factor <- peak_width*2
+  }
   
   grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
                                          scaling_factor = scaling_factor)

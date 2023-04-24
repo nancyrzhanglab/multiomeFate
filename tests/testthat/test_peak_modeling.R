@@ -128,7 +128,7 @@ test_that(".initialize_grenander works on a real cutmat", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  scaling_factor <- max(dist_mat@x)/10
+  scaling_factor <- max(diff(peak_locations))/2
   
   res <- .initialize_grenander(dist_mat = dist_mat,
                                scaling_factor = scaling_factor)
@@ -154,7 +154,7 @@ test_that(".compute_loglikelihood is correct", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  scaling_factor <- max(dist_mat@x)/10
+  scaling_factor <- max(diff(peak_locations))/2
   
   grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
                                          scaling_factor = scaling_factor)
@@ -200,7 +200,7 @@ test_that(".e_step works", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  scaling_factor <- max(dist_mat@x)/10
+  scaling_factor <- max(diff(peak_locations))/2
   
   grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
                                          scaling_factor = scaling_factor)
@@ -224,7 +224,7 @@ test_that(".m_step works", {
                                         num_peak_limit = 3,
                                         peak_locations = peak_locations,
                                         peak_width = peak_width)
-  scaling_factor <- max(dist_mat@x)/10
+  scaling_factor <- max(diff(peak_locations))/2
   
   grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
                                          scaling_factor = scaling_factor)
@@ -257,11 +257,11 @@ test_that(".m_step works", {
 ####################################
 
 ## peak_mixture_modeling is correct
+
 # load("tests/assets/test.RData")
 test_that("peak_mixture_modeling works", {
   load("../assets/test.RData")
-  res1 <- peak_mixture_modeling(bandwidth = 200,
-                                cutmat = cutmat_dying,
+  res1 <- peak_mixture_modeling(cutmat = cutmat_dying,
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
@@ -269,23 +269,23 @@ test_that("peak_mixture_modeling works", {
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res1, "peakDistribution"))
+  expect_true(all(diff(res1$loglikelihood_vec) >= -1e-6)) # all positive
   # plot(res1$grenander_obj$x, res1$grenander_obj$pdf, main = "Dying")
   # res1$grenander_obj$param
   
-  res2 <- peak_mixture_modeling(bandwidth = 200,
-                                cutmat = cutmat_winning,
+  res2 <- peak_mixture_modeling(cutmat = cutmat_winning,
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
-                                bool_freeze_prior = T,
+                                bool_freeze_prior = F,
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res2, "peakDistribution"))
+  expect_true(all(diff(res2$loglikelihood_vec) >= -1e-6)) # all positive
   # plot(res2$grenander_obj$x, res2$grenander_obj$pdf, main = "Winning")
   # res2$grenander_obj$param
   
-  res3 <- peak_mixture_modeling(bandwidth = 200,
-                                cutmat = rbind(cutmat_dying, cutmat_winning), 
+  res3 <- peak_mixture_modeling(cutmat = rbind(cutmat_dying, cutmat_winning), 
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
@@ -293,6 +293,7 @@ test_that("peak_mixture_modeling works", {
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res3, "peakDistribution"))
+  expect_true(all(diff(res3$loglikelihood_vec) >= -1e-6)) # all positive
   # plot(res3$grenander_obj$x, res3$grenander_obj$pdf, main = "Both")
   # res3$grenander_obj$param
   
@@ -300,5 +301,9 @@ test_that("peak_mixture_modeling works", {
   expect_true(max(c(length(res1$loglikelihood_vec),
                     length(res2$loglikelihood_vec),
                     length(res3$loglikelihood_vec))) > 2)
+  
+  # all the scales are the same
+  expect_true(abs(res1$grenander_obj$scaling_factor - res2$grenander_obj$scaling_factor) <= 1e-6)
+  expect_true(abs(res1$grenander_obj$scaling_factor - res3$grenander_obj$scaling_factor) <= 1e-6)
 })
 
