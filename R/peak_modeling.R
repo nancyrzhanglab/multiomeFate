@@ -62,10 +62,11 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
       tmp <- .compute_loglikelihood_lowerbound(
         assignment_mat = assignment_mat,
         dist_mat = dist_mat,
-        grenander_obj = grenander_obj
+        grenander_obj = grenander_obj,
+        prior_vec = prior_vec
       )
       lb_vec <- c(lb_vec, tmp)
-      if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) stop("Failed on E step")
+      if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) {warning("Error: Failed on E step"); break()}
     }
     
     if(verbose > 1) print("M-step")
@@ -74,18 +75,19 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
       dist_mat = dist_mat,
       scaling_factor = scaling_factor
     )
+    if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
     
     if(return_lowerbound) {
       tmp <- .compute_loglikelihood_lowerbound(
         assignment_mat = assignment_mat,
         dist_mat = dist_mat,
-        grenander_obj = grenander_obj_new
+        grenander_obj = grenander_obj_new,
+        prior_vec = prior_vec
       )
       lb_vec <- c(lb_vec, tmp)
-      if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) stop("Failed on M step")
+      if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) {warning("Error: Failed on M step"); break()}
     }
-    if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
-    
+   
     if(verbose) print("Computing likelihood")
     loglikelihood_val <- .compute_loglikelihood(
       dist_mat = dist_mat,
@@ -97,7 +99,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
     iter <- length(loglikelihood_vec)
     if(length(loglikelihood_vec) >= 2){
       if(verbose > 0) print(paste0("Iteration: ", iter, ", log-likelihood: ", round(loglikelihood_vec[iter],2)))
-      if(loglikelihood_vec[iter] < loglikelihood_vec[iter-1]-tol) stop("Error: Likelihood decreased")
+      if(loglikelihood_vec[iter] < loglikelihood_vec[iter-1]-tol) {warning("Error: Likelihood decreased"); break()}
       if(abs(loglikelihood_vec[iter] - loglikelihood_vec[iter-1]) <= tol) break()
     }
     grenander_obj <- grenander_obj_new
@@ -278,14 +280,23 @@ compute_peak_prior <- function(mat,
 .compute_loglikelihood_lowerbound <- function(assignment_mat,
                                               dist_mat,
                                               grenander_obj,
+                                              prior_vec,
                                               tol = 1e-6){
-  idx <- which(as.matrix(dist_mat) != 0)
-  sum(sapply(idx, function(i){
-    prob <- evaluate_grenander(
+  prob_mat <- dist_mat
+  vec <- prob_mat@x
+  for(i in 1:length(vec)){
+    vec[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = dist_mat[i]
+      x = vec[i]
     )
-    assignment_mat[i] * log(prob) - assignment_mat[i]*log(assignment_mat[i])
+  }
+  prob_mat@x <- vec
+  
+  tmp <- .mult_mat_vec(prob_mat, prior_vec)
+  
+  idx <- which(as.matrix(tmp) > tol)
+  sum(sapply(idx, function(i){
+    assignment_mat[i] * log(tmp[i]) - assignment_mat[i]*log(assignment_mat[i])
   }))
 }
 

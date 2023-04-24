@@ -310,3 +310,24 @@ test_that("peak_mixture_modeling works", {
   expect_true(abs(res1$grenander_obj$scaling_factor - res3$grenander_obj$scaling_factor) <= 1e-6)
 })
 
+
+# load("tests/assets/test.RData")
+test_that("peak_mixture_modeling yields likelihoods maximized on its own data", {
+  load("../assets/test.RData")
+  res1 <- peak_mixture_modeling(cutmat = cutmat_dying,
+                                peak_locations = peak_locations,
+                                peak_prior = peak_prior,
+                                peak_width = peak_width,
+                                bool_freeze_prior = F,
+                                return_lowerbound = F,
+                                max_iter = 100,
+                                verbose = 0)
+  res2 <- peak_mixture_modeling(cutmat = cutmat_winning,
+                                peak_locations = peak_locations,
+                                peak_prior = peak_prior,
+                                peak_width = peak_width,
+                                bool_freeze_prior = F,
+                                return_lowerbound = T,
+                                max_iter = 100,
+                                verbose = 0)
+})
