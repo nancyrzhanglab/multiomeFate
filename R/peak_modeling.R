@@ -36,14 +36,14 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
   
   # start iteration
   if(verbose > 0) print("Starting initialization")
+  log_prior_vec <- log(peak_prior)
   iter <- 1
   loglikelihood_vec <- .compute_loglikelihood(
     dist_mat = dist_mat,
     grenander_obj = grenander_obj,
-    prior_vec = peak_prior
+    log_prior_vec = log_prior_vec
   )
   if(verbose > 1) print(paste0("Initial log-likelihood: ", round(loglikelihood_vec[1],2)))
-  prior_vec <- peak_prior
   lb_vec <- numeric(0)
   
   # TODO: Return if there are no fragments
@@ -55,7 +55,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
     assignment_mat <- .e_step(
       dist_mat = dist_mat,
       grenander_obj = grenander_obj,
-      prior_vec = prior_vec
+      log_prior_vec = log_prior_vec
     )
     
     if(return_lowerbound) {
@@ -92,7 +92,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
     loglikelihood_val <- .compute_loglikelihood(
       dist_mat = dist_mat,
       grenander_obj = grenander_obj_new,
-      prior_vec = prior_vec
+      log_prior_vec = log_prior_vec
     )
     
     loglikelihood_vec <- c(loglikelihood_vec, loglikelihood_val)
@@ -116,7 +116,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
                  loglikelihood_vec = loglikelihood_vec,
                  lowerbound_vec = lb_vec,
                  num_frags = num_frags,
-                 prior_vec = prior_vec),
+                 prior_vec = exp(log_prior_vec)),
             class = "peakDistribution")
 }
 
@@ -254,27 +254,30 @@ compute_peak_prior <- function(mat,
 
 .compute_loglikelihood <- function(dist_mat,
                                    grenander_obj,
-                                   prior_vec,
+                                   log_prior_vec,
                                    tol = 1e-6){
   m <- nrow(dist_mat) # number of fragments
   p <- ncol(dist_mat) # number of peaks
-  stopifnot(abs(sum(prior_vec) - 1) <= tol)
+  stopifnot(abs(sum(exp(log_prior_vec)) - 1) <= tol)
   
   # compute all the densities based on grenander
-  prob_mat <- dist_mat
-  vec <- prob_mat@x
-  if(length(vec) == 0 || m == 0) return(NA) # if no fragments
-  for(i in 1:length(vec)){
-    vec[i] <- evaluate_grenander(
+  prob_mat <- as.matrix(dist_mat)
+  idx <- which(prob_mat > 0)
+  if(length(idx) == 0) return(NA)
+  if(length(idx) != prod(dim(prob_mat))) prob_mat[-idx] <- NA
+  for(i in idx){
+    prob_mat[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = vec[i]
+      x = dist_mat[i],
+      bool_log = T
     )
   }
-  prob_mat@x <- vec
   
-  tmp <- .mult_mat_vec(prob_mat, prior_vec)
-  sum_vec <- Matrix::rowSums(tmp)
-  sum(log(sum_vec[sum_vec >= tol]))
+  tmp <- sweep(mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
+  log_sum_vec <- sapply(1:nrow(tmp), function(i){
+    .log_sum_exp(tmp[i,])
+  })
+  sum(log_sum_vec)
 }
 
 .compute_loglikelihood_lowerbound <- function(assignment_mat,
@@ -282,60 +285,56 @@ compute_peak_prior <- function(mat,
                                               grenander_obj,
                                               prior_vec,
                                               tol = 1e-6){
-  prob_mat <- dist_mat
-  vec <- prob_mat@x
-  for(i in 1:length(vec)){
-    vec[i] <- evaluate_grenander(
+  prob_mat <- as.matrix(dist_mat)
+  idx <- which(prob_mat > 0)
+  if(length(idx) == 0) return(NA)
+  if(length(idx) != prod(dim(prob_mat))) prob_mat[-idx] <- NA
+  for(i in idx){
+    prob_mat[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = vec[i]
+      x = dist_mat[i],
+      bool_log = T
     )
   }
-  prob_mat@x <- vec
   
-  tmp <- .mult_mat_vec(prob_mat, prior_vec)
+  tmp <- sweep(mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
   
-  idx <- which(as.matrix(tmp) > tol)
+  idx <- intersect(which(!is.na(tmp)), which(!is.infinite(tmp)))
   sum(sapply(idx, function(i){
-    assignment_mat[i] * log(tmp[i]) - assignment_mat[i]*log(assignment_mat[i])
+    assignment_mat[i] * tmp[i] - assignment_mat[i]*log(assignment_mat[i])
   }))
 }
 
 # compute assignment_mat
 .e_step <- function(dist_mat,
                     grenander_obj,
-                    prior_vec,
+                    log_prior_vec,
                     tol = 1e-6){
   m <- nrow(dist_mat) # number of fragments
   p <- ncol(dist_mat) # number of peaks
-  stopifnot(abs(sum(prior_vec) - 1) <= tol, m > 0, p > 0)
+  stopifnot(abs(sum(exp(log_prior_vec)) - 1) <= tol, m > 0, p > 0)
   
   # compute all the densities based on grenander
-  dist_vec <- dist_mat@x
-  vec <- rep(NA, length(dist_vec))
-  if(length(vec) == 0 || m == 0) return(NA) # if no fragments
-  for(i in 1:length(dist_vec)){
-    vec[i] <- evaluate_grenander(
+  prob_mat <- as.matrix(dist_mat)
+  idx <- which(prob_mat > 0)
+  if(length(idx) == 0) return(NA)
+  if(length(idx) != prod(dim(prob_mat))) prob_mat[-idx] <- NA
+  for(i in idx){
+    prob_mat[i] <- evaluate_grenander(
       obj = grenander_obj,
-      x = dist_vec[i]
+      x = dist_mat[i],
+      bool_log = T
     )
   }
-  prob_mat <- dist_mat
-  prob_mat@x <- vec
-  print("Prob values")
-  print(quantile(prob_mat@x))
-  print(length(which(prob_mat@x == 0)))
-  print(dist_vec[which(prob_mat@x == 0)]/grenander_obj$scaling_factor)
   
-  tmp <- .mult_mat_vec(prob_mat, prior_vec)
-  sum_vec <- Matrix::rowSums(tmp)
-  idx <- which(sum_vec <= tol)
-  if(length(idx) > 0) sum_vec[sum_vec <= tol] <- 1
-  assignment_mat <-  .mult_vec_mat(1/sum_vec, tmp)
-  if(length(idx) > 0) assignment_mat[idx,] <- 0
+  tmp <- sweep(mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
+  tmp[i,] <- sapply(1:nrow(tmp), function(i){
+    .exp_ratio(tmp[i,])
+  })
   
-  rownames(assignment_mat) <- rownames(dist_mat)
-  colnames(assignment_mat) <- colnames(dist_mat)
-  assignment_mat
+  rownames(tmp) <- rownames(dist_mat)
+  colnames(tmp) <- colnames(dist_mat)
+  tmp
 }
 
 .m_step <- function(assignment_mat,
@@ -345,21 +344,13 @@ compute_peak_prior <- function(mat,
   
   values <- dist_mat@x
   weights <- assignment_mat@x
-  print("Weights")
-  print(values[values >= 6012])
-  print(weights[values >= 6012])
-  if(length(values) != length(weights)){
-    idx <- which(as.matrix(dist_mat) != 0)
-    weights <- assignment_mat[idx]
-  }
   
   estimate_grenander(values = values,
                      weights = weights,
                      scaling_factor = scaling_factor)
 }
 
-.compute_prior <- function(assignment_mat,
-                           min_prior){
+.compute_log_prior <- function(assignment_mat){
   prior_vec <- Matrix::colSums(assignment_mat, na.rm = T)
   prior_vec <- prior_vec/sum(prior_vec)
   
@@ -372,7 +363,7 @@ compute_peak_prior <- function(mat,
   }
   
   stopifnot(all(prior_vec >= 0))
-  prior_vec
+  log(prior_vec)
 }
 
 .extract_fragment_from_cutmat <- function(cutmat){
