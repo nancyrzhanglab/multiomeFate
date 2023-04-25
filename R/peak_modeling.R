@@ -61,7 +61,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
         assignment_mat = assignment_mat,
         dist_mat = dist_mat,
         grenander_obj = grenander_obj,
-        prior_vec = prior_vec
+        log_prior_vec = log_prior_vec
       )
       lb_vec <- c(lb_vec, tmp)
       if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) {warning("Error: Failed on E step"); break()}
@@ -80,7 +80,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
         assignment_mat = assignment_mat,
         dist_mat = dist_mat,
         grenander_obj = grenander_obj_new,
-        prior_vec = prior_vec
+        log_prior_vec = log_prior_vec
       )
       lb_vec <- c(lb_vec, tmp)
       if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) {warning("Error: Failed on M step"); break()}
@@ -281,7 +281,7 @@ compute_peak_prior <- function(mat,
 .compute_loglikelihood_lowerbound <- function(assignment_mat,
                                               dist_mat,
                                               grenander_obj,
-                                              prior_vec,
+                                              log_prior_vec,
                                               tol = 1e-6){
   prob_mat <- as.matrix(dist_mat)
   idx <- which(prob_mat > 0)

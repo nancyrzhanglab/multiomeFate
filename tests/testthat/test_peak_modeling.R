@@ -215,8 +215,9 @@ test_that(".e_step works", {
 
 ####################################
 
-# load("tests/assets/test.RData")
 ## .m_step is correct
+
+# load("tests/assets/test.RData")
 test_that(".m_step works", {
   load("../assets/test.RData")
   dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
@@ -253,6 +254,44 @@ test_that(".m_step works", {
                                 grenander_obj = res,
                                 log_prior_vec = log_peak_prior2)
   expect_true(ll2 >= ll1)
+})
+
+####################################
+
+## .compute_loglikelihood_lowerbound is correct
+
+# load("tests/assets/test.RData")
+test_that(".compute_loglikelihood_lowerbound works", {
+  load("../assets/test.RData")
+  dist_mat <- .compute_frag_peak_matrix(bool_lock_within_peak = T,
+                                        cutmat = cutmat_dying,
+                                        fragment_locations = NULL,
+                                        num_peak_limit = 3,
+                                        peak_locations = peak_locations,
+                                        peak_width = peak_width)
+  scaling_factor <- max(diff(peak_locations))/2
+  
+  grenander_obj <- .initialize_grenander(dist_mat = dist_mat,
+                                         scaling_factor = scaling_factor)
+  assignment_mat <- .e_step(dist_mat = dist_mat,
+                            grenander_obj = grenander_obj,
+                            log_prior_vec = log(peak_prior))
+  log_peak_prior <- .compute_log_prior(assignment_mat = assignment_mat)
+  
+  ll <- .compute_loglikelihood(dist_mat = dist_mat,
+                               grenander_obj = grenander_obj,
+                               log_prior_vec = log_peak_prior)
+  
+  res <- .compute_loglikelihood_lowerbound(
+    assignment_mat = assignment_mat,
+    dist_mat = dist_mat,
+    grenander_obj = grenander_obj,
+    log_prior_vec = log_peak_prior
+  )
+  
+  expect_true(is.numeric(res))
+  expect_true(length(res) == 1)
+  expect_true(res <= ll)
 })
 
 ####################################
