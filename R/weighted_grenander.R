@@ -33,7 +33,7 @@ evaluate_grenander <- function(obj,
 .weighted_cdf <- function(values,
                           weights,
                           tol = 1e-6){
-  stopifnot(all(values >= 0))
+  stopifnot(all(values >= 0), length(values) == length(weights))
   
   mat <- cbind(c(0, values), c(0, weights))
   colnames(mat) <- c("x", "w")

@@ -344,6 +344,10 @@ compute_peak_prior <- function(mat,
   
   values <- dist_mat@x
   weights <- assignment_mat@x
+  if(length(values) != length(weights)){
+    idx <- which(as.matrix(dist_mat) > 0)
+    weights <- assignment_mat[idx]
+  }
   
   estimate_grenander(values = values,
                      weights = weights,

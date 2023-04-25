@@ -322,10 +322,11 @@ test_that("peak_mixture_modeling works", {
                                peak_locations = peak_locations,
                                peak_prior = peak_prior,
                                peak_width = peak_width,
-                               min_prior = 0,
-                               bool_freeze_prior = F,
+                               return_assignment_mat = T,
+                               max_iter = 5,
                                verbose = 0)
   expect_true(inherits(res, "peakDistribution"))
+  expect_true(all(diff(res$lowerbound_vec) >= -1e-6))
   expect_true(all(diff(res$loglikelihood_vec) >= -1e-6))
 })
 
@@ -336,8 +337,6 @@ test_that("peak_mixture_modeling works on a real cutmat", {
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
-                                bool_freeze_prior = F,
-                                return_lowerbound = T,
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res1, "peakDistribution"))
@@ -349,8 +348,6 @@ test_that("peak_mixture_modeling works on a real cutmat", {
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
-                                bool_freeze_prior = F,
-                                return_lowerbound = T,
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res2, "peakDistribution"))
@@ -362,8 +359,6 @@ test_that("peak_mixture_modeling works on a real cutmat", {
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
-                                bool_freeze_prior = F,
-                                return_lowerbound = T,
                                 max_iter = 5,
                                 verbose = 0)
   expect_true(inherits(res3, "peakDistribution"))
@@ -389,33 +384,27 @@ test_that("peak_mixture_modeling yields likelihoods maximized on its own data", 
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
-                                bool_freeze_prior = F,
-                                return_lowerbound = F,
                                 return_dist_mat = T,
                                 max_iter = 100,
-                                min_prior = 0,
                                 verbose = 0)
   res2 <- peak_mixture_modeling(cutmat = cutmat_winning,
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
-                                bool_freeze_prior = F,
-                                return_lowerbound = T,
                                 return_dist_mat = T,
                                 max_iter = 100,
-                                min_prior = 0,
                                 verbose = 0)
   # plot(peak_prior, res2$prior_vec, asp = T)
   
   ll1_1 <- .compute_loglikelihood(
     dist_mat = res1$dist_mat,
     grenander_obj = res1$grenander_obj,
-    prior_vec = res1$prior_vec
+    log_prior_vec = log(res1$prior_vec)
   )
   ll1_2 <- .compute_loglikelihood(
     dist_mat = res1$dist_mat,
     grenander_obj = res2$grenander_obj,
-    prior_vec = res2$prior_vec
+    log_prior_vec = log(res2$prior_vec)
   )
   expect_true(ll1_1 > ll1_2)
   # plot(res1$grenander_obj$x, res1$grenander_obj$pdf)
@@ -424,12 +413,12 @@ test_that("peak_mixture_modeling yields likelihoods maximized on its own data", 
   ll2_1 <- .compute_loglikelihood(
     dist_mat = res2$dist_mat,
     grenander_obj = res1$grenander_obj,
-    prior_vec = res1$prior_vec
+    log_prior_vec = log(res1$prior_vec)
   )
   ll2_2 <- .compute_loglikelihood(
     dist_mat = res2$dist_mat,
     grenander_obj = res2$grenander_obj,
-    prior_vec = res2$prior_vec
+    log_prior_vec = log(res2$prior_vec)
   )
   expect_true(ll2_2 > ll2_1)
 })
