@@ -161,7 +161,7 @@ test_that(".compute_loglikelihood is correct", {
   
   res <- .compute_loglikelihood(dist_mat = dist_mat,
                                 grenander_obj = grenander_obj,
-                                prior_vec = peak_prior)
+                                log_prior_vec = log(peak_prior))
   
   expect_true(is.numeric(res))
   expect_true(res < 0)
@@ -177,7 +177,8 @@ test_that(".compute_loglikelihood is correct", {
       dist_val <- dist_mat[i,peak_idxs[j]]
       prob_dist_given_peak <- evaluate_grenander(
         obj = grenander_obj,
-        x = dist_val
+        x = dist_val,
+        bool_log = F
       )
       tmp <- tmp + peak_prior[peak_idxs[j]] * prob_dist_given_peak
     }
@@ -207,7 +208,7 @@ test_that(".e_step works", {
   
   res <- .e_step(dist_mat = dist_mat,
                  grenander_obj = grenander_obj,
-                 prior_vec = peak_prior)
+                 log_prior_vec = log(peak_prior))
   
   expect_true(all(abs(Matrix::rowSums(res)-1)<=1e-6))
 })
@@ -230,11 +231,11 @@ test_that(".m_step works", {
                                          scaling_factor = scaling_factor)
   ll1 <- .compute_loglikelihood(dist_mat = dist_mat,
                                 grenander_obj = grenander_obj,
-                                prior_vec = peak_prior)
+                                log_prior_vec = log(peak_prior))
   
   assignment_mat <- .e_step(dist_mat = dist_mat,
                             grenander_obj = grenander_obj,
-                            prior_vec = peak_prior)
+                            log_prior_vec = log(peak_prior))
   
   res <- .m_step(
     assignment_mat = assignment_mat,
@@ -247,10 +248,10 @@ test_that(".m_step works", {
   expect_true(all(diff(res$pdf) <= 1e-6))
   
   # likelihood went up
-  peak_prior2 <- .compute_prior(assignment_mat = assignment_mat, min_prior = 0.01)
+  log_peak_prior2 <- .compute_log_prior(assignment_mat = assignment_mat)
   ll2 <- .compute_loglikelihood(dist_mat = dist_mat,
                                 grenander_obj = res,
-                                prior_vec = peak_prior2)
+                                log_prior_vec = log_peak_prior2)
   expect_true(ll2 >= ll1)
 })
 

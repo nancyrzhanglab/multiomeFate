@@ -73,7 +73,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
       dist_mat = dist_mat,
       scaling_factor = scaling_factor
     )
-    prior_vec <- .compute_prior(assignment_mat = assignment_mat)
+    prior_vec <- .compute_log_prior(assignment_mat = assignment_mat)
     
     if(return_lowerbound) {
       tmp <- .compute_loglikelihood_lowerbound(
@@ -271,7 +271,7 @@ compute_peak_prior <- function(mat,
     )
   }
   
-  tmp <- sweep(mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
+  tmp <- sweep(prob_mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
   log_sum_vec <- sapply(1:nrow(tmp), function(i){
     .log_sum_exp(tmp[i,])
   })
@@ -295,7 +295,7 @@ compute_peak_prior <- function(mat,
     )
   }
   
-  tmp <- sweep(mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
+  tmp <- sweep(prob_mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
   
   idx <- intersect(which(!is.na(tmp)), which(!is.infinite(tmp)))
   sum(sapply(idx, function(i){
@@ -325,10 +325,12 @@ compute_peak_prior <- function(mat,
     )
   }
   
-  tmp <- sweep(mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
-  tmp[i,] <- sapply(1:nrow(tmp), function(i){
-    .exp_ratio(tmp[i,])
-  })
+  tmp <- sweep(prob_mat, MARGIN = 2, STATS = log_prior_vec, FUN = "+")
+  for(i in 1:nrow(tmp)) tmp[i,] <- .exp_ratio(tmp[i,])
+  
+  # recast as sparse matrix
+  tmp[is.na(tmp)] <- 0
+  tmp <- Matrix::Matrix(tmp, sparse = T)
   
   rownames(tmp) <- rownames(dist_mat)
   colnames(tmp) <- colnames(dist_mat)
@@ -351,14 +353,6 @@ compute_peak_prior <- function(mat,
 .compute_log_prior <- function(assignment_mat){
   prior_vec <- Matrix::colSums(assignment_mat, na.rm = T)
   prior_vec <- prior_vec/sum(prior_vec)
-  
-  if(any(prior_vec <= min_prior)){
-    if(min_prior*length(prior_vec) > 1) {
-      min_prior <- 1/(2*length(prior_vec))
-    }
-    prior_vec <- prior_vec + min_prior/(1-min_prior*length(prior_vec))
-    prior_vec <- prior_vec/sum(prior_vec)
-  }
   
   stopifnot(all(prior_vec >= 0))
   log(prior_vec)

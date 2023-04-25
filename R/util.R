@@ -55,10 +55,11 @@
 # computes exp(x_1)/(exp(x_1) + exp(x_2) + ...)
 # via exp(x_1+C)/(exp(x_1+C) + exp(x_2+C) + ...)
 .exp_ratio <- function(vec, max_val = 25){
-  vec <- vec[!is.na(vec)]
-  vec <- vec[!is.infinite(vec)]
-  if(length(vec) == 0) return(NA)
-  C <- max_val - max(vec)
-  tmp <- exp(vec+C)
-  tmp/sum(tmp)
+  res <- rep(NA, length(vec))
+  idx <- unique(intersect(which(!is.na(vec)), which(!is.infinite(vec))))
+  if(length(idx) == 0) return(res)
+  C <- max_val - max(vec[idx])
+  tmp <- exp(vec[idx]+C)
+  res[idx] <- tmp/sum(tmp)
+  res
 }
