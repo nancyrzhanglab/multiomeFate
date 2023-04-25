@@ -39,3 +39,20 @@
     mat * rep(vec, rep(nrow(mat), length(vec)))
   }
 }
+
+##########################
+
+# computes log(exp(x_1) + exp(x_2) + exp(x_3) + ...)
+# via  log(exp(x_1+C) + exp(x_2+C) + exp(x_3+C) + ...) - C
+.log_sum_exp <- function(vec, max_val = 25){
+  C <- max_val - max(vec)
+  log(sum(exp(vec+C))) - C
+}
+
+# computes exp(x_1)/(exp(x_1) + exp(x_2) + ...)
+# via exp(x_1+C)/(exp(x_1+C) + exp(x_2+C) + ...)
+.exp_ratio <- function(vec, max_val = 25){
+  C <- max_val - max(vec)
+  tmp <- exp(vec+C)
+  tmp/sum(tmp)
+}

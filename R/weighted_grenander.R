@@ -7,22 +7,24 @@ estimate_grenander <- function(values,
     weights = weights
   )
   
-  stepdensity_res <- .compute_decreasing_density(
+  obj <- .compute_decreasing_density(
     cdf = cdf_empirical$cdf,
     x = cdf_empirical$x
   )
   
-  stepdensity_res$scaling_factor <- scaling_factor
-  class(stepdensity_res) <- "grenander"
-  stepdensity_res
+  obj$log_pdf <- log(obj$pdf)
+  obj$scaling_factor <- scaling_factor
+  class(obj) <- "grenander"
+  obj
 }
 
 evaluate_grenander <- function(obj,
-                               x){
+                               x,
+                               bool_log = F){
   stopifnot(inherits(obj, "grenander"), x>=0)
   
   idx <- max(which(obj$x < x/obj$scaling_factor))
-  obj$pdf[idx]
+  if(bool_log) obj$log_pdf[idx] else obj$pdf[idx]
 }
 
 ##########################################

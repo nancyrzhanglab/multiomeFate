@@ -321,6 +321,10 @@ compute_peak_prior <- function(mat,
   }
   prob_mat <- dist_mat
   prob_mat@x <- vec
+  print("Prob values")
+  print(quantile(prob_mat@x))
+  print(length(which(prob_mat@x == 0)))
+  print(dist_vec[which(prob_mat@x == 0)]/grenander_obj$scaling_factor)
   
   tmp <- .mult_mat_vec(prob_mat, prior_vec)
   sum_vec <- Matrix::rowSums(tmp)
@@ -341,6 +345,9 @@ compute_peak_prior <- function(mat,
   
   values <- dist_mat@x
   weights <- assignment_mat@x
+  print("Weights")
+  print(values[values >= 6012])
+  print(weights[values >= 6012])
   if(length(values) != length(weights)){
     idx <- which(as.matrix(dist_mat) != 0)
     weights <- assignment_mat[idx]

@@ -360,7 +360,7 @@ test_that("peak_mixture_modeling yields likelihoods maximized on its own data", 
                                 peak_prior = peak_prior,
                                 peak_width = peak_width,
                                 bool_freeze_prior = F,
-                                return_lowerbound = F,
+                                return_lowerbound = T,
                                 return_dist_mat = T,
                                 max_iter = 100,
                                 min_prior = 0,
@@ -378,6 +378,8 @@ test_that("peak_mixture_modeling yields likelihoods maximized on its own data", 
     prior_vec = res2$prior_vec
   )
   expect_true(ll1_1 > ll1_2)
+  # plot(res1$grenander_obj$x, res1$grenander_obj$pdf)
+  # plot(res2$grenander_obj$x, res2$grenander_obj$pdf)
   
   ll2_1 <- .compute_loglikelihood(
     dist_mat = res2$dist_mat,
