@@ -3,12 +3,10 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
                                   peak_prior,
                                   peak_width,
                                   bool_lock_within_peak = T, 
-                                  bool_freeze_prior = F, # set to T if optimization is done to too few fragments. this is the prior over peaks
                                   fragment_locations = NULL, # one of cutmat and fragment_locations should be NULL
                                   max_iter = 100,
-                                  min_prior = 0,
                                   num_peak_limit = 4,
-                                  return_lowerbound = F,
+                                  return_lowerbound = T,
                                   return_assignment_mat = F, # set to T usually for only debugging purposes
                                   return_dist_mat = F, # set to T usually for only debugging purposes
                                   tol = 1e-6,
@@ -75,7 +73,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
       dist_mat = dist_mat,
       scaling_factor = scaling_factor
     )
-    if(!bool_freeze_prior) { prior_vec <- .compute_prior(assignment_mat = assignment_mat, min_prior = min_prior) }
+    prior_vec <- .compute_prior(assignment_mat = assignment_mat)
     
     if(return_lowerbound) {
       tmp <- .compute_loglikelihood_lowerbound(

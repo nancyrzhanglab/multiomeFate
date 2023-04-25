@@ -28,11 +28,12 @@ test_that(".compute_decreasing_density works", {
                                      x = cdf_res$x)
   
   expect_true(is.list(res))
-  expect_true(all(sort(names(res)) == sort(c("x.knots", "y.knots", "slope.knots"))))
-  expect_true(all(diff(res$x.knots) >= 0))
-  expect_true(all(diff(res$y.knots) >= 0))
-  expect_true(sum(abs(range(res$y.knots) - c(0,1))) <= 1e-6)
-  expect_true(all(diff(res$slope.knots) <= 0))
+  expect_true(all(sort(names(res)) == sort(c("x", "pdf"))))
+  expect_true(all(diff(res$x) >= 0))
+  expect_true(all(diff(res$pdf) <= 0))
+  
+  area <- sum(diff(res$x)*res$pdf[-length(res$pdf)])
+  expect_true(abs(area - 1) <= 1e-6)
 })
 
 #############################
@@ -49,10 +50,9 @@ test_that("estimate_grenander works", {
   
   expect_true(is.list(res))
   expect_true(inherits(res, "grenander"))
-  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "scaling_factor"))))
+  expect_true(all(sort(names(res)) == sort(c("x", "pdf", "log_pdf", "scaling_factor"))))
   expect_true(all(diff(res$pdf) <= 1e-6))
   expect_true(all(diff(res$x) >= 0))
-  expect_true(all(sort(names(res$param)) == sort(c("bandwidth", "discretization_stepsize", "left_area", "right_area"))))
 })
 
 test_that("estimate_grenander works for a non-decreasing density", {
