@@ -1,15 +1,13 @@
-peak_testing <- function(bandwidth,
-                         cutmat_dying, 
+peak_testing <- function(cutmat_dying, 
                          cutmat_winning,
                          peak_locations,
                          peak_prior,
                          peak_width,
-                         discretization_stepsize = NA, #if NA, it defaults to max(round(max(dist_mat@x)/50),5)
                          bool_lock_within_peak = T, 
                          max_iter = 100,
                          min_fragments = 6,
-                         min_prior = 0.01,
                          num_peak_limit = 4,
+                         termination_tol = 1e-3,
                          tol = 1e-6,
                          verbose = 1){
   # extract all the relevant fragments
@@ -25,7 +23,6 @@ peak_testing <- function(bandwidth,
   
   # for one cross
   .compute_crossfit_teststat(
-    bandwidth = bandwidth,
     frag_die = frag_die, 
     frag_win = frag_win,
     idx_die = idx_die,
@@ -33,12 +30,11 @@ peak_testing <- function(bandwidth,
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = bool_lock_within_peak, 
     max_iter = max_iter,
     min_fragments = min_fragments,
-    min_prior = min_prior,
     num_peak_limit = num_peak_limit,
+    termination_tol = termination_tol,
     tol = tol,
     verbose = verbose
   )
@@ -47,20 +43,18 @@ peak_testing <- function(bandwidth,
 #######################################
 
 # see https://arxiv.org/pdf/1912.11436.pdf, equation 10
-.compute_crossfit_teststat <- function(bandwidth,
-                                       frag_die, 
+.compute_crossfit_teststat <- function(frag_die, 
                                        frag_win,
                                        idx_die,
                                        idx_win,
                                        peak_locations,
                                        peak_prior,
                                        peak_width,
-                                       discretization_stepsize, 
                                        bool_lock_within_peak, 
                                        max_iter,
                                        min_fragments,
-                                       min_prior,
                                        num_peak_limit,
+                                       termination_tol,
                                        tol,
                                        verbose){
   len_die <- length(frag_die); len_win <- length(frag_win)
@@ -71,9 +65,8 @@ peak_testing <- function(bandwidth,
             length(idx_win) > floor(min_fragments/2),
             floor(min_fragments/2) > 1)
   
-  print("fit1")
+  if(verbose > 0) print("Performing cross-fit 1")
   fit1 <- .lrt_onefold(
-    bandwidth = bandwidth,
     frag_die = frag_die, 
     frag_win = frag_win,
     idx_die_split1 = idx_die,
@@ -81,20 +74,18 @@ peak_testing <- function(bandwidth,
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = bool_lock_within_peak, 
     max_iter = max_iter,
-    min_prior = min_prior,
     num_peak_limit = num_peak_limit,
+    termination_tol = termination_tol,
     tol = tol,
     verbose = verbose
   )
   
   idx_die2 <- c(1:length(frag_die))[-idx_die]
   idx_win2 <- c(1:length(frag_win))[-idx_win]
-  print("fit2")
+  if(verbose > 0) print("Performing cross-fit 2")
   fit2 <- .lrt_onefold(
-    bandwidth = bandwidth,
     frag_die = frag_die, 
     frag_win = frag_win,
     idx_die_split1 = idx_die2,
@@ -102,11 +93,10 @@ peak_testing <- function(bandwidth,
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = bool_lock_within_peak, 
     max_iter = max_iter,
-    min_prior = min_prior,
     num_peak_limit = num_peak_limit,
+    termination_tol = termination_tol,
     tol = tol,
     verbose = verbose
   )
@@ -129,80 +119,69 @@ peak_testing <- function(bandwidth,
   )
 }
 
-.lrt_onefold <- function(bandwidth,
-                         frag_die, 
+.lrt_onefold <- function(frag_die, 
                          frag_win,
                          idx_die_split1,
                          idx_win_split1,
                          peak_locations,
                          peak_prior,
                          peak_width,
-                         discretization_stepsize, 
                          bool_lock_within_peak, 
                          max_iter,
-                         min_prior,
                          num_peak_limit,
+                         termination_tol,
                          tol,
                          verbose){
   len_die <- length(frag_die); len_win <- length(frag_win)
  
   # p1 is for the alternative (unconstrained)
   # compute win!=die on the first fold
-  print("fit win")
+  if(verbose > 0) print("Fitting winners")
   fit_win <- peak_mixture_modeling(
-    bandwidth = bandwidth,
     cutmat = NULL, 
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = bool_lock_within_peak, 
-    bool_freeze_prior = T, # assumed to not have a lot of fragments, so we need to freeze
     fragment_locations = frag_win[idx_win_split1], 
     max_iter = max_iter,
-    min_prior = min_prior,
     num_peak_limit = num_peak_limit,
     return_dist_mat = F,
+    termination_tol = termination_tol,
     tol = tol,
     verbose = verbose
   )
   
-  print("fit die")
+  if(verbose > 0) print("Fitting losers")
   fit_die <- peak_mixture_modeling(
-    bandwidth = bandwidth,
     cutmat = NULL, 
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = bool_lock_within_peak, 
-    bool_freeze_prior = T,
     fragment_locations = frag_die[idx_die_split1], 
     max_iter = max_iter,
-    min_prior = min_prior,
     num_peak_limit = num_peak_limit,
     return_dist_mat = F,
+    termination_tol = termination_tol,
     tol = tol,
     verbose = verbose
   )
   
   # p0 is for the null
   # compute the win=die on the second fold
-  print("fit both")
+  if(verbose > 0) print("Fitting both")
   fit_both <- peak_mixture_modeling(
-    bandwidth = bandwidth,
     cutmat = NULL, 
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = bool_lock_within_peak, 
-    bool_freeze_prior = T,
     fragment_locations = c(frag_win[-idx_win_split1], frag_die[-idx_die_split1]), 
     max_iter = max_iter,
-    min_prior = min_prior,
     num_peak_limit = num_peak_limit,
     return_dist_mat = T, # needed for the numerator likelihood later
+    termination_tol = termination_tol,
     tol = tol,
     verbose = verbose
   )
@@ -214,12 +193,12 @@ peak_testing <- function(bandwidth,
   loglikelihood_outofsample_win <- .compute_loglikelihood(
     dist_mat = fit_both$dist_mat[1:(len_win - length(idx_win_split1)),],
     grenander_obj = fit_win$grenander_obj,
-    prior_vec = fit_win$prior_vec
+    log_prior_vec = log(fit_win$prior_vec)
   )
   loglikelihood_outofsample_die <- .compute_loglikelihood(
     dist_mat = fit_both$dist_mat[(len_win-length(idx_win_split1)+1):nrow(fit_both$dist_mat),],
     grenander_obj = fit_die$grenander_obj,
-    prior_vec = fit_die$prior_vec
+    log_prior_vec = log(fit_die$prior_vec)
   )
   loglikelihood_num <- loglikelihood_outofsample_win + loglikelihood_outofsample_die
   

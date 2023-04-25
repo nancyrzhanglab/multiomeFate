@@ -387,6 +387,7 @@ test_that("peak_mixture_modeling yields likelihoods maximized on its own data", 
                                 return_dist_mat = T,
                                 max_iter = 100,
                                 verbose = 0)
+  # plot(peak_prior, res1$prior_vec, asp = T)
   res2 <- peak_mixture_modeling(cutmat = cutmat_winning,
                                 peak_locations = peak_locations,
                                 peak_prior = peak_prior,

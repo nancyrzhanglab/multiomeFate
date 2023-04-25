@@ -9,6 +9,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
                                   return_lowerbound = T,
                                   return_assignment_mat = F, # set to T usually for only debugging purposes
                                   return_dist_mat = F, # set to T usually for only debugging purposes
+                                  termination_tol = 1e-3,
                                   tol = 1e-6,
                                   verbose = 1){
   stopifnot(all(is.null(cutmat)) || inherits(cutmat, c("dgCMatrix", "matrix")))
@@ -98,7 +99,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
     if(length(loglikelihood_vec) >= 2){
       if(verbose > 0) print(paste0("Iteration: ", iter, ", log-likelihood: ", round(loglikelihood_vec[iter],2)))
       if(loglikelihood_vec[iter] < loglikelihood_vec[iter-1]-tol) {warning("Error: Likelihood decreased"); break()}
-      if(abs(loglikelihood_vec[iter] - loglikelihood_vec[iter-1]) <= tol) break()
+      if(abs(loglikelihood_vec[iter] - loglikelihood_vec[iter-1]) <= termination_tol) break()
     }
     grenander_obj <- grenander_obj_new
   }

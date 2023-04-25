@@ -13,11 +13,7 @@ test_that(".lrt_onefold works on a real cutmatrix", {
   idx_win <- sample(1:length(frag_win), size = round(length(frag_win)/2))
   idx_die <- sample(1:length(frag_die), size = round(length(frag_die)/2))
   
-  bandwidth <- 200
-  discretization_stepsize <- 10
-  
   res <- .lrt_onefold(
-    bandwidth = bandwidth,
     frag_die = frag_die, 
     frag_win = frag_win,
     idx_die_split1 = idx_die,
@@ -25,10 +21,8 @@ test_that(".lrt_onefold works on a real cutmatrix", {
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = T, 
-    max_iter = 100,
-    min_prior = 0.01,
+    max_iter = 5,
     num_peak_limit = 4,
     tol = 1e-6,
     verbose = 0
@@ -58,8 +52,6 @@ test_that(".lrt_onefold fails to reject for synthetic sharp null", {
   cutmat <- Matrix::Matrix(t(cutmat), sparse = T)
   rownames(cutmat) <- paste0("cell:", 1:nrow(cutmat))
   peak_width <- 100
-  bandwidth <- 20
-  discretization_stepsize <- 2
   peak_prior <- c(0.5,0.5)
   
   frag_all <- .extract_fragment_from_cutmat(cutmat)
@@ -75,7 +67,6 @@ test_that(".lrt_onefold fails to reject for synthetic sharp null", {
                       size = round((length(frag_all) - length(idx))/2))
     
     res <- .lrt_onefold(
-      bandwidth = bandwidth,
       frag_die = frag_all[idx], 
       frag_win = frag_all[-idx],
       idx_die_split1 = idx_die,
@@ -83,11 +74,10 @@ test_that(".lrt_onefold fails to reject for synthetic sharp null", {
       peak_locations = peak_locations,
       peak_prior = peak_prior,
       peak_width = peak_width,
-      discretization_stepsize = discretization_stepsize, 
       bool_lock_within_peak = T, 
       max_iter = 100,
-      min_prior = 0.01,
       num_peak_limit = 4,
+      termination_tol = 1e-3,
       tol = 1e-6,
       verbose = 0
     )
@@ -113,11 +103,7 @@ test_that(".compute_crossfit_teststat works on a real cutmatrix", {
   idx_win <- sample(1:length(frag_win), size = round(length(frag_win)/2))
   idx_die <- sample(1:length(frag_die), size = round(length(frag_die)/2))
   
-  bandwidth <- 200
-  discretization_stepsize <- 10
-  
   res <- .compute_crossfit_teststat(
-    bandwidth = bandwidth,
     frag_die = frag_die, 
     frag_win = frag_win,
     idx_die = idx_die,
@@ -125,12 +111,11 @@ test_that(".compute_crossfit_teststat works on a real cutmatrix", {
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize, 
     bool_lock_within_peak = T, 
     max_iter = 100,
     min_fragments = 6,
-    min_prior = 0.01,
     num_peak_limit = 4,
+    termination_tol = 1e-3,
     tol = 1e-6,
     verbose = 0
   )
@@ -148,9 +133,7 @@ test_that(".compute_crossfit_teststat works on a real cutmatrix", {
 # load("tests/assets/test.RData")
 test_that(".compute_crossfit_teststat fails to reject under the sharp null", {
   load("../assets/test.RData")
-  bandwidth <- 200
-  discretization_stepsize <- 10
-  
+ 
   frag_win <- .extract_fragment_from_cutmat(cutmat_winning)
   frag_die <- .extract_fragment_from_cutmat(cutmat_dying)
   frag_all <- c(frag_win, frag_die)
@@ -165,7 +148,6 @@ test_that(".compute_crossfit_teststat fails to reject under the sharp null", {
                       size = round((length(frag_all) - length(idx))/2))
     
     res <- .compute_crossfit_teststat(
-      bandwidth = bandwidth,
       frag_die = frag_all[idx], 
       frag_win = frag_all[-idx],
       idx_die = idx_die,
@@ -173,12 +155,11 @@ test_that(".compute_crossfit_teststat fails to reject under the sharp null", {
       peak_locations = peak_locations,
       peak_prior = peak_prior,
       peak_width = peak_width,
-      discretization_stepsize = discretization_stepsize, 
       bool_lock_within_peak = T, 
       max_iter = 100,
       min_fragments = 6,
-      min_prior = 0.01,
       num_peak_limit = 4,
+      termination_tol = 1e-3, 
       tol = 1e-6,
       verbose = 0
     )
@@ -195,17 +176,13 @@ test_that(".compute_crossfit_teststat fails to reject under the sharp null", {
 # load("tests/assets/test.RData")
 test_that("peak_testing works on a real cutmatrix", {
   load("../assets/test.RData")
-  bandwidth <- 200
-  discretization_stepsize <- 10
-  
+
   res <- peak_testing(
-    bandwidth = bandwidth,
     cutmat_dying = cutmat_dying, 
     cutmat_winning = cutmat_winning,
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    discretization_stepsize = discretization_stepsize,
     verbose = 0
   )
   
