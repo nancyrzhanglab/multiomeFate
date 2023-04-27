@@ -29,6 +29,21 @@ evaluate_grenander <- function(obj,
 
 ##########################################
 
+.constructor_grenander <- function(x,
+                                   pdf,
+                                   scaling_factor,
+                                   tol = 1e-6){
+  stopifnot(length(x) == length(pdf))
+  area <- sum(diff(x)*pdf[-length(pdf)])
+  stopifnot(abs(area - 1) <= tol)
+  
+  structure(list(x = x,
+                 pdf = pdf,
+                 log_pdf = log(pdf),
+                 scaling_factor = scaling_factor),
+            class = "grenander")
+}
+
 # construct the weighted CDF function
 .weighted_cdf <- function(values,
                           weights,

@@ -14,7 +14,7 @@ compute_peak_prior <- function(cutmat,
     idx <- intersect(which(peak_bp >= peak_mat[i,"start"]),
                      which(peak_bp <= peak_mat[i,"end"]))
     sum(sapply(idx, function(j){
-      length(.nonzero_col(mat = mat,
+      length(.nonzero_col(mat = cutmat,
                           col_idx = j,
                           bool_value = F))
     }))

@@ -183,7 +183,7 @@ test_that("peak_testing works on a real cutmatrix", {
     peak_locations = peak_locations,
     peak_prior = peak_prior,
     peak_width = peak_width,
-    verbose = 0
+    verbose = 1
   )
   
   expect_true(is.list(res))
