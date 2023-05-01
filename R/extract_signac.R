@@ -40,11 +40,14 @@ extract_peaks <- function(
       region_gene_peaks[i] <- GenomicRanges::intersect(x = region_gene_peaks[i],
                                                        y = region)
     }
+    
+    if(verbose > 0) print("Formatting output")
+    ranges_obj <- region_gene_peaks@ranges
+    tmp <- cbind(ranges_obj@start, ranges_obj@start + ranges_obj@width - 1)
+  } else{
+    tmp <- matrix(NA, nrow = 0, ncol = 2)
   }
   
-  if(verbose > 0) print("Formatting output")
-  ranges_obj <- region_gene_peaks@ranges
-  tmp <- cbind(ranges_obj@start, ranges_obj@start + ranges_obj@width - 1)
   colnames(tmp) <- c("start", "end")
   tmp
 }

@@ -115,6 +115,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
                  loglikelihood_vec = loglikelihood_vec,
                  lowerbound_vec = lb_vec,
                  num_frags = num_frags,
+                 peak_width = peak_width,
                  prior_vec = exp(log_prior_vec)),
             class = "peakDistribution")
 }
