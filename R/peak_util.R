@@ -19,6 +19,7 @@ compute_peak_prior <- function(cutmat,
                           bool_value = F))
     }))
   })
+  if(sum(count_vec) == 0) return(rep(NA, nrow(peak_mat)))
   
   prior_vec <- count_vec/sum(count_vec)
   if(any(prior_vec <= min_prior)){
