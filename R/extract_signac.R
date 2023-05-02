@@ -59,8 +59,7 @@ extract_cutmatrix <- function(
     cells = NULL, #NULL or names of cells
     extend.downstream = 5000,
     extend.upstream = 5000,
-    sep = c("-", "-"),
-    window = 100
+    sep = c("-", "-")
 ){
   
   cells <- Signac:::SetIfNull(x = cells, y = colnames(x = object))
@@ -90,6 +89,7 @@ extract_cutmatrix <- function(
     cells = cells,
     verbose = FALSE
   )
+  if(all(is.null(cutmat))) return(NULL)
   colnames(cutmat) <- (IRanges::start(x = region)):(IRanges::end(x = region))
   
   cutmat
