@@ -10,7 +10,7 @@ supervised_pca <- function(x, y){
   H <- diag(n) - tcrossprod(rep(1,n))/n
   Q <- tcrossprod(x %*% H %*% L %*% H, x)
   eigen_res <- eigen(Q)
-  U <- eigen_res$vectors[,1:2]
+  U <- Re(eigen_res$vectors[,1:2])
   
   res <- t(crossprod(U,x))
   colnames(res) <- c("SPCA_1", "SPCA_2")
