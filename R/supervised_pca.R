@@ -25,7 +25,7 @@ supervised_pca <- function(x, y,
   
   colnames(res) <- paste0("SPCA_", 1:k)
   colnames(U) <- paste0("SPCA_", 1:k)
-  rownames(U) <- rownames(x)
+  rownames(U) <- colnames(x)
   
   list(dimred = res, U = U)
 }
