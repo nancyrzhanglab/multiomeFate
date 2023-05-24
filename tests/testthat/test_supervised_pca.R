@@ -1,18 +1,28 @@
 context("Test supervised PCA")
 
 test_that("supervised_pca yields uncorrelated variables", {
-  set.seed(10)
-  n <- 100
-  x <- MASS::mvrnorm(n, mu = rep(0, 4), Sigma = matrix(c(1,0.9,0.1,0.1,
-                                                         0.9,1,0.1,0.1,
-                                                         0.1,0.1,1,0.9,
-                                                         0.1,0.1,0.9,1), nrow = 4, ncol = 4))
-  y <- form_onehot_classification_mat(sample(1:3,n,replace = T))
-  res <- supervised_pca(x,y)
+  trials <- 100
   
-  cor_mat <- crossprod(res$dimred)
-  diag(cor_mat) <- 0
-  expect_true(sum(abs(cor_mat)) <= 1e-6)
+  bool_vec <- sapply(1:trials, function(trial){
+    set.seed(10)
+    n <- 100
+    x <- MASS::mvrnorm(n, mu = rep(0, 4), Sigma = matrix(c(1,0.9,0.1,0.1,
+                                                           0.9,1,0.1,0.1,
+                                                           0.1,0.1,1,0.9,
+                                                           0.1,0.1,0.9,1), nrow = 4, ncol = 4))
+    y <- form_onehot_classification_mat(sample(1:3,n,replace = T))
+    res <- supervised_pca(x,y,k=2)
+    
+    cor_mat <- crossprod(res$dimred)
+    bool1 <- all(diag(cor_mat) == sort(diag(cor_mat), decreasing = T))
+    
+    diag(cor_mat) <- 0
+    bool2 <- (sum(abs(cor_mat)) <= 1e-6)
+   
+    bool1 & bool2
+  })
+  
+  expect_true(all(bool_vec))
 })
 
 test_that("supervised_pca finds meaningful correlation with the response", {
