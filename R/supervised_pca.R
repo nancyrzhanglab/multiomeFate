@@ -1,20 +1,28 @@
 # see Algorithm 1 in "Supervised principal component analysis: Visualization, classification andregression on subspaces and submanifolds"
-supervised_pca <- function(x, y){
+supervised_pca <- function(x, y, 
+                           k = 2,
+                           orthogonalize = T){
   stopifnot(is.matrix(x), is.matrix(y),
             nrow(x) == nrow(y))
   
-  x <- t(x); y <- t(y)
-  
-  n <- ncol(x)
-  L <- crossprod(y)
-  H <- diag(n) - tcrossprod(rep(1,n))/n
-  Q <- tcrossprod(x %*% H %*% L %*% H, x)
+  n <- nrow(x)
+  H <- diag(n) - matrix(1/n, nrow = n, ncol = n)
+  half_mat <- crossprod(y, H %*% x)
+  Q <- crossprod(half_mat)
   eigen_res <- eigen(Q)
-  U <- Re(eigen_res$vectors[,1:2])
+  U <- Re(eigen_res$vectors[,1:k])
   
-  res <- t(crossprod(U,x))
-  colnames(res) <- c("SPCA_1", "SPCA_2")
-  colnames(U) <- c("SPCA_1", "SPCA_2")
+  res <- x %*% U
+  
+  if(orthogonalize){
+    svd_res <- svd(res)
+    rotation_mat <- svd_res$v
+    U <- U %*% rotation_mat
+    res <- x %*% U
+  }
+  
+  colnames(res) <- paste0("SPCA_", 1:k)
+  colnames(U) <- paste0("SPCA_", 1:k)
   rownames(U) <- rownames(x)
   
   list(dimred = res, U = U)
