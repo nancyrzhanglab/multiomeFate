@@ -1,10 +1,12 @@
 # see Algorithm 1 in "Supervised principal component analysis: Visualization, classification andregression on subspaces and submanifolds"
 supervised_pca <- function(x, y, 
                            k = 2,
-                           orthogonalize = T){
+                           orthogonalize = T,
+                           scale_x = T){
   stopifnot(is.matrix(x), is.matrix(y),
             nrow(x) == nrow(y))
   
+  if(scale_x) x <- scale(x)
   n <- nrow(x)
   H <- diag(n) - matrix(1/n, nrow = n, ncol = n)
   half_mat <- crossprod(y, H %*% x)

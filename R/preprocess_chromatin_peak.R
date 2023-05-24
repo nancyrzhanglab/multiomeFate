@@ -1,30 +1,39 @@
-preprocess_chromatin_peak <- function(peak_mapping_list,
-                                      seurat_obj,
-                                      cell_names = NULL,
-                                      slot_atac = "ATAC",
-                                      slot_rna = "RNA",
-                                      tol = 1e-6,
-                                      verbose = 0){
+extract_relevant_peaks <- function(peak_mapping_list,
+                                   seurat_obj,
+                                   cell_names = NULL,
+                                   slot_atac = "ATAC",
+                                   slot_rna = "RNA",
+                                   tol = 1e-6,
+                                   verbose = 0){
   if(all(is.null(cell_names))) cell_names <- colnames(seurat_obj)
   stopifnot(all(cell_names %in% colnames(seurat_obj)))
-
+  
   # extract RNA matrix
-  rna_mat <- Matrix::t(all_data2[[slot_rna]]@scale.data[,cell_names])
+  if(verbose > 0) print("Extracting RNA matrix")
+  rna_mat <- Matrix::t(all_data[[slot_rna]]@scale.data[,cell_names])
   sd_vec <- sparseMatrixStats::colSds(rna_mat)
   if(any(sd_vec <= tol)){
     rna_mat <- rna_mat[,sd_vec >= tol,drop = F]
   }
+  if(verbose > 0) print(paste0("RNA matrix: ", nrow(rna_mat), " cells and ", ncol(rna_mat), " genes"))
   
   # organize the set of genes 
+  if(verbose > 0) print("Orgnaizing genes")
   tmp <- sapply(peak_mapping_list, length)
   if(any(tmp == 0)) peak_mapping_list <- peak_mapping_list[-which(tmp == 0)]
   gene_vec <- sort(unique(intersect(names(peak_mapping_list), colnames(rna_mat))))
   rna_mat <- rna_mat[,gene_vec,drop = F]
   peak_mapping_list <- peak_mapping_list[gene_vec]
   len <- length(gene_vec)
+  if(verbose > 0) print(paste0(length(gene_vec), " genes still in analysis"))
   
   # construct the relevant chromatin-activity matrix by extract relevant rows from seurat_obj
-  chr_peak_list <- sapply(peak_mapping_list, function(lis){
+  if(verbose > 0) print("Constructing chromatin-activity matrix")
+  chr_peak_list <- sapply(1:len, function(i){
+    if(verbose == 2) if(i %% floor(len/10) == 0) cat('*')
+    if(verbose > 2) print(paste0("Working on gene ", i, " out of ", len))
+    
+    lis <- peak_mapping_list[[i]]
     stopifnot("overlap_idx" %in% names(lis))
     peak_idx <- lis$overlap_idx
     stopifnot(length(peak_idx) > 0)
@@ -32,43 +41,62 @@ preprocess_chromatin_peak <- function(peak_mapping_list,
   })
   names(chr_peak_list) <- gene_vec
   
+  if(verbose > 0) print("Done")
+  list(chr_peak_list = chr_peak_list,
+       rna_mat = rna_mat)
+}
+
+preprocess_chromatin_peak <- function(chr_peak_list,
+                                      rna_mat,
+                                      tol = 1e-6,
+                                      verbose = 0){
+  stopifnot(all(names(chr_peak_list) == colnames(rna_mat)))
+  cell_names <- rownames(rna_mat)
+  gene_vec <- names(chr_peak_list)
+  len <- length(gene_vec)
+  
   chract_mat <- sapply(1:len, function(i){
-    sparseMatrixStats::rowSum2(chr_peak_list[[i]])
+    sparseMatrixStats::rowSums2(chr_peak_list[[i]])
   })
-  rownames(chract_mat) <- colnames(seurat_obj)
+  rownames(chract_mat) <- rownames(rna_mat)
   colnames(chract_mat) <- gene_vec
+  if(verbose > 0) print(paste0("Chromatin activity matrix: ", nrow(chract_mat), " cells and ", ncol(chract_mat), " genes"))
   
   # remove any genes with no peaks at all
+  if(verbose > 0) print("Remove genes with no peaks")
   tmp <- which(Matrix::colSums(chract_mat) <= tol)
   if(length(tmp) > 0){
     gene_vec <- gene_vec[-tmp]
     
     rna_mat <- rna_mat[,gene_vec,drop = F]
-    peak_mapping_list <- peak_mapping_list[gene_vec]
     chr_peak_list <- chr_peak_list[gene_vec]
     chract_mat <- chract_mat[,gene_vec,drop = F]
     len <- length(gene_vec)
   }
-  stopifnot(all(colnames(rna_mat) == names(peak_mapping_list)),
-            all(colnames(rna_mat) == names(chr_peak_list)),
+  stopifnot(all(colnames(rna_mat) == names(chr_peak_list)),
             all(colnames(rna_mat) == colnames(chract_mat)),
             ncol(rna_mat) == len)
+  print(paste0(length(gene_vec), " genes still in analysis"))
   
   # now normalize the chromatin activit matrix, as it acts like a template on how to normalize the individual peaks
+  if(verbose > 0) print("Normalize chromatin activity")
   lib_mat <- Matrix::rowSums(chract_mat)
   lib_mat <- pmax(lib_mat, 1)
   chract_mat_normalized <- .mult_vec_mat(1/lib_mat, chract_mat)
   chract_mat_normalized2 <- log1p(chract_mat_normalized*1e6)
   chract_mat_normalized3 <- scale(chract_mat_normalized2)
   
+  if(verbose > 0) print("Computing SVD of chromatin activity")
   set.seed(10)
   dimred_res <- irlba::irlba(chract_mat_normalized3, nv = 50)
   eigenbasis <- dimred_res$u[,2:50]
 
   # now actually preprocess the individual peaks associated with gene
+  if(verbose > 0) print("Process the peaks associated with each gene")
   for(i in 1:len){
-    if(verbose > 1) print(paste0("Working on gene ", i, " out of ", len))
-    gene <- names(gene_vec)[i]
+    if(verbose == 2) if(i %% floor(len/10) == 0) cat('*')
+    if(verbose > 2) print(paste0("Working on gene ", i, " out of ", len))
+    gene <- gene_vec[i]
     mat <- chr_peak_list[[i]]
     
     # apply library size
@@ -98,6 +126,7 @@ preprocess_chromatin_peak <- function(peak_mapping_list,
     chr_peak_list[[i]] <- mat4[cell_names,,drop = F]
   }
   
+  if(verbose > 0) print("Done")
   list(chr_peak_list = chr_peak_list,
        rna_mat = rna_mat)
 }
