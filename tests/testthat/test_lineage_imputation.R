@@ -23,10 +23,11 @@ test_that(".lineage_objective works", {
   expect_true(is.numeric(res))
   expect_true(length(res) == 1)
   
+  # ensure we are indeed minimizing
   res2 <- .lineage_objective(cell_features = cell_features,
                             cell_lineage = cell_lineage,
                             cell_lineage_idx_list = cell_lineage_idx_list,
-                            coefficient_vec = coefficient_vec/2,
+                            coefficient_vec = c(3,0),
                             lineage_future_count = lineage_future_count)
-  expect_true(res2 <= res)
+  expect_true(res2 >= res) 
 })
