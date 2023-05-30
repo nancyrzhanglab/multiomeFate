@@ -164,3 +164,34 @@ test_that(".lineage_gradient has the correct mathematical property (for 1-cell-p
   
   expect_true(all(bool_vec))
 })
+
+test_that(".lineage_gradient matches the automatic differentiator", {
+  res <- .construct_lineage_data()
+  cell_features <- res$cell_features
+  cell_lineage <- res$cell_lineage
+  cell_lineage_idx_list <- res$cell_lineage_idx_list
+  lineage_future_count <- res$lineage_future_count
+  trials <- 1000
+  
+  bool_vec <- sapply(1:trials, function(trial){
+    set.seed(trial)
+    coef_vec <- runif(2)
+    
+    grad_vec1 <- .lineage_gradient(cell_features = cell_features,
+                                   cell_lineage = cell_lineage,
+                                   cell_lineage_idx_list = cell_lineage_idx_list,
+                                   coefficient_vec = coef_vec,
+                                   lineage_future_count = lineage_future_count)
+    grad_vec2 <- numDeriv::grad(.lineage_objective, 
+                                coef_vec, 
+                                side = NULL,
+                                cell_features = cell_features,
+                                cell_lineage = cell_lineage,
+                                cell_lineage_idx_list = cell_lineage_idx_list,
+                                lineage_future_count = lineage_future_count)
+    
+    sum(abs(grad_vec1 - grad_vec2)) <= 1e-3
+  })
+  
+  expect_true(all(bool_vec))
+})
