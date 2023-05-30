@@ -35,8 +35,16 @@
   names(coefficient_vec) <- colnames(cell_features)
   names(lineage_future_count) <- uniq_lineages
   
+  # do some other coding
+  uniq_lineages <- sort(unique(names(lineage_future_count)))
+  cell_lineage_idx_list <- lapply(uniq_lineages, function(lineage){
+    which(cell_lineage == lineage)
+  })
+  names(cell_lineage_idx_list) <- uniq_lineages
+  
   list(cell_features = cell_features,
        cell_lineage = cell_lineage,
+       cell_lineage_idx_list = cell_lineage_idx_list,
        coefficient_vec = coefficient_vec,
        lineage_future_count = lineage_future_count)
 }

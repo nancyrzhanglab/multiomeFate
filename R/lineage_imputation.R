@@ -22,17 +22,15 @@ lineage_imputation <- function(cell_features,
                                cell_lineage_idx_list,
                                coefficient_vec,
                                lineage_future_count){
-  uniq_lineages <- names(cell_lineage_idx_list)
+  uniq_lineages <- names(lineage_future_count)
   cell_names <- rownames(cell_features)
-  lineage_future_count_full <- lineage_future_count[cell_lineage]
-  
+
   scalar1 <- as.numeric(exp(cell_features %*% coefficient_vec))
   names(scalar1) <- cell_names
   scalar2 <- sapply(uniq_lineages, function(lineage){
     log(sum(scalar1[cell_lineage_idx_list[[lineage]]]))
   })
-  scalar_vec <- scalar1 - lineage_future_count_full*scalar2
-  sum(scalar_vec)
+  sum(scalar1) - sum(lineage_future_count*scalar2)
 }
 
 .lineage_gradient <- function(cell_features,
@@ -44,7 +42,7 @@ lineage_imputation <- function(cell_features,
   cell_names <- rownames(cell_features)
   lineage_future_count_full <- lineage_future_count[cell_lineage]
   
-  scalar1 <- exp(coefficient_vec %*% cell_features)
+  scalar1 <- as.numeric(exp(cell_features %*% coefficient_vec))
   names(scalar1) <- cell_names
   scalar2a <- lineage_future_count_full * scalar1
   denom_vec <- sapply(uniq_lineages, function(lineage){
@@ -74,7 +72,7 @@ lineage_imputation <- function(cell_features,
   cell_names <- rownames(cell_features)
   lineage_future_count_full <- lineage_future_count[cell_lineage]
   
-  scalar1 <- exp(coefficient_vec %*% cell_features)
+  scalar1 <- as.numeric(exp(cell_features %*% coefficient_vec))
   names(scalar1) <- cell_names
   
   scalar2a <- lineage_future_count_full * scalar1
