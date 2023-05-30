@@ -20,10 +20,10 @@ test_that(".lineage_objective works", {
   
   # ensure we are indeed minimizing
   res2 <- .lineage_objective(cell_features = cell_features,
-                            cell_lineage = cell_lineage,
-                            cell_lineage_idx_list = cell_lineage_idx_list,
-                            coefficient_vec = c(3,0),
-                            lineage_future_count = lineage_future_count)
+                             cell_lineage = cell_lineage,
+                             cell_lineage_idx_list = cell_lineage_idx_list,
+                             coefficient_vec = c(3,0),
+                             lineage_future_count = lineage_future_count)
   expect_true(res2 >= res) 
 })
 
@@ -75,25 +75,68 @@ test_that(".lineage_gradient works", {
   lineage_future_count <- res$lineage_future_count
   
   res <- .lineage_gradient(cell_features = cell_features,
-                            cell_lineage = cell_lineage,
-                            cell_lineage_idx_list = cell_lineage_idx_list,
-                            coefficient_vec = coefficient_vec,
-                            lineage_future_count = lineage_future_count)
+                           cell_lineage = cell_lineage,
+                           cell_lineage_idx_list = cell_lineage_idx_list,
+                           coefficient_vec = coefficient_vec,
+                           lineage_future_count = lineage_future_count)
   
   expect_true(is.numeric(res))
   expect_true(length(res) == 2)
   expect_true(all(names(res) == colnames(cell_features)))
 })
 
-## tests inspired by https://github.com/linnykos/permanent_notes/blob/master/convex_optimization/nonconvex-scribed.pdf
-
-test_that(".lineage_gradient works", {
+test_that(".lineage_gradient is equivalent to the long-form calculation", {
   res <- .construct_lineage_data()
   cell_features <- res$cell_features
   cell_lineage <- res$cell_lineage
   cell_lineage_idx_list <- res$cell_lineage_idx_list
   lineage_future_count <- res$lineage_future_count
   trials <- 100
+  
+  bool_vec <- sapply(1:trials, function(trial){
+    set.seed(trial)
+    coef_vec <- runif(2)
+    
+    res1 <- .lineage_gradient(cell_features = cell_features,
+                              cell_lineage = cell_lineage,
+                              cell_lineage_idx_list = cell_lineage_idx_list,
+                              coefficient_vec = coef_vec,
+                              lineage_future_count = lineage_future_count)
+    
+    res2 <- c(0,0)
+    uniq_lineage <- sort(unique(cell_lineage))
+    exp_vec <- sapply(1:nrow(cell_features), function(i){
+      as.numeric(exp(cell_features[i,,drop = F] %*% coef_vec))
+    })
+    
+    for(lineage in uniq_lineage){
+      cell_idx_vec <- which(cell_lineage == lineage)
+      
+      for(cell_idx in cell_idx_vec){
+        res2 <- res2 + exp_vec[cell_idx] * cell_features[cell_idx,,drop = F]
+      }
+      
+      n_future <- lineage_future_count[lineage]
+      for(cell_idx in cell_idx_vec){
+        res2 <- res2 - (n_future * exp_vec[cell_idx] / sum(exp_vec[cell_idx_vec])) * cell_features[cell_idx,,drop = F]
+      }
+    }
+    
+    abs(sum(res1 - res2) <= 1e-6)
+    
+  })
+  
+  expect_true(all(bool_vec))
+})
+
+## tests inspired by https://github.com/linnykos/permanent_notes/blob/master/convex_optimization/nonconvex-scribed.pdf
+test_that(".lineage_gradient has the correct mathematical property (for 1-cell-per-lineage, where it's convex)", {
+  res <- .construct_lineage_data(n_each = 1)
+  cell_features <- res$cell_features
+  cell_lineage <- res$cell_lineage
+  cell_lineage_idx_list <- res$cell_lineage_idx_list
+  lineage_future_count <- res$lineage_future_count
+  trials <- 1000
   
   bool_vec <- sapply(1:trials, function(trial){
     set.seed(trial)
@@ -116,7 +159,7 @@ test_that(".lineage_gradient works", {
                                    coefficient_vec = coef_vec1,
                                    lineage_future_count = lineage_future_count)
     
-    obj2 >= obj1 + as.numeric(grad_vec1 %*% (coef_vec2 - coef_vec1))
+    obj2 + 1e-6 >= obj1 + as.numeric(grad_vec1 %*% (coef_vec2 - coef_vec1))
   })
   
   expect_true(all(bool_vec))

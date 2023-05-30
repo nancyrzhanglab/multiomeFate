@@ -1,15 +1,17 @@
-.construct_lineage_data <- function(){
+.construct_lineage_data <- function(n_each = 5,
+                                    p = 2){
   set.seed(10)
   L <- 10
-  n_each <- 5
   variance_across_lineage <- 1
   variance_within_lineage <- 0.3
-  p <- 2
   
   # construct feature matrix
   tmp <- lapply(1:L, function(lineage){
     center <- MASS::mvrnorm(n = 1, mu = rep(1,p), Sigma = variance_across_lineage*diag(p))
     mat <- MASS::mvrnorm(n = n_each, mu = center, Sigma = variance_within_lineage*diag(p))
+    if(n_each == 1){
+      mat <- matrix(mat, nrow = 1, ncol = p)
+    }
     rownames(mat) <- paste0("c:", (lineage-1)*n_each+1:nrow(mat))
     mat
   })
@@ -25,7 +27,7 @@
   lineage_future_count <- sapply(uniq_lineages, function(lineage){
     idx <- which(cell_lineage == lineage)
     lambda <- sum(sapply(idx, function(i){
-      exp(coefficient_vec %*% cell_features[i,])
+      exp(coefficient_vec %*% cell_features[i,,drop=F])
     }))
     stats::rpois(1, lambda = lambda)
   })

@@ -46,7 +46,7 @@ lineage_imputation <- function(cell_features,
   names(scalar1) <- cell_names
   scalar2a <- lineage_future_count_full * scalar1
   denom_vec <- sapply(uniq_lineages, function(lineage){
-    sum(scalar1[cell_lineage_idx_list[[lineage]]])
+    sum(scalar1[cell_lineage_idx_list[[lineage]]]) 
   })
   names(denom_vec) <- uniq_lineages
   scalar2b <- denom_vec[cell_lineage]
