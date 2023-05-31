@@ -1,6 +1,7 @@
 .construct_lineage_data <- function(n_each = 5,
-                                    p = 2){
-  set.seed(10)
+                                    p = 2,
+                                    seed = 10){
+  set.seed(seed)
   L <- 10
   variance_across_lineage <- 1
   variance_within_lineage <- 0.3

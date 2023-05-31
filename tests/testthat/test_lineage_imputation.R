@@ -195,3 +195,49 @@ test_that(".lineage_gradient matches the automatic differentiator", {
   
   expect_true(all(bool_vec))
 })
+
+
+test_that(".lineage_gradient seems sensible in 1-dimension", {
+  trials <- 100
+  
+  bool_vec <- sapply(1:trials, function(trial){
+    res <- .construct_lineage_data(p = 1, seed = trial)
+    cell_features <- res$cell_features
+    cell_lineage <- res$cell_lineage
+    cell_lineage_idx_list <- res$cell_lineage_idx_list
+    lineage_future_count <- res$lineage_future_count
+    
+    set.seed(trial)
+    coef_target <- runif(1)
+    
+    obj_val <- .lineage_objective(cell_features = cell_features,
+                                  cell_lineage = cell_lineage,
+                                  cell_lineage_idx_list = cell_lineage_idx_list,
+                                  coefficient_vec = coef_target,
+                                  lineage_future_count = lineage_future_count)
+    grad_val <- .lineage_gradient(cell_features = cell_features,
+                                  cell_lineage = cell_lineage,
+                                  cell_lineage_idx_list = cell_lineage_idx_list,
+                                  coefficient_vec = coef_target,
+                                  lineage_future_count = lineage_future_count)
+    
+    coef_jitter <- coef_target + seq(-0.01,0.01,by=0.001)
+    obj_vec <- sapply(coef_jitter, function(coef_val){
+      .lineage_objective(cell_features = cell_features,
+                         cell_lineage = cell_lineage,
+                         cell_lineage_idx_list = cell_lineage_idx_list,
+                         coefficient_vec = coef_val,
+                         lineage_future_count = lineage_future_count)
+    })
+    
+    lower_bound_vec <- sapply(coef_jitter, function(coef_val){
+      obj_val - grad_val*(coef_target-coef_val)
+    })
+    
+    ## you want to uncomment this line and make coef_jitter wider to see the non-convexity
+    # plot(coef_jitter, obj_vec); points(coef_target, obj_val, pch = 16, col = "red"); lines(coef_jitter, lower_bound_vec, col = "red")
+    all(lower_bound_vec <= obj_vec + 1) # just for jitter
+  })
+  
+  expect_true(all(bool_vec))
+})
