@@ -1,10 +1,13 @@
-.construct_lineage_data <- function(n_each = 5,
+.construct_lineage_data <- function(coefficient_vec = c(1,1),
+                                    L = 10,
+                                    n_each = 5,
                                     p = 2,
+                                    variance_across_lineage = 1,
+                                    variance_within_lineage = 0.3,
                                     seed = 10){
+  if(is.null(p)) p <- length(coefficient_vec)
+  stopifnot(length(coefficient_vec) == p)
   set.seed(seed)
-  L <- 10
-  variance_across_lineage <- 1
-  variance_within_lineage <- 0.3
   
   # construct feature matrix
   tmp <- lapply(1:L, function(lineage){
@@ -24,7 +27,6 @@
   names(cell_lineage) <- rownames(cell_features)
   
   # construct future lineage counts
-  coefficient_vec <- c(1,1)
   lineage_future_count <- sapply(uniq_lineages, function(lineage){
     idx <- which(cell_lineage == lineage)
     lambda <- sum(sapply(idx, function(i){
