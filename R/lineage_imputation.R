@@ -4,21 +4,44 @@ lineage_imputation <- function(cell_features,
                                lineage_future_count,
                                random_initializations = 10,
                                verbose = 1){
+  # do some preliminary formatting
   if(!is.list(coefficient_initial_list)) coefficient_initial_list <- list(coefficient_initial_list)
   list_len <- length(coefficient_initial_list)
   
   stopifnot(all(sort(unique(cell_lineage)) == 
                   sort(unique(names(lineage_future_count)))),
             is.matrix(cell_features), nrow(cell_features) == length(cell_lineage),
-            all(sapply(coefficient_initial_list, length) == ncol(cell_features)))
+            all(sapply(coefficient_initial_list, length) == ncol(cell_features)),
+            sum(is.na(cell_features)) == 0,
+            sum(is.na(cell_lineage)) == 0,
+            sum(is.na(lineage_future_count)) == 0)
+  for(i in 1:list_len){
+    if(length(names(coefficient_initial_list[[i]])) != 0){
+      stopifnot(all(names(coefficient_initial_list[[i]]) == colnames(cell_features)))
+    } else {
+      names(coefficient_initial_list[[i]]) <- colnames(cell_features)
+    }
+  }
   
+  # some cleanup
   p <- ncol(cell_features)
+  if(all(sort(unique(names(lineage_future_count))) != sort(unique(cell_lineage)))){
+    if(verbose > 0) warning("Lineages in `lineage_future_count` are not the same as those in `cell_lineage`")
+    
+    uniq_lineages <- sort(intersect(unique(names(lineage_future_count)), unique(cell_lineage)))
+    lineage_future_count <- lineage_future_count[names(lineage_future_count) %in% uniq_lineages]
+    rm_cell_idx <- which(!cell_lineage %in% uniq_lineages)
+    if(rm_cell_idx > 0){
+      cell_lineage <- cell_lineage[-rm_cell_idx]
+      cell_features <- cell_features[-rm_cell_idx,,drop=F]
+    }
+  }
   uniq_lineages <- sort(unique(names(lineage_future_count)))
   cell_lineage_idx_list <- lapply(uniq_lineages, function(lineage){
     which(cell_lineage == lineage)
   })
   names(cell_lineage_idx_list) <- uniq_lineages
-  
+
   # rearrange arguments
   optim_fn <- function(coefficient_vec,
                        cell_features,
@@ -59,8 +82,11 @@ lineage_imputation <- function(cell_features,
       lineage_future_count = lineage_future_count
     )
     
+    res_vec <- res$par
+    names(res_vec) <- colnames(cell_features)
+    
     res_list[[i]] <- list(coefficient_initial = coefficient_initial_list[[i]],
-                          coefficient_vec = res$par,
+                          coefficient_vec = res_vec,
                           convergence = res$convergence,
                           objective_val = res$value)
   }
@@ -74,6 +100,7 @@ lineage_imputation <- function(cell_features,
     for(i in 1:random_initializations){
       if(verbose > 0) print(paste0("On random initialization ", i))
       coef_vec <- stats::runif(p, min = 0, max = max_limit)
+      names(coef_vec) <- colnames(cell_features)
       
       res <- stats::optim(
         par = coef_vec,
@@ -86,8 +113,11 @@ lineage_imputation <- function(cell_features,
         lineage_future_count = lineage_future_count
       )
       
+      res_vec <- res$par
+      names(res_vec) <- colnames(cell_features)
+      
       res_list[[i+list_len]] <- list(coefficient_initial = coef_vec,
-                                     coefficient_vec = res$par,
+                                     coefficient_vec = res_vec,
                                      convergence = res$convergence,
                                      objective_val = res$value)
     }
