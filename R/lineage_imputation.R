@@ -65,30 +65,32 @@ lineage_imputation <- function(cell_features,
                           objective_val = res$value)
   }
   
-  max_feature <- stats::quantile(abs(cell_features), probs = 0.95)
-  num_cells_per_lineage <- sapply(cell_lineage_idx_list, length)
-  names(num_cells_per_lineage) <- uniq_lineages
-  max_count_ratio <- max(lineage_future_count[uniq_lineages]/num_cells_per_lineage[uniq_lineages])
-  max_limit <- 2*log(max_count_ratio)/(p*max_feature)
-  for(i in 1:random_initializations){
-    if(verbose > 0) print(paste0("On random initialization ", i))
-    coef_vec <- stats::runif(p, min = 0, max = max_limit)
-    
-    res <- stats::optim(
-      par = coef_vec,
-      fn = optim_fn,
-      gr = optim_gr,
-      method = "BFGS",
-      cell_features = cell_features,
-      cell_lineage = cell_lineage,
-      cell_lineage_idx_list = cell_lineage_idx_list,
-      lineage_future_count = lineage_future_count
-    )
-    
-    res_list[[i+list_len]] <- list(coefficient_initial = coef_vec,
-                                   coefficient_vec = res$par,
-                                   convergence = res$convergence,
-                                   objective_val = res$value)
+  if(random_initializations > 0){
+    max_feature <- stats::quantile(abs(cell_features), probs = 0.95)
+    num_cells_per_lineage <- sapply(cell_lineage_idx_list, length)
+    names(num_cells_per_lineage) <- uniq_lineages
+    max_count_ratio <- max(lineage_future_count[uniq_lineages]/num_cells_per_lineage[uniq_lineages])
+    max_limit <- 2*log(max_count_ratio)/(p*max_feature)
+    for(i in 1:random_initializations){
+      if(verbose > 0) print(paste0("On random initialization ", i))
+      coef_vec <- stats::runif(p, min = 0, max = max_limit)
+      
+      res <- stats::optim(
+        par = coef_vec,
+        fn = optim_fn,
+        gr = optim_gr,
+        method = "BFGS",
+        cell_features = cell_features,
+        cell_lineage = cell_lineage,
+        cell_lineage_idx_list = cell_lineage_idx_list,
+        lineage_future_count = lineage_future_count
+      )
+      
+      res_list[[i+list_len]] <- list(coefficient_initial = coef_vec,
+                                     coefficient_vec = res$par,
+                                     convergence = res$convergence,
+                                     objective_val = res$value)
+    }
   }
   
   obj_vec <- sapply(res_list, function(lis){lis$objective_val})
@@ -96,7 +98,9 @@ lineage_imputation <- function(cell_features,
     print("Quantile of all the objective scores")
     print(stats::quantile(obj_vec))
   }
-  res_list[[which.min(obj_vec)]]
+  
+  list(fit =  res_list[[which.min(obj_vec)]],
+       res_list = res_list)
 }
 
 #################################
