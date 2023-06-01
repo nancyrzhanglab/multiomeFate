@@ -1,13 +1,18 @@
 lineage_imputation <- function(cell_features,
                                cell_lineage,
-                               coefficient_initial,
-                               lineage_future_count){
+                               coefficient_initial_list,
+                               lineage_future_count,
+                               random_initializations = 10,
+                               verbose = 1){
+  if(!is.list(coefficient_initial_list)) coefficient_initial_list <- list(coefficient_initial_list)
+  list_len <- length(coefficient_initial_list)
   
   stopifnot(all(sort(unique(cell_lineage)) == 
                   sort(unique(names(lineage_future_count)))),
             is.matrix(cell_features), nrow(cell_features) == length(cell_lineage),
-            ncol(cell_features) == length(coefficient_initial))
+            all(sapply(coefficient_initial_list, length) == ncol(cell_features)))
   
+  p <- ncol(cell_features)
   uniq_lineages <- sort(unique(names(lineage_future_count)))
   cell_lineage_idx_list <- lapply(uniq_lineages, function(lineage){
     which(cell_lineage == lineage)
@@ -39,20 +44,59 @@ lineage_imputation <- function(cell_features,
                       lineage_future_count = lineage_future_count)
   }
   
-  res <- stats::optim(
-    par = coefficient_initial,
-    fn = optim_fn,
-    gr = optim_gr,
-    method = "BFGS",
-    cell_features = cell_features,
-    cell_lineage = cell_lineage,
-    cell_lineage_idx_list = cell_lineage_idx_list,
-    lineage_future_count = lineage_future_count
-  )
+  res_list <- vector("list", length = list_len+random_initializations)
   
-  list(coefficient_vec = res$par,
-       convergence = res$convergence,
-       objective_val = res$value)
+  for(i in 1:list_len){
+    if(verbose > 0) print(paste0("On provided initialization ", i))
+    res <- stats::optim(
+      par = coefficient_initial_list[[i]],
+      fn = optim_fn,
+      gr = optim_gr,
+      method = "BFGS",
+      cell_features = cell_features,
+      cell_lineage = cell_lineage,
+      cell_lineage_idx_list = cell_lineage_idx_list,
+      lineage_future_count = lineage_future_count
+    )
+    
+    res_list[[i]] <- list(coefficient_initial = coefficient_initial_list[[i]],
+                          coefficient_vec = res$par,
+                          convergence = res$convergence,
+                          objective_val = res$value)
+  }
+  
+  max_feature <- stats::quantile(abs(cell_features), probs = 0.95)
+  num_cells_per_lineage <- sapply(cell_lineage_idx_list, length)
+  names(num_cells_per_lineage) <- uniq_lineages
+  max_count_ratio <- max(lineage_future_count[uniq_lineages]/num_cells_per_lineage[uniq_lineages])
+  max_limit <- 2*log(max_count_ratio)/(p*max_feature)
+  for(i in 1:random_initializations){
+    if(verbose > 0) print(paste0("On random initialization ", i))
+    coef_vec <- stats::runif(p, min = 0, max = max_limit)
+    
+    res <- stats::optim(
+      par = coef_vec,
+      fn = optim_fn,
+      gr = optim_gr,
+      method = "BFGS",
+      cell_features = cell_features,
+      cell_lineage = cell_lineage,
+      cell_lineage_idx_list = cell_lineage_idx_list,
+      lineage_future_count = lineage_future_count
+    )
+    
+    res_list[[i+list_len]] <- list(coefficient_initial = coef_vec,
+                                   coefficient_vec = res$par,
+                                   convergence = res$convergence,
+                                   objective_val = res$value)
+  }
+  
+  obj_vec <- sapply(res_list, function(lis){lis$objective_val})
+  if(verbose > 1){
+    print("Quantile of all the objective scores")
+    print(stats::quantile(obj_vec))
+  }
+  res_list[[which.min(obj_vec)]]
 }
 
 #################################

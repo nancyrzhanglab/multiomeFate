@@ -241,3 +241,25 @@ test_that(".lineage_gradient seems sensible in 1-dimension", {
   
   expect_true(all(bool_vec))
 })
+
+############################
+
+## lineage_imputation is correct
+
+test_that("lineage_imputation works", {
+  set.seed(10)
+  n_each <- 30
+  res <- .construct_lineage_data()
+  cell_features <- res$cell_features
+  cell_lineage <- res$cell_lineage
+  cell_lineage_idx_list <- res$cell_lineage_idx_list
+  true_coefficient <- res$coefficient_vec
+  coefficient_initial <- true_coefficient/2
+  lineage_future_count <- res$lineage_future_count
+  
+  res <- lineage_imputation(cell_features,
+                            cell_lineage,
+                            coefficient_initial,
+                            lineage_future_count,
+                            verbose = 0)
+})
