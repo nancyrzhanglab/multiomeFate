@@ -262,4 +262,6 @@ test_that("lineage_imputation works", {
                             coefficient_initial,
                             lineage_future_count,
                             verbose = 0)
+  
+  expect_true(is.list(res))
 })

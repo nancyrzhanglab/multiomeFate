@@ -25,23 +25,15 @@ lineage_imputation <- function(cell_features,
   
   # some cleanup
   p <- ncol(cell_features)
-  if(all(sort(unique(names(lineage_future_count))) != sort(unique(cell_lineage)))){
-    if(verbose > 0) warning("Lineages in `lineage_future_count` are not the same as those in `cell_lineage`")
-    
-    uniq_lineages <- sort(intersect(unique(names(lineage_future_count)), unique(cell_lineage)))
-    lineage_future_count <- lineage_future_count[names(lineage_future_count) %in% uniq_lineages]
-    rm_cell_idx <- which(!cell_lineage %in% uniq_lineages)
-    if(rm_cell_idx > 0){
-      cell_lineage <- cell_lineage[-rm_cell_idx]
-      cell_features <- cell_features[-rm_cell_idx,,drop=F]
-    }
-  }
-  uniq_lineages <- sort(unique(names(lineage_future_count)))
-  cell_lineage_idx_list <- lapply(uniq_lineages, function(lineage){
-    which(cell_lineage == lineage)
-  })
-  names(cell_lineage_idx_list) <- uniq_lineages
-
+  tmp <- .lineage_cleanup(cell_features = cell_features,
+                          cell_lineage = cell_lineage,
+                          lineage_future_count = lineage_future_count)
+  cell_features <- tmp$cell_features
+  cell_lineage <- tmp$cell_lineage
+  cell_lineage_idx_list <- tmp$cell_lineage_idx_list
+  lineage_future_count <- tmp$lineage_future_count
+  uniq_lineages <- tmp$uniq_lineages
+  
   # rearrange arguments
   optim_fn <- function(coefficient_vec,
                        cell_features,
@@ -133,7 +125,56 @@ lineage_imputation <- function(cell_features,
        res_list = res_list)
 }
 
+evaluate_loglikelihood <- function(cell_features,
+                                   cell_lineage,
+                                   coefficient_vec,
+                                   lineage_future_count){
+  
+  tmp <- .lineage_cleanup(cell_features = cell_features,
+                          cell_lineage = cell_lineage,
+                          lineage_future_count = lineage_future_count)
+  cell_features <- tmp$cell_features
+  cell_lineage <- tmp$cell_lineage
+  cell_lineage_idx_list <- tmp$cell_lineage_idx_list
+  lineage_future_count <- tmp$lineage_future_count
+  uniq_lineages <- tmp$uniq_lineages
+  
+  .lineage_objective(cell_features = cell_features,
+                     cell_lineage = cell_lineage,
+                     cell_lineage_idx_list = cell_lineage_idx_list,
+                     coefficient_vec = coefficient_vec,
+                     lineage_future_count = lineage_future_count)
+}
+
 #################################
+
+.lineage_cleanup <- function(cell_features,
+                             cell_lineage,
+                             lineage_future_count){
+  # some cleanup
+  if(all(sort(unique(names(lineage_future_count))) != sort(unique(cell_lineage)))){
+    if(verbose > 0) warning("Lineages in `lineage_future_count` are not the same as those in `cell_lineage`")
+    
+    uniq_lineages <- sort(intersect(unique(names(lineage_future_count)), unique(cell_lineage)))
+    lineage_future_count <- lineage_future_count[names(lineage_future_count) %in% uniq_lineages]
+    rm_cell_idx <- which(!cell_lineage %in% uniq_lineages)
+    if(rm_cell_idx > 0){
+      cell_lineage <- cell_lineage[-rm_cell_idx]
+      cell_features <- cell_features[-rm_cell_idx,,drop=F]
+    }
+  }
+  uniq_lineages <- sort(unique(names(lineage_future_count)))
+  cell_lineage_idx_list <- lapply(uniq_lineages, function(lineage){
+    which(cell_lineage == lineage)
+  })
+  names(cell_lineage_idx_list) <- uniq_lineages
+  
+  list(cell_features = cell_features,
+       cell_lineage = cell_lineage,
+       cell_lineage_idx_list = cell_lineage_idx_list,
+       lineage_future_count = lineage_future_count,
+       uniq_lineages = uniq_lineages)
+}
 
 .lineage_objective <- function(cell_features,
                                cell_lineage,
