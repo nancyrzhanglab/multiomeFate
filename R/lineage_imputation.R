@@ -3,6 +3,7 @@ lineage_imputation <- function(cell_features,
                                coefficient_initial_list,
                                lineage_future_count,
                                random_initializations = 10,
+                               upper_randomness = 5,
                                verbose = 1){
   # do some preliminary formatting
   if(!is.list(coefficient_initial_list)) coefficient_initial_list <- list(coefficient_initial_list)
@@ -91,7 +92,7 @@ lineage_imputation <- function(cell_features,
     max_limit <- 2*log(max_count_ratio)/(p*max_feature)
     for(i in 1:random_initializations){
       if(verbose > 0) print(paste0("On random initialization ", i))
-      coef_vec <- stats::runif(p, min = 0, max = max_limit)
+      coef_vec <- pmin(stats::runif(p, min = 0, max = max_limit), upper_randomness)
       names(coef_vec) <- colnames(cell_features)
       
       res <- stats::optim(
