@@ -12,10 +12,11 @@ estimate_grenander <- function(values,
     x = cdf_empirical$x
   )
   
-  obj$log_pdf <- log(obj$pdf)
-  obj$scaling_factor <- scaling_factor
-  class(obj) <- "grenander"
-  obj
+  .constructor_grenander(
+    x = obj$x,
+    pdf = obj$pdf,
+    scaling_factor = scaling_factor
+  )
 }
 
 evaluate_grenander <- function(obj,
@@ -37,7 +38,10 @@ evaluate_grenander <- function(obj,
   area <- sum(diff(x)*pdf[-length(pdf)])
   stopifnot(abs(area - 1) <= tol)
   
+  cdf <- cumsum(diff(x)*pdf[-length(pdf)])
+  
   structure(list(x = x,
+                 cdf = cdf,
                  pdf = pdf,
                  log_pdf = log(pdf),
                  scaling_factor = scaling_factor),
