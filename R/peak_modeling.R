@@ -342,6 +342,9 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
 }
 
 .extract_fragment_cell_from_cutmat <- function(cutmat){
-  rowsum <- Matrix::rowSums(cutmat)
-  rep(rownames(cutmat), times = rowsum)
+  zz <- cutmat
+  zz@x <- rep(1, length(zz@x))
+  
+  rowsum <- Matrix::rowSums(zz)
+  rep(rownames(zz), times = rowsum)
 }
