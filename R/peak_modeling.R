@@ -49,7 +49,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
   
   while(TRUE){
     if(iter > max_iter) break()
-  
+    
     if(verbose > 1) print("E-step")
     assignment_mat <- .e_step(
       dist_mat = dist_mat,
@@ -86,7 +86,7 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
       lb_vec <- c(lb_vec, tmp)
       if(length(lb_vec) >= 2 && lb_vec[length(lb_vec)] < lb_vec[length(lb_vec)-1] - tol) {warning("Error: Failed on M step"); break()}
     }
-   
+    
     if(verbose) print("Computing likelihood")
     loglikelihood_val <- .compute_loglikelihood(
       dist_mat = dist_mat,
@@ -339,4 +339,9 @@ peak_mixture_modeling <- function(cutmat, # rows = cells, columns = basepairs
   }))
   
   as.numeric(colnames(cutmat))[fragment_idx]
+}
+
+.extract_fragment_cell_from_cutmat <- function(cutmat){
+  rowsum <- Matrix::rowSums(cutmat)
+  rep(rownames(cutmat), times = rowsum)
 }

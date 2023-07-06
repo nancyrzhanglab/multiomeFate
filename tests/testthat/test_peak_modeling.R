@@ -423,3 +423,30 @@ test_that("peak_mixture_modeling yields likelihoods maximized on its own data", 
   )
   expect_true(ll2_2 > ll2_1)
 })
+
+###################
+
+## .extract_fragment_cell_from_cutmat is correct
+
+test_that(".extract_fragment_cell_from_cutmat works", {
+  set.seed(10)
+  n <- 100; p <- 200
+  cutmat <- matrix(0, nrow = n, ncol = p)
+  cutmat[sample(1:(n*p), size = n)] <- 1
+  cutmat <- Matrix::Matrix(cutmat,
+                           sparse = T)
+  colnames(cutmat) <- 1:p
+  rownames(cutmat) <- paste0("c:", 1:n)
+  
+  idx1 <- .extract_fragment_from_cutmat(cutmat)
+  res <- .extract_fragment_cell_from_cutmat(cutmat)
+  
+  expect_true(length(idx1) == length(res))
+  
+  cutmat2 <- as.matrix(cutmat)
+  bool_vec <- sapply(1:length(idx1), function(i){
+    cutmat2[res[i],idx1[i]] != 0
+  })
+  
+  expect_true(all(bool_vec))
+})
