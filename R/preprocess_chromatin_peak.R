@@ -29,7 +29,7 @@ extract_relevant_peaks <- function(peak_mapping_list,
   
   # construct the relevant chromatin-activity matrix by extract relevant rows from seurat_obj
   if(verbose > 0) print("Constructing chromatin-activity matrix")
-  chr_peak_list <- sapply(1:len, function(i){
+  chr_peak_list <- lapply(1:len, function(i){
     if(verbose == 2) if(i %% floor(len/10) == 0) cat('*')
     if(verbose > 2) print(paste0("Working on gene ", i, " out of ", len))
     
