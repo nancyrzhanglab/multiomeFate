@@ -59,7 +59,8 @@ lineage_imputation_sequence <- function(cell_features,
   term2 <- sum(lineage_future_count * log(lineage_current_count))
   
   lambda_initial <- -multipler*(term1 - term2)
-  stopifnot(lambda_initial >= 0)
+  lambda_initial <- pmax(lambda_initial, 100)
+  
   coefficient_initial <- rep(0, ncol(cell_features))
   names(coefficient_initial) <- colnames(cell_features)
   stopifnot("Intercept" %in% names(coefficient_initial))
