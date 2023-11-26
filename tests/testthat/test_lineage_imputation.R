@@ -14,6 +14,7 @@ test_that(".lineage_objective works", {
                             cell_lineage = cell_lineage,
                             cell_lineage_idx_list = cell_lineage_idx_list,
                             coefficient_vec = coefficient_vec,
+                            lambda = 0,
                             lineage_future_count = lineage_future_count)
   expect_true(is.numeric(res))
   expect_true(length(res) == 1)
@@ -23,6 +24,7 @@ test_that(".lineage_objective works", {
                              cell_lineage = cell_lineage,
                              cell_lineage_idx_list = cell_lineage_idx_list,
                              coefficient_vec = c(3,0),
+                             lambda = 0,
                              lineage_future_count = lineage_future_count)
   expect_true(res2 >= res) 
 })
@@ -43,6 +45,7 @@ test_that(".lineage_objective is equivalent to the long-form calculation", {
                                cell_lineage = cell_lineage,
                                cell_lineage_idx_list = cell_lineage_idx_list,
                                coefficient_vec = coef_vec,
+                               lambda = 0,
                                lineage_future_count = lineage_future_count)
     
     obj2 <- 0
@@ -78,10 +81,10 @@ test_that(".lineage_gradient works", {
                            cell_lineage = cell_lineage,
                            cell_lineage_idx_list = cell_lineage_idx_list,
                            coefficient_vec = coefficient_vec,
+                           lambda = 0,
                            lineage_future_count = lineage_future_count)
   
   expect_true(is.numeric(res))
-  expect_true(length(res) == 2)
   expect_true(all(names(res) == colnames(cell_features)))
 })
 
@@ -95,30 +98,41 @@ test_that(".lineage_gradient is equivalent to the long-form calculation", {
   
   bool_vec <- sapply(1:trials, function(trial){
     set.seed(trial)
-    coef_vec <- runif(2)
+    coef_vec <- c(0, runif(2))
+    names(coef_vec) <- colnames(cell_features)
     
     res1 <- .lineage_gradient(cell_features = cell_features,
                               cell_lineage = cell_lineage,
                               cell_lineage_idx_list = cell_lineage_idx_list,
                               coefficient_vec = coef_vec,
+                              lambda = 0,
                               lineage_future_count = lineage_future_count)
     
-    res2 <- c(0,0)
+    res2 <- c(0,0,0)
+    names(res2) <- colnames(cell_features)
     uniq_lineage <- sort(unique(cell_lineage))
     exp_vec <- sapply(1:nrow(cell_features), function(i){
       as.numeric(exp(cell_features[i,,drop = F] %*% coef_vec))
     })
     
+    colname_vec <- colnames(cell_features)
+    colname_vec <- colname_vec[colname_vec != "Intercept"]
+    intercept_idx <- which(colnames(cell_features) == "Intercept")
+    
     for(lineage in uniq_lineage){
       cell_idx_vec <- which(cell_lineage == lineage)
       
       for(cell_idx in cell_idx_vec){
-        res2 <- res2 + exp_vec[cell_idx] * cell_features[cell_idx,,drop = F]
+        res2[intercept_idx] <- res2[intercept_idx] + exp_vec[cell_idx]
+        res2[colname_vec] <- res2[colname_vec] + 
+          exp_vec[cell_idx] * cell_features[cell_idx,colname_vec,drop = F]
       }
       
       n_future <- lineage_future_count[lineage]
       for(cell_idx in cell_idx_vec){
-        res2 <- res2 - (n_future * exp_vec[cell_idx] / sum(exp_vec[cell_idx_vec])) * cell_features[cell_idx,,drop = F]
+        res2[intercept_idx] <- res2[intercept_idx] - (n_future * exp_vec[cell_idx] / sum(exp_vec[cell_idx_vec]))
+        res2[colname_vec] <- res2[colname_vec] - 
+          (n_future * exp_vec[cell_idx] / sum(exp_vec[cell_idx_vec])) * cell_features[cell_idx,colname_vec,drop = F]
       }
     }
     
@@ -140,23 +154,28 @@ test_that(".lineage_gradient has the correct mathematical property (for 1-cell-p
   
   bool_vec <- sapply(1:trials, function(trial){
     set.seed(trial)
-    coef_vec1 <- runif(2)
-    coef_vec2 <- runif(2)
+    coef_vec1 <- runif(3)
+    coef_vec2 <- runif(3)
+    names(coef_vec1) <- colnames(cell_features)
+    names(coef_vec2) <- colnames(cell_features)
     
     obj1 <- .lineage_objective(cell_features = cell_features,
                                cell_lineage = cell_lineage,
                                cell_lineage_idx_list = cell_lineage_idx_list,
                                coefficient_vec = coef_vec1,
+                               lambda = 0,
                                lineage_future_count = lineage_future_count)
     obj2 <- .lineage_objective(cell_features = cell_features,
                                cell_lineage = cell_lineage,
                                cell_lineage_idx_list = cell_lineage_idx_list,
                                coefficient_vec = coef_vec2,
+                               lambda = 0,
                                lineage_future_count = lineage_future_count)
     grad_vec1 <- .lineage_gradient(cell_features = cell_features,
                                    cell_lineage = cell_lineage,
                                    cell_lineage_idx_list = cell_lineage_idx_list,
                                    coefficient_vec = coef_vec1,
+                                   lambda = 0,
                                    lineage_future_count = lineage_future_count)
     
     obj2 + 1e-6 >= obj1 + as.numeric(grad_vec1 %*% (coef_vec2 - coef_vec1))
@@ -175,12 +194,14 @@ test_that(".lineage_gradient matches the automatic differentiator", {
   
   bool_vec <- sapply(1:trials, function(trial){
     set.seed(trial)
-    coef_vec <- runif(2)
+    coef_vec <- runif(3)
+    names(coef_vec) <- colnames(cell_features)
     
     grad_vec1 <- .lineage_gradient(cell_features = cell_features,
                                    cell_lineage = cell_lineage,
                                    cell_lineage_idx_list = cell_lineage_idx_list,
                                    coefficient_vec = coef_vec,
+                                   lambda = 0,
                                    lineage_future_count = lineage_future_count)
     grad_vec2 <- numDeriv::grad(.lineage_objective, 
                                 coef_vec, 
@@ -188,6 +209,7 @@ test_that(".lineage_gradient matches the automatic differentiator", {
                                 cell_features = cell_features,
                                 cell_lineage = cell_lineage,
                                 cell_lineage_idx_list = cell_lineage_idx_list,
+                                lambda = 0,
                                 lineage_future_count = lineage_future_count)
     
     sum(abs(grad_vec1 - grad_vec2)) <= 1e-3
@@ -201,41 +223,45 @@ test_that(".lineage_gradient seems sensible in 1-dimension", {
   trials <- 100
   
   bool_vec <- sapply(1:trials, function(trial){
-    res <- .construct_lineage_data(p = 1, seed = trial)
+    res <- .construct_lineage_data(coefficient_vec = 1, p = 1, seed = trial)
     cell_features <- res$cell_features
     cell_lineage <- res$cell_lineage
     cell_lineage_idx_list <- res$cell_lineage_idx_list
     lineage_future_count <- res$lineage_future_count
     
     set.seed(trial)
-    coef_target <- runif(1)
+    coef_target <- runif(2)
+    names(coef_target) <- colnames(cell_features)
     
     obj_val <- .lineage_objective(cell_features = cell_features,
                                   cell_lineage = cell_lineage,
                                   cell_lineage_idx_list = cell_lineage_idx_list,
                                   coefficient_vec = coef_target,
+                                  lambda = 0,
                                   lineage_future_count = lineage_future_count)
     grad_val <- .lineage_gradient(cell_features = cell_features,
                                   cell_lineage = cell_lineage,
                                   cell_lineage_idx_list = cell_lineage_idx_list,
                                   coefficient_vec = coef_target,
+                                  lambda = 0,
                                   lineage_future_count = lineage_future_count)
     
-    coef_jitter <- coef_target + seq(-0.01,0.01,by=0.001)
-    obj_vec <- sapply(coef_jitter, function(coef_val){
+    coef_jitter <- cbind(coef_target[1], coef_jitter[2] + seq(-0.01,0.01,by=0.001))
+    obj_vec <- sapply(1:nrow(coef_jitter), function(kk){
       .lineage_objective(cell_features = cell_features,
                          cell_lineage = cell_lineage,
                          cell_lineage_idx_list = cell_lineage_idx_list,
-                         coefficient_vec = coef_val,
+                         coefficient_vec = coef_jitter[kk,],
+                         lambda = 0,
                          lineage_future_count = lineage_future_count)
     })
     
-    lower_bound_vec <- sapply(coef_jitter, function(coef_val){
-      obj_val - grad_val*(coef_target-coef_val)
+    lower_bound_vec <- sapply(1:nrow(coef_jitter), function(kk){
+      obj_val - grad_val %*% (coef_target-coef_jitter[kk,])
     })
     
     ## you want to uncomment this line and make coef_jitter wider to see the non-convexity
-    # plot(coef_jitter, obj_vec); points(coef_target, obj_val, pch = 16, col = "red"); lines(coef_jitter, lower_bound_vec, col = "red")
+    # plot(coef_jitter[,2], obj_vec); points(coef_target, obj_val, pch = 16, col = "red"); lines(coef_jitter[,2], lower_bound_vec, col = "red")
     all(lower_bound_vec <= obj_vec + 1) # just for jitter
   })
   
@@ -257,10 +283,11 @@ test_that("lineage_imputation works", {
   coefficient_initial <- true_coefficient/2
   lineage_future_count <- res$lineage_future_count
   
-  res <- lineage_imputation(cell_features,
-                            cell_lineage,
-                            coefficient_initial,
-                            lineage_future_count,
+  res <- lineage_imputation(cell_features = cell_features,
+                            cell_lineage = cell_lineage,
+                            coefficient_initial_list = coefficient_initial,
+                            lineage_future_count = lineage_future_count,
+                            lambda = 0,
                             verbose = 0)
   
   expect_true(is.list(res))

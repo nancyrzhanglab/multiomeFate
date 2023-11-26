@@ -47,6 +47,16 @@
   })
   names(cell_lineage_idx_list) <- uniq_lineages
   
+  # cleanup
+  res <- .lineage_cleanup(cell_features = cell_features,
+                          cell_lineage = cell_lineage,
+                          lineage_future_count = lineage_future_count)
+  cell_features <- res$cell_features
+  cell_lineage <- res$cell_lineage
+  lineage_future_count <- res$lineage_future_count
+  coefficient_vec <- c(0, coefficient_vec)
+  names(coefficient_vec)[1] <- "Intercept"
+  
   list(cell_features = cell_features,
        cell_lineage = cell_lineage,
        cell_lineage_idx_list = cell_lineage_idx_list,
