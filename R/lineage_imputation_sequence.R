@@ -4,10 +4,10 @@ lineage_imputation_sequence <- function(cell_features,
                                         lambda_sequence_length = 30,
                                         multipler = 10,
                                         verbose = 1){
-  res <- .compute_initial_parameters(cell_features,
-                                     cell_lineage,
-                                     lineage_future_count,
-                                     multipler)
+  res <- .compute_initial_parameters(cell_features = cell_features,
+                                     cell_lineage = cell_lineage,
+                                     lineage_future_count = lineage_future_count,
+                                     multipler = multipler)
   coefficient_initial <- res$coefficient_initial
   lambda_initial <- res$lambda_initial
   
@@ -18,17 +18,18 @@ lineage_imputation_sequence <- function(cell_features,
     if(i == 1){
       coefficient_vec <- coefficient_initial
     } else {
-      coefficient_vec <- fit_list[[i-1]]$fit$coefficient_vec
+      coefficient_vec <- fit_list[[i-1]]$coefficient_vec
     }
     
-    fit_list[[i]] <- lineage_imputation(cell_features = cell_features,
-                                        cell_lineage = cell_lineage,
-                                        coefficient_initial_list = coefficient_vec,
-                                        lineage_future_count = lineage_future_count,
-                                        lambda = lambda,
-                                        random_initializations = 10,
-                                        upper_randomness = 5,
-                                        verbose = 1)
+    tmp <- lineage_imputation(cell_features = cell_features,
+                              cell_lineage = cell_lineage,
+                              coefficient_initial_list = coefficient_vec,
+                              lineage_future_count = lineage_future_count,
+                              lambda = lambda_sequence[i],
+                              random_initializations = 10,
+                              upper_randomness = 5,
+                              verbose = verbose)
+    fit_list[[i]] <- tmp$fit
   }
   
   list(fit_list = fit_list,
@@ -57,7 +58,8 @@ lineage_imputation_sequence <- function(cell_features,
   term1 <- future_total*(1-log(future_total/current_total))
   term2 <- sum(lineage_future_count * log(lineage_current_count))
   
-  lambda_initial <- multipler*(term1 - term2)
+  lambda_initial <- -multipler*(term1 - term2)
+  stopifnot(lambda_initial >= 0)
   coefficient_initial <- rep(0, ncol(cell_features))
   names(coefficient_initial) <- colnames(cell_features)
   stopifnot("Intercept" %in% names(coefficient_initial))

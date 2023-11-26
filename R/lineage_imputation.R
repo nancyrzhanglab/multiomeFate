@@ -140,7 +140,8 @@ lineage_imputation <- function(cell_features,
 evaluate_loglikelihood <- function(cell_features,
                                    cell_lineage,
                                    coefficient_vec,
-                                   lineage_future_count){
+                                   lineage_future_count,
+                                   lambda = 0){
   
   tmp <- .lineage_cleanup(cell_features = cell_features,
                           cell_lineage = cell_lineage,
@@ -155,6 +156,7 @@ evaluate_loglikelihood <- function(cell_features,
                      cell_lineage = cell_lineage,
                      cell_lineage_idx_list = cell_lineage_idx_list,
                      coefficient_vec = coefficient_vec,
+                     lambda = lambda,
                      lineage_future_count = lineage_future_count)
 }
 
