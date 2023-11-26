@@ -196,12 +196,13 @@ test_that(".lineage_gradient matches the automatic differentiator", {
     set.seed(trial)
     coef_vec <- runif(3)
     names(coef_vec) <- colnames(cell_features)
+    lambda <- runif(1, min = 0, max = 100)
     
     grad_vec1 <- .lineage_gradient(cell_features = cell_features,
                                    cell_lineage = cell_lineage,
                                    cell_lineage_idx_list = cell_lineage_idx_list,
                                    coefficient_vec = coef_vec,
-                                   lambda = 0,
+                                   lambda = lambda,
                                    lineage_future_count = lineage_future_count)
     grad_vec2 <- numDeriv::grad(.lineage_objective, 
                                 coef_vec, 
@@ -209,7 +210,7 @@ test_that(".lineage_gradient matches the automatic differentiator", {
                                 cell_features = cell_features,
                                 cell_lineage = cell_lineage,
                                 cell_lineage_idx_list = cell_lineage_idx_list,
-                                lambda = 0,
+                                lambda = lambda,
                                 lineage_future_count = lineage_future_count)
     
     sum(abs(grad_vec1 - grad_vec2)) <= 1e-3
