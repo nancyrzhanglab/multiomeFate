@@ -275,7 +275,6 @@ test_that(".lineage_gradient seems sensible in 1-dimension", {
 
 test_that("lineage_imputation works", {
   set.seed(10)
-  n_each <- 30
   res <- .construct_lineage_data()
   cell_features <- res$cell_features
   cell_lineage <- res$cell_lineage
@@ -292,4 +291,24 @@ test_that("lineage_imputation works", {
                             verbose = 0)
   
   expect_true(is.list(res))
+})
+
+test_that("lineage_imputation works can set all non-intercept terms to 0 for large enough lambda", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+  cell_features <- res$cell_features
+  cell_lineage <- res$cell_lineage
+  cell_lineage_idx_list <- res$cell_lineage_idx_list
+  true_coefficient <- res$coefficient_vec
+  coefficient_initial <- true_coefficient/2
+  lineage_future_count <- res$lineage_future_count
+  
+  res <- lineage_imputation(cell_features = cell_features,
+                            cell_lineage = cell_lineage,
+                            coefficient_initial_list = coefficient_initial,
+                            lineage_future_count = lineage_future_count,
+                            lambda = 1e8,
+                            verbose = 0)
+  
+  expect_true(all(abs(res$fit$coefficient_vec[-1]) <= 1e-4))
 })

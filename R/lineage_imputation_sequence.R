@@ -2,7 +2,7 @@ lineage_imputation_sequence <- function(cell_features,
                                         cell_lineage,
                                         lineage_future_count,
                                         lambda_sequence_length = 30,
-                                        multipler = 10,
+                                        multipler = 1e4,
                                         verbose = 1){
   res <- .compute_initial_parameters(cell_features = cell_features,
                                      cell_lineage = cell_lineage,
