@@ -16,6 +16,7 @@ lineage_imputation_sequence <- function(cell_features,
   fit_list <- vector("list", length = lambda_sequence_length)
   
   for(i in 1:lambda_sequence_length){
+    if(verbose > 0) print(paste0("Working on lambda in sequence ", i, " out of ", lambda_sequence_length))
     if(i == 1){
       coefficient_vec <- coefficient_initial
     } else {
@@ -29,7 +30,7 @@ lineage_imputation_sequence <- function(cell_features,
                               lambda = lambda_sequence[i],
                               random_initializations = 10,
                               upper_randomness = 5,
-                              verbose = verbose)
+                              verbose = verbose-1)
     fit_list[[i]] <- tmp$fit
   }
   
