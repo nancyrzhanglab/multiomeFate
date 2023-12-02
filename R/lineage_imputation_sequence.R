@@ -2,7 +2,7 @@ lineage_imputation_sequence <- function(cell_features,
                                         cell_lineage,
                                         lineage_future_count,
                                         lambda_initial = NA,
-                                        lambda_sequence_length = 30,
+                                        lambda_sequence_length = 50,
                                         multipler = 1e4,
                                         verbose = 1){
   res <- .compute_initial_parameters(cell_features = cell_features,
@@ -12,7 +12,7 @@ lineage_imputation_sequence <- function(cell_features,
   coefficient_initial <- res$coefficient_initial
   if(is.na(lambda_initial)) lambda_initial <- res$lambda_initial
   
-  lambda_sequence <- exp(seq(log(lambda_initial), 0, length.out = lambda_sequence_length))
+  lambda_sequence <- exp(seq(log(lambda_initial), 0, length.out = lambda_sequence_length))-1
   fit_list <- vector("list", length = lambda_sequence_length)
   
   for(i in 1:lambda_sequence_length){
@@ -61,7 +61,7 @@ lineage_imputation_sequence <- function(cell_features,
   term2 <- sum(lineage_future_count * log(lineage_current_count))
   
   lambda_initial <- -multipler*(term1 - term2)
-  lambda_initial <- pmax(lambda_initial, 100)
+  lambda_initial <- pmax(lambda_initial, 101)
   
   coefficient_initial <- rep(0, ncol(cell_features))
   names(coefficient_initial) <- colnames(cell_features)
