@@ -2,12 +2,14 @@ lineage_imputation_sequence <- function(cell_features,
                                         cell_lineage,
                                         lineage_future_count,
                                         lambda_initial = NA,
+                                        lambda_min = 101,
                                         lambda_sequence_length = 50,
                                         multipler = 1e4,
                                         verbose = 1){
   res <- .compute_initial_parameters(cell_features = cell_features,
                                      cell_lineage = cell_lineage,
                                      lineage_future_count = lineage_future_count,
+                                     lambda_min = lambda_min,
                                      multipler = multipler)
   coefficient_initial <- res$coefficient_initial
   if(is.na(lambda_initial)) lambda_initial <- res$lambda_initial
