@@ -23,7 +23,7 @@ test_that(".lineage_objective works", {
   res2 <- .lineage_objective(cell_features = cell_features,
                              cell_lineage = cell_lineage,
                              cell_lineage_idx_list = cell_lineage_idx_list,
-                             coefficient_vec = c(3,0),
+                             coefficient_vec = c(0,3,0),
                              lambda = 0,
                              lineage_future_count = lineage_future_count)
   expect_true(res2 >= res) 
@@ -39,13 +39,15 @@ test_that(".lineage_objective is equivalent to the long-form calculation", {
   
   bool_vec <- sapply(1:trials, function(trial){
     set.seed(trial)
-    coef_vec <- runif(2)
+    coef_vec <- runif(3)
+    names(coef_vec) <- colnames(cell_features)
+    lambda <- runif(1, min = 0, max = 100)
     
     obj1 <- .lineage_objective(cell_features = cell_features,
                                cell_lineage = cell_lineage,
                                cell_lineage_idx_list = cell_lineage_idx_list,
                                coefficient_vec = coef_vec,
-                               lambda = 0,
+                               lambda = lambda,
                                lineage_future_count = lineage_future_count)
     
     obj2 <- 0
@@ -58,6 +60,7 @@ test_that(".lineage_objective is equivalent to the long-form calculation", {
       })
       obj2 <- obj2 + sum(exp_vec) - lineage_future_count[lineage] * log(sum(exp_vec))
     }
+    obj2 <- obj2/length(uniq_lineage) + lambda*.l2norm(coef_vec[-1])^2
     
     abs(obj1 - obj2) <= 1e-6
   })
@@ -98,14 +101,15 @@ test_that(".lineage_gradient is equivalent to the long-form calculation", {
   
   bool_vec <- sapply(1:trials, function(trial){
     set.seed(trial)
-    coef_vec <- c(0, runif(2))
+    coef_vec <- runif(3)
     names(coef_vec) <- colnames(cell_features)
+    lambda <- runif(1, min = 0, max = 100)
     
     res1 <- .lineage_gradient(cell_features = cell_features,
                               cell_lineage = cell_lineage,
                               cell_lineage_idx_list = cell_lineage_idx_list,
                               coefficient_vec = coef_vec,
-                              lambda = 0,
+                              lambda = lambda,
                               lineage_future_count = lineage_future_count)
     
     res2 <- c(0,0,0)
@@ -135,6 +139,9 @@ test_that(".lineage_gradient is equivalent to the long-form calculation", {
           (n_future * exp_vec[cell_idx] / sum(exp_vec[cell_idx_vec])) * cell_features[cell_idx,colname_vec,drop = F]
       }
     }
+    
+    res2 <- res2/length(uniq_lineage)
+    res2[colname_vec] <- res2[colname_vec] + 2*lambda*coef_vec[colname_vec]
     
     abs(sum(res1 - res2) <= 1e-6)
     
@@ -247,7 +254,7 @@ test_that(".lineage_gradient seems sensible in 1-dimension", {
                                   lambda = 0,
                                   lineage_future_count = lineage_future_count)
     
-    coef_jitter <- cbind(coef_target[1], coef_jitter[2] + seq(-0.01,0.01,by=0.001))
+    coef_jitter <- cbind(coef_target[1], coef_target[2] + seq(-0.01,0.01,by=0.001))
     obj_vec <- sapply(1:nrow(coef_jitter), function(kk){
       .lineage_objective(cell_features = cell_features,
                          cell_lineage = cell_lineage,

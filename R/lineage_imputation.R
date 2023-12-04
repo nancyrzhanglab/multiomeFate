@@ -223,6 +223,7 @@ evaluate_loglikelihood <- function(cell_features,
                                lambda,
                                lineage_future_count){
   uniq_lineages <- names(lineage_future_count)
+  num_lineages <- length(uniq_lineages)
   cell_names <- rownames(cell_features)
   
   scalar1 <- as.numeric(exp(cell_features %*% coefficient_vec))
@@ -234,7 +235,7 @@ evaluate_loglikelihood <- function(cell_features,
   idx_notintercept <- which(names(coefficient_vec) != "Intercept")
   scalar3 <- .l2norm(coefficient_vec[idx_notintercept])
   
-  sum(scalar1) - sum(lineage_future_count*scalar2) + lambda*scalar3^2
+  (sum(scalar1) - sum(lineage_future_count*scalar2))/num_lineages + lambda*scalar3^2
 }
 
 .lineage_gradient <- function(cell_features,
@@ -246,6 +247,7 @@ evaluate_loglikelihood <- function(cell_features,
   stopifnot(colnames(cell_features) == names(coefficient_vec))
   
   uniq_lineages <- names(cell_lineage_idx_list)
+  num_lineages <- length(uniq_lineages)
   cell_names <- rownames(cell_features)
   lineage_future_count_full <- lineage_future_count[cell_lineage]
   
@@ -265,14 +267,14 @@ evaluate_loglikelihood <- function(cell_features,
   scalar_vec <- scalar1 - scalar2a/scalar2b
   
   # gradient of the intercept
-  res1 <- sum(scalar_vec)
+  res1 <- sum(scalar_vec)/num_lineages
   
   # gradient of the other terms
   weighted_features <- sweep(cell_features[,colname_vec,drop=F], 
                              MARGIN = 1, 
                              STATS = scalar_vec, 
                              FUN = "*")
-  res2 <- Matrix::colSums(weighted_features) + 2*lambda*coefficient_vec[colname_vec]
+  res2 <- Matrix::colSums(weighted_features)/num_lineages + 2*lambda*coefficient_vec[colname_vec]
   
   res <- c(res1, res2)
   names(res) <- colnames(cell_features)

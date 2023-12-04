@@ -43,6 +43,7 @@ lineage_imputation_sequence <- function(cell_features,
 .compute_initial_parameters <- function(cell_features,
                                         cell_lineage,
                                         lineage_future_count,
+                                        lambda_min = 101,
                                         multipler = 10){
   
   tmp <- .lineage_cleanup(cell_features = cell_features,
@@ -50,6 +51,7 @@ lineage_imputation_sequence <- function(cell_features,
                           lineage_future_count = lineage_future_count)
   cell_lineage_idx_list <- tmp$cell_lineage_idx_list
   lineage_future_count <- tmp$lineage_future_count
+  num_lineages <- length(lineage_future_count)
   
   lineage_current_count <- sapply(cell_lineage_idx_list, length)
   stopifnot(all(names(lineage_current_count) == names(lineage_future_count)))
@@ -60,8 +62,8 @@ lineage_imputation_sequence <- function(cell_features,
   term1 <- future_total*(1-log(future_total/current_total))
   term2 <- sum(lineage_future_count * log(lineage_current_count))
   
-  lambda_initial <- -multipler*(term1 - term2)
-  lambda_initial <- pmax(lambda_initial, 101)
+  lambda_initial <- -multipler*(term1 - term2)/num_lineages
+  lambda_initial <- pmax(lambda_initial, lambda_min)
   
   coefficient_initial <- rep(0, ncol(cell_features))
   names(coefficient_initial) <- colnames(cell_features)
