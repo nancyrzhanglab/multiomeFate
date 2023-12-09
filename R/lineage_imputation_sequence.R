@@ -54,6 +54,7 @@ lineage_imputation_sequence <- function(cell_features,
   tmp <- .lineage_cleanup(cell_features = cell_features,
                           cell_lineage = cell_lineage,
                           lineage_future_count = lineage_future_count)
+  cell_features <- tmp$cell_features
   cell_lineage_idx_list <- tmp$cell_lineage_idx_list
   lineage_future_count <- tmp$lineage_future_count
   num_lineages <- length(lineage_future_count)
