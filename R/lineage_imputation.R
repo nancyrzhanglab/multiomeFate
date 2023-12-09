@@ -11,7 +11,6 @@ lineage_imputation <- function(cell_features,
   list_len <- length(coefficient_initial_list)
   
   # some cleanup
-  p <- ncol(cell_features)
   tmp <- .lineage_cleanup(cell_features = cell_features,
                           cell_lineage = cell_lineage,
                           lineage_future_count = lineage_future_count,
@@ -22,6 +21,7 @@ lineage_imputation <- function(cell_features,
   lineage_future_count <- tmp$lineage_future_count
   uniq_lineages <- tmp$uniq_lineages
   coefficient_initial_list <- .append_intercept_term(coefficient_initial_list)
+  p <- ncol(cell_features)
   
   stopifnot(all(sort(unique(cell_lineage)) == 
                   sort(unique(names(lineage_future_count)))),
