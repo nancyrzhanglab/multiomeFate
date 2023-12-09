@@ -10,6 +10,19 @@ lineage_imputation <- function(cell_features,
   if(!is.list(coefficient_initial_list)) coefficient_initial_list <- list(coefficient_initial_list)
   list_len <- length(coefficient_initial_list)
   
+  # some cleanup
+  p <- ncol(cell_features)
+  tmp <- .lineage_cleanup(cell_features = cell_features,
+                          cell_lineage = cell_lineage,
+                          lineage_future_count = lineage_future_count,
+                          verbose = verbose)
+  cell_features <- tmp$cell_features
+  cell_lineage <- tmp$cell_lineage
+  cell_lineage_idx_list <- tmp$cell_lineage_idx_list
+  lineage_future_count <- tmp$lineage_future_count
+  uniq_lineages <- tmp$uniq_lineages
+  coefficient_initial_list <- .append_intercept_term(coefficient_initial_list)
+  
   stopifnot(all(sort(unique(cell_lineage)) == 
                   sort(unique(names(lineage_future_count)))),
             is.matrix(cell_features), nrow(cell_features) == length(cell_lineage),
@@ -24,19 +37,6 @@ lineage_imputation <- function(cell_features,
       names(coefficient_initial_list[[i]]) <- colnames(cell_features)
     }
   }
-  
-  # some cleanup
-  p <- ncol(cell_features)
-  tmp <- .lineage_cleanup(cell_features = cell_features,
-                          cell_lineage = cell_lineage,
-                          lineage_future_count = lineage_future_count,
-                          verbose = verbose)
-  cell_features <- tmp$cell_features
-  cell_lineage <- tmp$cell_lineage
-  cell_lineage_idx_list <- tmp$cell_lineage_idx_list
-  lineage_future_count <- tmp$lineage_future_count
-  uniq_lineages <- tmp$uniq_lineages
-  coefficient_initial_list <- .append_intercept_term(coefficient_initial_list)
   
   # rearrange arguments
   optim_fn <- function(coefficient_vec,
