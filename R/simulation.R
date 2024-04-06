@@ -1,5 +1,6 @@
 generate_simulation <- function(
     embedding_mat,
+    coefficient_intercept = 0,
     coefficient_vec = rep(1, ncol(embedding_mat)),
     lineage_concentration = 1,
     lineage_prior = NA,
@@ -7,8 +8,13 @@ generate_simulation <- function(
     tol = 1e-6,
     verbose = 0
 ){
-  if(all(is.na(lineage_prior))) lineage_prior <- rep(1/num_lineages, length = num_lineages)
+  if(all(is.na(lineage_prior))) 
+    lineage_prior <- rep(1/num_lineages, length = num_lineages)
   lineage_prior <- lineage_prior/sum(lineage_prior)
+  if(length(names(lineage_prior)) > 0){
+    warning("Overwriting names in lineage_prior")
+  }
+  names(lineage_prior) <- paste0("lineage:", 1:K)
   
   n <- nrow(embedding_mat)
   d <- ncol(embedding_mat)
@@ -42,15 +48,17 @@ generate_simulation <- function(
   
   if(verbose > 0) print("Step 4: Sampling lineages")
   lineage_assignment <- sapply(1:n, function(i){
-    sample(prob_mat[i,], size = 1)
+    sample(1:K, size = 1, prob = prob_mat[i,])
   })
   lineage_assignment <- factor(paste0("lineage:", lineage_assignment),
-                               levels = ncol(prob_mat))
-  if(length(rownames(embedding_mat)) > 0) names(lineage_assignment) <- rownames(embedding_mat)
+                               levels = colnames(prob_mat))
+  if(length(rownames(embedding_mat)) > 0) 
+    names(lineage_assignment) <- rownames(embedding_mat)
   
   if(verbose > 0) print("Step 5: Computing future lineage size")
-  cell_contribution <- exp(as.numeric(embedding_mat %*% coefficient_vec))
-  if(length(rownames(embedding_mat)) > 0) names(cell_contribution) <- rownames(embedding_mat)
+  cell_contribution <- exp(as.numeric(embedding_mat %*% coefficient_vec) + coefficient_intercept)
+  if(length(rownames(embedding_mat)) > 0) 
+    names(cell_contribution) <- rownames(embedding_mat)
   lineage_future_size <- sapply(levels(lineage_assignment), function(lev){
     idx <- which(lineage_assignment == lev)
     round(sum(cell_contribution[idx]))
@@ -60,9 +68,10 @@ generate_simulation <- function(
   if(verbose > 0) print("Step 6: Outputting")
   list(
     cell_fate_potential = log10(cell_contribution),
+    coefficient_intercept = coefficient_intercept,
     coefficient_vec = coefficient_vec,
     lineage_assignment = lineage_assignment,
-    lineage_future_size = lineage_future_size,
+    lineage_future_size = lineage_future_size
   )
 }
 
@@ -95,6 +104,10 @@ generate_simulation <- function(
     embedding_mat,
     rho
 ){
+  stopifnot(length(cluster_idx) == 1,
+            cluster_idx <= nrow(embedding_mat),
+            cluster_idx > 0,
+            cluster_idx %% 1 == 0)
   
   mean_vec <- embedding_mat[cluster_idx,]
   
@@ -138,8 +151,9 @@ generate_simulation <- function(
   
   # all the calculations are done on the log scale
   # we use the log-sum-exp trick: https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/
-  prob_mat <- rep(NA, nrow = n, ncol = K)
-  if(length(rownames(embedding_mat)) > 0) rownames(prob_mat) <- rownames(embedding_mat)
+  prob_mat <- matrix(NA, nrow = n, ncol = K)
+  if(length(rownames(embedding_mat)) > 0) 
+    rownames(prob_mat) <- rownames(embedding_mat)
   colnames(prob_mat) <- names(lineage_prior)
   
   for(i in 1:n){
@@ -152,7 +166,7 @@ generate_simulation <- function(
                checkSymmetry = FALSE)
     })
     stopifnot(length(lineage_prior) == length(d_vec))
-    log_vec <- log(lineage_prior) + log(d_vec)
+    log_vec <- log(lineage_prior) + d_vec
     
     prob_mat[i,] <- .log_sum_exp_normalization(log_vec)
   }
@@ -167,6 +181,8 @@ generate_simulation <- function(
   c <- max(x)
   y <- c + log(sum(exp(x-c)))
   res <- exp(x-c)
+  res <- res/sum(res)
+  
   stopifnot(all(res >= -tol, abs(sum(res)-1) <= tol))
   
   res

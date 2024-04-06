@@ -16,11 +16,13 @@ lineage_imputation_sequence <- function(cell_features,
   coefficient_initial <- res$coefficient_initial
   if(is.na(lambda_initial)) lambda_initial <- res$lambda_initial
   
-  lambda_sequence <- exp(seq(log(lambda_initial+1), 0, length.out = lambda_sequence_length))-1
+  lambda_sequence <- exp(seq(log(lambda_initial+1), 0, 
+                             length.out = lambda_sequence_length))-1
   fit_list <- vector("list", length = lambda_sequence_length)
   
   for(i in 1:lambda_sequence_length){
-    if(verbose > 0) print(paste0("Working on lambda in sequence ", i, " out of ", lambda_sequence_length))
+    if(verbose > 0) print(paste0("Working on lambda in sequence ", i, " out of ", 
+                                 lambda_sequence_length))
     if(i == 1){
       coefficient_vec <- coefficient_initial
     } else {
