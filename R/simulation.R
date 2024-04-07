@@ -11,15 +11,16 @@ generate_simulation <- function(
   if(all(is.na(lineage_prior))) 
     lineage_prior <- rep(1/num_lineages, length = num_lineages)
   lineage_prior <- lineage_prior/sum(lineage_prior)
+  K <- num_lineages
+  n <- nrow(embedding_mat)
+  d <- ncol(embedding_mat)
+  rho <- lineage_concentration
+  
   if(length(names(lineage_prior)) > 0){
     warning("Overwriting names in lineage_prior")
   }
   names(lineage_prior) <- paste0("lineage:", 1:K)
   
-  n <- nrow(embedding_mat)
-  d <- ncol(embedding_mat)
-  K <- num_lineages
-  rho <- lineage_concentration
   stopifnot(d > 1,
             length(coefficient_vec) == d,
             length(lineage_prior) == K,
