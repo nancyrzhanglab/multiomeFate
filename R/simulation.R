@@ -2,7 +2,7 @@ generate_simulation <- function(
     embedding_mat,
     coefficient_intercept = 0,
     coefficient_vec = rep(1, ncol(embedding_mat)),
-    lineage_concentration = 1,
+    lineage_spread = 1,
     lineage_prior = NA,
     num_lineages = 10,
     tol = 1e-6,
@@ -14,7 +14,7 @@ generate_simulation <- function(
   K <- num_lineages
   n <- nrow(embedding_mat)
   d <- ncol(embedding_mat)
-  rho <- lineage_concentration
+  rho <- lineage_spread
   
   if(length(names(lineage_prior)) > 0){
     warning("Overwriting names in lineage_prior")
@@ -71,8 +71,10 @@ generate_simulation <- function(
     cell_fate_potential = log10(cell_contribution),
     coefficient_intercept = coefficient_intercept,
     coefficient_vec = coefficient_vec,
+    gaussian_list = gaussian_list,
     lineage_assignment = lineage_assignment,
-    lineage_future_size = lineage_future_size
+    lineage_future_size = lineage_future_size,
+    prob_mat = prob_mat
   )
 }
 
@@ -111,13 +113,9 @@ generate_simulation <- function(
             cluster_idx %% 1 == 0)
   
   mean_vec <- embedding_mat[cluster_idx,]
+  sd_vec <- apply(embedding_mat, 2, stats::sd)
   
-  dist_vec <- sapply(1:ncol(embedding_mat), function(j){
-    vec <- embedding_mat[,j]
-    stats::median(abs(vec - mean_vec[j]))
-  })
-  
-  cov_mat <- diag(rho*dist_vec^2)
+  cov_mat <- diag(rho*sd_vec^2)
   
   .gaussian(cov_mat = cov_mat, 
             mean_vec = mean_vec)

@@ -35,7 +35,7 @@ lineage_cv <- function(cell_features,
     lineage_future_count_train <- lineage_future_count[-which(names(lineage_future_count) %in% fold_lineage_list[[fold]])]
     
     if(!is.null(seed_number)) set.seed(seed_number)
-    train_fit <- multiomeFate:::lineage_imputation_sequence(
+    train_fit <- lineage_imputation_sequence(
       cell_features = cell_features_train,
       cell_lineage = cell_lineage_train,
       lambda_initial = lambda_initial,
@@ -50,11 +50,11 @@ lineage_cv <- function(cell_features,
     lambda_sequence <- train_fit$lambda_sequence
     
     train_loglik <- sapply(1:length(lambda_sequence), function(kk){
-      multiomeFate:::evaluate_loglikelihood(cell_features = cell_features_train,
-                                            cell_lineage = cell_lineage_train,
-                                            coefficient_vec = train_fit$fit_list[[kk]]$coefficient_vec,
-                                            lineage_future_count = lineage_future_count_train,
-                                            lambda = 0)
+      evaluate_loglikelihood(cell_features = cell_features_train,
+                             cell_lineage = cell_lineage_train,
+                             coefficient_vec = train_fit$fit_list[[kk]]$coefficient_vec,
+                             lineage_future_count = lineage_future_count_train,
+                             lambda = 0)
     })
     
     #################
@@ -65,11 +65,11 @@ lineage_cv <- function(cell_features,
     lineage_future_count_test <- lineage_future_count[which(names(lineage_future_count) %in% fold_lineage_list[[fold]])]
     
     test_loglik <- sapply(1:length(lambda_sequence), function(kk){
-      multiomeFate:::evaluate_loglikelihood(cell_features = cell_features_test,
-                                            cell_lineage = cell_lineage_test,
-                                            coefficient_vec = train_fit$fit_list[[kk]]$coefficient_vec,
-                                            lineage_future_count = lineage_future_count_test,
-                                            lambda = 0)
+      evaluate_loglikelihood(cell_features = cell_features_test,
+                             cell_lineage = cell_lineage_test,
+                             coefficient_vec = train_fit$fit_list[[kk]]$coefficient_vec,
+                             lineage_future_count = lineage_future_count_test,
+                             lambda = 0)
     })
     
     #################

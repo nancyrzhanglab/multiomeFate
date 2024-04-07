@@ -99,9 +99,10 @@ lineage_imputation <- function(cell_features,
     names(num_cells_per_lineage) <- uniq_lineages
     max_count_ratio <- max(lineage_future_count[uniq_lineages]/num_cells_per_lineage[uniq_lineages])
     max_limit <- 2*log(max_count_ratio)/(p*max_feature)
+    min_value <- ifelse(max_limit < 0, 2*max_limit, 0)
     for(i in 1:random_initializations){
       if(verbose > 0) print(paste0("On random initialization ", i))
-      coef_vec <- pmin(stats::runif(p, min = 0, max = max_limit), upper_randomness)
+      coef_vec <- pmin(stats::runif(p, min = min_value, max = max_limit), upper_randomness)
       names(coef_vec) <- colnames(cell_features)
       
       res <- stats::optim(

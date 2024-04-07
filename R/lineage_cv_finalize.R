@@ -7,7 +7,7 @@ lineage_cv_finalize <- function(cell_features,
   lambda_sequence <- fit_res[[1]]$train_fit$lambda_sequence
   lambda <- lambda_sequence[which.min(test_quantile)]
   
-  final_fit <- multiomeFate:::lineage_imputation(
+  final_fit <- lineage_imputation(
     cell_features = cell_features,
     cell_lineage = cell_lineage,
     coefficient_initial_list = fit_res[[1]]$train_fit$fit_list[[which.min(test_quantile)]]$coefficient_vec,

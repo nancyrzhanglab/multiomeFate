@@ -138,7 +138,7 @@ test_that("generate_simulation works", {
     embedding_mat = embedding_mat,
     coefficient_intercept = 0,
     coefficient_vec = rep(1, ncol(embedding_mat)),
-    lineage_concentration = 1,
+    lineage_spread = 1,
     lineage_prior = lineage_prior,
     num_lineages = K
   )
