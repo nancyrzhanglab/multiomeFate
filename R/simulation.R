@@ -1,5 +1,6 @@
 generate_simulation <- function(
     embedding_mat,
+    bool_add_randomness = TRUE,
     coefficient_intercept = 0,
     coefficient_vec = rep(1, ncol(embedding_mat)),
     lineage_spread = 1,
@@ -57,18 +58,29 @@ generate_simulation <- function(
     names(lineage_assignment) <- rownames(embedding_mat)
   
   if(verbose > 0) print("Step 5: Computing future lineage size")
-  cell_contribution <- exp(as.numeric(embedding_mat %*% coefficient_vec) + coefficient_intercept)
+  cell_contribution_truth <- exp(as.numeric(embedding_mat %*% coefficient_vec) + coefficient_intercept)
   if(length(rownames(embedding_mat)) > 0) 
-    names(cell_contribution) <- rownames(embedding_mat)
+    names(cell_contribution_truth) <- rownames(embedding_mat)
+  
+  cell_contribution_random <- cell_contribution_truth
+  if(bool_add_randomness){
+    if(verbose > 0) print("Step 5b: (Optional) Adding randomness")
+    cell_contribution_random <- stats::rpois(n = length(cell_contribution_random),
+                                             lambda = cell_contribution_random)
+    if(length(rownames(embedding_mat)) > 0) 
+      names(cell_contribution_random) <- rownames(embedding_mat)
+  }
+  
   lineage_future_size <- sapply(levels(lineage_assignment), function(lev){
     idx <- which(lineage_assignment == lev)
-    round(sum(cell_contribution[idx]))
+    round(sum(cell_contribution_random[idx]))
   })
   names(lineage_future_size) <- levels(lineage_assignment)
-  
+
   if(verbose > 0) print("Step 6: Outputting")
   list(
-    cell_fate_potential = log10(cell_contribution),
+    cell_fate_potential = log10(cell_contribution_random+1),
+    cell_fate_potential_truth = log10(cell_contribution_truth),
     coefficient_intercept = coefficient_intercept,
     coefficient_vec = coefficient_vec,
     gaussian_list = gaussian_list,
@@ -84,7 +96,7 @@ generate_simulation <- function(
     embedding_mat,
     K
 ){
-  kmeans_res <- stats::kmeans(embedding_mat, centers = 2*K)
+  kmeans_res <- suppressWarnings(stats::kmeans(embedding_mat, centers = 2*K))
   cluster_idxs <- sapply(1:K, function(k){
     sample(which(kmeans_res$cluster == k), 1)
   })
