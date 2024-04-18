@@ -9,13 +9,13 @@ test_that(".adjust_coefficient_intercept works", {
   lineage_prior <- rep(1/K, length = K)
   previous_cell_embedding_mat <- matrix(stats::rnorm(n*d), nrow = n, ncol = d)
   coefficient_intercept <- 0
-  coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
-  cell_contribution <- round(exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + coefficient_intercept))
+  embedding_coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
+  cell_contribution <- round(exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + coefficient_intercept))
   
   simulation_res <- generate_simulation(
     embedding_mat = previous_cell_embedding_mat,
     coefficient_intercept = coefficient_intercept,
-    coefficient_vec = coefficient_vec,
+    embedding_coefficient_vec = embedding_coefficient_vec,
     lineage_spread = 1,
     lineage_prior = lineage_prior,
     num_lineages = K
@@ -32,7 +32,7 @@ test_that(".adjust_coefficient_intercept works", {
   
   stopifnot(length(res) == 1)
   
-  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + res)
+  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + res)
   expect_true(abs(sum(cell_contribution) - num_future_cells) <= 2)
 })
 
@@ -113,7 +113,7 @@ test_that(".compute_pushforward_fit is reasonable", {
                        MARGIN = 2,
                        STATS = 1:5,
                        FUN = "+")
-  future_mat2 <- sweep(10*future_mat, 
+  future_mat2 <- sweep(10*future_mat1, 
                        MARGIN = 2,
                        STATS = 11:15,
                        FUN = "+")
@@ -165,8 +165,8 @@ test_that(".compute_pushforward works", {
   previous_cell_embedding_mat <- matrix(stats::rnorm(n*d), nrow = n, ncol = d)
   future_cell_embedding_mat <- matrix(stats::rnorm(n*d), nrow = n, ncol = d)
   coefficient_intercept <- 0
-  coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
-  cell_contribution <- round(exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + coefficient_intercept))
+  embedding_coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
+  cell_contribution <- round(exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + coefficient_intercept))
   num_future_cells <- nrow(future_cell_embedding_mat)
   potential_sum <- sum(cell_contribution)
   
@@ -175,7 +175,7 @@ test_that(".compute_pushforward works", {
     coefficient_intercept = coefficient_intercept,
     num_future_cells = num_future_cells
   )
-  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + new_coefficient_intercept)
+  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + new_coefficient_intercept)
   cell_contribution_rounded <- round(cell_contribution)
   
   res <- .compute_pushforward(
@@ -203,8 +203,8 @@ test_that(".compute_previous_to_future_mapping works", {
   previous_cell_embedding_mat <- matrix(stats::rnorm(n*d), nrow = n, ncol = d)
   future_cell_embedding_mat <- matrix(stats::rnorm(2*n*d), nrow = 2*n, ncol = d)
   coefficient_intercept <- 0
-  coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
-  cell_contribution <- round(exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + coefficient_intercept))
+  embedding_coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
+  cell_contribution <- round(exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + coefficient_intercept))
   num_future_cells <- nrow(future_cell_embedding_mat)
   potential_sum <- sum(cell_contribution)
   
@@ -213,7 +213,7 @@ test_that(".compute_previous_to_future_mapping works", {
     coefficient_intercept = coefficient_intercept,
     num_future_cells = num_future_cells
   )
-  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + new_coefficient_intercept)
+  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + new_coefficient_intercept)
   cell_contribution_rounded <- round(cell_contribution)
   
   pushforward_res <- .compute_pushforward(
@@ -254,8 +254,8 @@ test_that(".assign_future_to_previous works", {
   rownames(future_cell_embedding_mat) <- paste0("fut:", 1:nrow(future_cell_embedding_mat))
   
   coefficient_intercept <- 0
-  coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
-  cell_contribution <- ceiling(exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + coefficient_intercept))
+  embedding_coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
+  cell_contribution <- ceiling(exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + coefficient_intercept))
   num_future_cells <- nrow(future_cell_embedding_mat)
   potential_sum <- sum(cell_contribution)
   
@@ -264,7 +264,7 @@ test_that(".assign_future_to_previous works", {
     coefficient_intercept = coefficient_intercept,
     num_future_cells = num_future_cells
   )
-  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% coefficient_vec) + new_coefficient_intercept)
+  cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + new_coefficient_intercept)
   names(cell_contribution) <- rownames(previous_cell_embedding_mat)
   cell_contribution_rounded <- ceiling(cell_contribution)
   

@@ -1,10 +1,12 @@
 generate_simulation_attachFuture <- function(
     coefficient_intercept,
-    coefficient_vec,
+    embedding_coefficient_vec,
     future_cell_embedding_mat,
     lineage_assignment,
     previous_lineage_assignment,
     previous_cell_embedding_mat,
+    fatefeatures_coefficient_vec = NULL,
+    fatefeatures_mat = NULL, 
     lineage_spread = 1,
     num_pushforward_training_iter = 20,
     num_subsamples = 200,
@@ -14,7 +16,11 @@ generate_simulation_attachFuture <- function(
             length(rownames(mapping_mat)) > 0,
             length(colnames(mapping_mat)) > 0)
   
-  cell_contribution <- ceiling(exp(as.numeric(embedding_mat %*% coefficient_vec) + coefficient_intercept))
+  cell_contribution <- coefficient_intercept + as.numeric(embedding_mat %*% embedding_coefficient_vec) 
+  if(!all(is.null(fatefeatures_coefficient_vec))){
+    cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
+  }
+  cell_contribution <- ceiling(exp(cell_contribution))
   
   if(verbose > 0) print("Step 1: Adjusting all the ingredients")
   num_future_cells <- nrow(future_cell_embedding_mat)
@@ -25,8 +31,12 @@ generate_simulation_attachFuture <- function(
     coefficient_intercept = coefficient_intercept,
     num_future_cells = num_future_cells
   )
-  cell_contribution <- exp(as.numeric(embedding_mat %*% coefficient_vec) + new_coefficient_intercept)
+  cell_contribution <- new_coefficient_intercept + as.numeric(embedding_mat %*% embedding_coefficient_vec) 
   names(cell_contribution) <- rownames(previous_cell_embedding_mat)
+  if(!all(is.null(fatefeatures_coefficient_vec))){
+    cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
+  }
+  cell_contribution <-  exp(cell_contribution)
   cell_contribution_rounded <- ceiling(cell_contribution)
   non_zero_idx <- which(cell_contribution_rounded > 0)
   stopifnot(length(non_zero_idx) > 1)
