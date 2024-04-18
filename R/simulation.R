@@ -28,7 +28,8 @@ generate_simulation<- function(embedding_mat,
   }
   
   names(lineage_prior) <- paste0("lineage:", 1:K)
-  stopifnot(d > 1, length(coefficient_vec) == d, 
+  stopifnot(d > 1, 
+            length(length(embedding_coefficient_vec)) == d, 
             length(fatefeatures_coefficient_vec)==d2, 
             length(lineage_prior) == K, 
             all(lineage_prior >= 0), 
@@ -60,7 +61,7 @@ generate_simulation<- function(embedding_mat,
   
   if (verbose > 0) 
     print("Step 5: Computing future lineage size")
-  cell_contribution <-as.numeric(embedding_mat %*% coefficient_vec)
+  cell_contribution <- as.numeric(embedding_mat %*% embedding_coefficient_vec)
   if(d2 > 0){
     cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
   }
@@ -89,8 +90,10 @@ generate_simulation<- function(embedding_mat,
     print("Step 6: Outputting")
   list(cell_fate_potential = log10(cell_contribution_random + 1), 
        cell_fate_potential_truth = log10(cell_contribution_truth), 
-       coefficient_intercept = coefficient_intercept, 
-       coefficient_vec = coefficient_vec, 
+       coefficient_intercept = coefficient_intercept,
+       embedding_coefficient_vec = embedding_coefficient_vec, 
+       fatefeatures_coefficient_vec = fatefeatures_coefficient_vec, 
+       fatefeatures_mat = fatefeatures_mat,
        gaussian_list = gaussian_list, 
        lineage_assignment = lineage_assignment, 
        lineage_future_size = lineage_future_size, 
