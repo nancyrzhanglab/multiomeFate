@@ -16,7 +16,7 @@ generate_simulation<- function(embedding_mat,
   K <- num_lineages
   n <- nrow(embedding_mat)
   d <- ncol(embedding_mat)
-  if(!is.null(fatefeatures_mat)){
+  if(all(!is.null(fatefeatures_mat))){
     d2 <- ncol(fatefeatures_mat)
   } else {
     d2 <- 0

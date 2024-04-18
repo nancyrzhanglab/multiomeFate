@@ -137,7 +137,30 @@ test_that("generate_simulation works", {
   res <- generate_simulation(
     embedding_mat = embedding_mat,
     coefficient_intercept = 0,
-    coefficient_vec = rep(1, ncol(embedding_mat)),
+    embedding_coefficient_vec = rep(1, ncol(embedding_mat)),
+    lineage_spread = 1,
+    lineage_prior = lineage_prior,
+    num_lineages = K
+  )
+  
+  expect_true(is.list(res))
+})
+
+test_that("generate_simulation can take in fate embeddings as well", {
+  set.seed(10)
+  n <- 100; d <- 5
+  K <- 5
+  lineage_prior <- rep(1/K, length = K)
+  embedding_mat <- matrix(stats::rnorm(n*d), nrow = n, ncol = d)
+  fatefeatures_mat <- matrix(stats::rnorm(n*2), nrow = n, ncol = 2)
+  fatefeatures_coefficient_vec <- c(2,-2)
+  
+  res <- generate_simulation(
+    embedding_mat = embedding_mat,
+    coefficient_intercept = 0,
+    embedding_coefficient_vec = rep(1, ncol(embedding_mat)),
+    fatefeatures_coefficient_vec = fatefeatures_coefficient_vec,
+    fatefeatures_mat = fatefeatures_mat, 
     lineage_spread = 1,
     lineage_prior = lineage_prior,
     num_lineages = K
