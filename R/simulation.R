@@ -29,7 +29,7 @@ generate_simulation<- function(embedding_mat,
   
   names(lineage_prior) <- paste0("lineage:", 1:K)
   stopifnot(d > 1, 
-            length(length(embedding_coefficient_vec)) == d, 
+            length(embedding_coefficient_vec) == d, 
             length(fatefeatures_coefficient_vec)==d2, 
             length(lineage_prior) == K, 
             all(lineage_prior >= 0), 
