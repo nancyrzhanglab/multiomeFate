@@ -3,7 +3,6 @@ generate_simulation_attachFuture <- function(
     embedding_coefficient_vec,
     future_cell_embedding_mat,
     lineage_assignment,
-    previous_lineage_assignment,
     previous_cell_embedding_mat,
     fatefeatures_coefficient_vec = NULL,
     fatefeatures_mat = NULL, 
@@ -12,11 +11,9 @@ generate_simulation_attachFuture <- function(
     num_subsamples = 200,
     verbose = 0
 ){
-  stopifnot(ncol(future_cell_embedding_mat) > 1,
-            length(rownames(mapping_mat)) > 0,
-            length(colnames(mapping_mat)) > 0)
+  stopifnot(ncol(future_cell_embedding_mat) > 1)
   
-  cell_contribution <- coefficient_intercept + as.numeric(embedding_mat %*% embedding_coefficient_vec) 
+  cell_contribution <- coefficient_intercept + as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) 
   if(!all(is.null(fatefeatures_coefficient_vec))){
     cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
   }
@@ -31,7 +28,7 @@ generate_simulation_attachFuture <- function(
     coefficient_intercept = coefficient_intercept,
     num_future_cells = num_future_cells
   )
-  cell_contribution <- new_coefficient_intercept + as.numeric(embedding_mat %*% embedding_coefficient_vec) 
+  cell_contribution <- new_coefficient_intercept + as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) 
   names(cell_contribution) <- rownames(previous_cell_embedding_mat)
   if(!all(is.null(fatefeatures_coefficient_vec))){
     cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
@@ -46,8 +43,8 @@ generate_simulation_attachFuture <- function(
   
   if(verbose > 0) print("Step 2: Recompute all the adjusted ingredients from generate_simulation")
   cell_fate_potential <- log10(cell_contribution)
-  if(length(rownames(embedding_mat)) > 0) 
-    names(cell_contribution) <- rownames(embedding_mat)
+  if(length(rownames(previous_cell_embedding_mat)) > 0) 
+    names(cell_contribution) <- rownames(previous_cell_embedding_mat)
   lineage_future_size <- sapply(levels(lineage_assignment), function(lev){
     idx <- which(lineage_assignment == lev)
     round(sum(cell_contribution[idx]))
@@ -84,7 +81,7 @@ generate_simulation_attachFuture <- function(
   list(cell_fate_potential = cell_fate_potential,
        coefficient_intercept = new_coefficient_intercept,
        lineage_future_size = lineage_future_size,
-       prev_lineage_assignment = prev_lineage_assignment,)
+       prev_lineage_assignment = prev_lineage_assignment)
 }
 
 #######################################

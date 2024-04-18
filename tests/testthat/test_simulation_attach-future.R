@@ -303,3 +303,31 @@ test_that(".assign_future_to_previous works", {
   expect_true(sum(abs(vec - res$prev_lineage_size)) <= 1e-6)
 })
 
+##################
+
+## generate_simulation_attachFuture is correct
+
+test_that("generate_simulation_attachFuture works", {
+  set.seed(10)
+  n <- 100; d <- 5
+  K <- 5
+  lineage_prior <- rep(1/K, length = K)
+  previous_cell_embedding_mat <- matrix(stats::rnorm(n*d), nrow = n, ncol = d)
+  future_cell_embedding_mat <- matrix(stats::rnorm(2*n*d), nrow = 2*n, ncol = d)
+  rownames(previous_cell_embedding_mat) <- paste0("prev:", 1:nrow(previous_cell_embedding_mat))
+  rownames(future_cell_embedding_mat) <- paste0("fut:", 1:nrow(future_cell_embedding_mat))
+  
+  coefficient_intercept <- 0
+  embedding_coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
+  lineage_assignment <- sample(paste0("lineage:", 1:K), size = n, replace = TRUE)
+  names(lineage_assignment) <- rownames(previous_cell_embedding_mat)
+  
+  res <- generate_simulation_attachFuture(coefficient_intercept = coefficient_intercept,
+                                          embedding_coefficient_vec = embedding_coefficient_vec,
+                                          future_cell_embedding_mat = future_cell_embedding_mat,
+                                          lineage_assignment = lineage_assignment,
+                                          previous_cell_embedding_mat = previous_cell_embedding_mat,
+                                          verbose = 0)
+  
+  expect_true(is.list(res))
+})
