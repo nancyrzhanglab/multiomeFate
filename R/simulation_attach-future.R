@@ -49,11 +49,11 @@ generate_simulation_attachFuture <- function(
   cell_fate_potential <- log10(cell_contribution)
   if(length(rownames(previous_cell_embedding_mat)) > 0) 
     names(cell_contribution) <- rownames(previous_cell_embedding_mat)
-  lineage_future_size <- sapply(levels(lineage_assignment), function(lev){
+  future_lineage_size <- sapply(levels(lineage_assignment), function(lev){
     idx <- which(lineage_assignment == lev)
     round(sum(cell_contribution[idx]))
   })
-  names(lineage_future_size) <- levels(lineage_assignment)
+  names(future_lineage_size) <- levels(lineage_assignment)
   
   if(verbose > 0) print("Step 3: Determining the push-forward function")
   pushforward_res <- .compute_pushforward(
@@ -81,21 +81,20 @@ generate_simulation_attachFuture <- function(
     mapping_mat = mapping_mat,
     previous_cell_contribution = cell_contribution_rounded
   )
-  future_cell_assignment <- tmp$prev_lineage_assignment
-  prev_cell_num_progenitor <- tmp$prev_lineage_size
+  future_cell_assignment <- tmp$future_cell_assignment
+  prev_cell_num_progenitor <- tmp$prev_cell_num_progenitor
   
   stopifnot(length(prev_cell_num_progenitor) == length(lineage_assignment))
-  lineage_future_size <- sapply(levels(lineage_assignment), function(lev){
+  future_lineage_size <- sapply(levels(lineage_assignment), function(lev){
     idx <- which(lineage_assignment == lev)
     sum(prev_cell_num_progenitor[idx])
   })
-  names(lineage_future_size) <- levels(lineage_assignment)
+  names(future_lineage_size) <- levels(lineage_assignment)
   
-  # [[Todo: Fix all these argument names...]]
   list(cell_fate_potential = cell_fate_potential,
        coefficient_intercept = new_coefficient_intercept,
        future_cell_assignment = future_cell_assignment,
-       future_lineage_size = lineage_future_size,
+       future_lineage_size = future_lineage_size,
        prev_cell_num_progenitor = prev_cell_num_progenitor)
 }
 
@@ -281,10 +280,10 @@ generate_simulation_attachFuture <- function(
   
   m <- ncol(mapping_mat)
   n <- nrow(mapping_mat)
-  prev_lineage_size <- rep(0, length = n)
-  names(prev_lineage_size) <- rownames(mapping_mat)
-  prev_lineage_assignment <- rep(NA, length = m)
-  names(prev_lineage_assignment) <- colnames(mapping_mat)
+  prev_cell_num_progenitor <- rep(0, length = n)
+  names(prev_cell_num_progenitor) <- rownames(mapping_mat)
+  future_cell_assignment <- rep(NA, length = m)
+  names(future_cell_assignment) <- colnames(mapping_mat)
   
   # rearrange the columns of mapping_mat
   colsum_vec <- colSums(mapping_mat)
@@ -293,17 +292,17 @@ generate_simulation_attachFuture <- function(
   for(j in 1:m){
     prob_vec <- .log_sum_exp_normalization(mapping_mat[,j])
     sample_prev_name <- sample(rownames(mapping_mat), size = 1, prob = prob_vec)
-    prev_lineage_assignment[colnames(mapping_mat)[j]] <- sample_prev_name
-    prev_lineage_size[sample_prev_name] <- prev_lineage_size[sample_prev_name] + 1
+    future_cell_assignment[colnames(mapping_mat)[j]] <- sample_prev_name
+    prev_cell_num_progenitor[sample_prev_name] <- prev_cell_num_progenitor[sample_prev_name] + 1
     
-    if(prev_lineage_size[sample_prev_name] >= previous_cell_contribution[sample_prev_name]){
+    if(prev_cell_num_progenitor[sample_prev_name] >= previous_cell_contribution[sample_prev_name]){
       rm_idx <- which(rownames(mapping_mat) == sample_prev_name)
       mapping_mat <- mapping_mat[-rm_idx,,drop = FALSE]
     }
   }
   
-  list(prev_lineage_assignment = prev_lineage_assignment,
-       prev_lineage_size = prev_lineage_size)
+  list(future_cell_assignment = future_cell_assignment,
+       prev_cell_num_progenitor = prev_cell_num_progenitor)
 }
 
 

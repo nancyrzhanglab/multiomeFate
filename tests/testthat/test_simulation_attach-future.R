@@ -366,17 +366,17 @@ test_that(".assign_future_to_previous works", {
     previous_cell_contribution = cell_contribution_rounded
   )
   
-  expect_true(length(res$prev_lineage_size) == length(cell_contribution_rounded))
-  expect_true(all(cell_contribution_rounded >= res$prev_lineage_size))
-  expect_true(length(res$prev_lineage_assignment) == num_future_cells)
-  expect_true(all(res$prev_lineage_assignment %in% rownames(previous_cell_embedding_mat)))
-  expect_true(all(names(res$prev_lineage_assignment) %in% rownames(future_cell_embedding_mat)))
+  expect_true(length(res$prev_cell_num_progenitor) == length(cell_contribution_rounded))
+  expect_true(all(cell_contribution_rounded >= res$prev_cell_num_progenitor))
+  expect_true(length(res$future_cell_assignment) == num_future_cells)
+  expect_true(all(res$future_cell_assignment %in% rownames(previous_cell_embedding_mat)))
+  expect_true(all(names(res$future_cell_assignment) %in% rownames(future_cell_embedding_mat)))
   
-  tab_vec <- table(res$prev_lineage_assignment)
-  vec <- rep(0, length(res$prev_lineage_size))
-  names(vec) <- names(res$prev_lineage_size)
+  tab_vec <- table(res$future_cell_assignment)
+  vec <- rep(0, length(res$prev_cell_num_progenitor))
+  names(vec) <- names(res$prev_cell_num_progenitor)
   vec[names(tab_vec)] <- tab_vec
-  expect_true(sum(abs(vec - res$prev_lineage_size)) <= 1e-6)
+  expect_true(sum(abs(vec - res$prev_cell_num_progenitor)) <= 1e-6)
 })
 
 ##################
