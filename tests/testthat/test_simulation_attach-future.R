@@ -406,4 +406,13 @@ test_that("generate_simulation_attachFuture works", {
                                           verbose = 0)
   
   expect_true(is.list(res))
+  
+  cell_contribution <- round(exp(res$coefficient_intercept + as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec)))
+  names(cell_contribution) <- rownames(previous_cell_embedding_mat)
+  tmp <- table(res$future_cell_assignment)
+  res_tabulate <- rep(0, length = length(cell_contribution))
+  names(res_tabulate) <- names(cell_contribution)
+  res_tabulate[names(tmp)] <- tmp
+  
+  expect_true(all(res_tabulate <= cell_contribution))
 })
