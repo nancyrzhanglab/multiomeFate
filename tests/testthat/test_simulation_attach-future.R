@@ -276,14 +276,14 @@ test_that(".dmvnorm_log_many_samples works", {
                                 sigma = sigma,
                                 x_mat = x_mat)
   
-  res2 <- sum(sapply(1:n, function(i){
+  res2 <- sapply(1:n, function(i){
     .dmvnorm(x = x_mat[i,],
              mean = mean_vec,
              sigma = sigma,
              log = TRUE)
-  }))
+  })
   
-  expect_true(abs(res1 - res2) <= 1e-5)
+  expect_true(sum(abs(res1 - res2)) <= 1e-5)
 })
 
 test_that(".dmvnorm_log_many_samples is correct", {
@@ -301,14 +301,14 @@ test_that(".dmvnorm_log_many_samples is correct", {
                                       sigma = sigma,
                                       x_mat = x_mat)
     
-    res2 <- sum(sapply(1:n, function(i){
+    res2 <- sapply(1:n, function(i){
       .dmvnorm(x = x_mat[i,],
                mean = mean_vec,
                sigma = sigma,
                log = TRUE)
-    }))
+    })
     
-    abs(res1 - res2) <= 1e-4
+    sum(abs(res1 - res2)) <= 1e-4
   })
  
   expect_true(all(bool_vec))
@@ -415,4 +415,8 @@ test_that("generate_simulation_attachFuture works", {
   res_tabulate[names(tmp)] <- tmp
   
   expect_true(all(res_tabulate <= cell_contribution))
+  
+  # non-trivial differences in lineages
+  tmp <- apply(res$mapping_mat, 1, function(x){diff(range(x))})
+  expect_true(any(tmp > 0))
 })

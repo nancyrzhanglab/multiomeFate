@@ -79,7 +79,8 @@ generate_simulation_attachFuture <- function(
   if(verbose > 0) print("Step 5: Assigning future cells to a lineage")
   tmp <- .assign_future_to_previous(
     mapping_mat = mapping_mat,
-    previous_cell_contribution = cell_contribution_rounded
+    previous_cell_contribution = cell_contribution_rounded,
+    verbose = verbose - 1
   )
   future_cell_assignment <- tmp$future_cell_assignment
   prev_cell_num_progenitor <- tmp$prev_cell_num_progenitor
@@ -95,6 +96,7 @@ generate_simulation_attachFuture <- function(
        coefficient_intercept = new_coefficient_intercept,
        future_cell_assignment = future_cell_assignment,
        future_lineage_size = future_lineage_size,
+       mapping_mat = round(mapping_mat*1e3),
        prev_cell_num_progenitor = prev_cell_num_progenitor)
 }
 
@@ -238,9 +240,18 @@ generate_simulation_attachFuture <- function(
     )
   }
   
+  # rearrange the columns
+  col_sum <- colSums(mapping_mat)
+  mapping_mat <- mapping_mat[,order(col_sum, decreasing = TRUE)]
+  
+  for(j in 1:m){
+    mapping_mat[,j] <- .log_sum_exp_normalization(mapping_mat[,j])
+  }
+  
   mapping_mat
 }
 
+# returns a vector of length nrow(x_mat), the log density for each row of x_mat
 .dmvnorm_log_many_samples <- function(mean,
                                       sigma,
                                       x_mat){
@@ -259,11 +270,11 @@ generate_simulation_attachFuture <- function(
                  STATS = mean, 
                  FUN = "-")
   lhs <- x_mat %*% sigma_inv
-  rss <- sum(sapply(1:p, function(j){
-    lhs[,j] %*% x_mat[,j]
-  }))
+  rss <- sapply(1:n, function(i){
+    lhs[i,] %*% x_mat[i,]
+  })
   
-  n * (- 0.5 * determinant_value - 0.5 * p * log(2 * pi)) - 0.5 * rss
+  - 0.5 * determinant_value - 0.5 * p * log(2 * pi) - 0.5 * rss
 }
 
 
@@ -285,14 +296,10 @@ generate_simulation_attachFuture <- function(
   future_cell_assignment <- rep(NA, length = m)
   names(future_cell_assignment) <- colnames(mapping_mat)
   
-  # rearrange the columns of mapping_mat
-  colsum_vec <- colSums(mapping_mat)
-  mapping_mat <- mapping_mat[,order(colsum_vec, decreasing = TRUE)]
-
   for(j in 1:m){
     if(verbose > 0 && m > 10 && j %% floor(m/10) == 0) cat('*')
     
-    prob_vec <- .log_sum_exp_normalization(mapping_mat[,j])
+    prob_vec <- mapping_mat[,j]
     sample_prev_name <- sample(rownames(mapping_mat), size = 1, prob = prob_vec)
     future_cell_assignment[colnames(mapping_mat)[j]] <- sample_prev_name
     prev_cell_num_progenitor[sample_prev_name] <- prev_cell_num_progenitor[sample_prev_name] + 1
