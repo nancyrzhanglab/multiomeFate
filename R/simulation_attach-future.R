@@ -290,6 +290,8 @@ generate_simulation_attachFuture <- function(
   mapping_mat <- mapping_mat[,order(colsum_vec, decreasing = TRUE)]
 
   for(j in 1:m){
+    if(verbose > 0 && m > 10 && j %% floor(m/10) == 0) cat('*')
+    
     prob_vec <- .log_sum_exp_normalization(mapping_mat[,j])
     sample_prev_name <- sample(rownames(mapping_mat), size = 1, prob = prob_vec)
     future_cell_assignment[colnames(mapping_mat)[j]] <- sample_prev_name
