@@ -248,7 +248,7 @@ generate_simulation<- function(embedding_mat,
   } else {
     tmp <- backsolve(dec, t(x) - mean, transpose = TRUE)
     rss <- colSums(tmp ^ 2)
-    logretval <- - sum(log(diag(dec))) - 0.5 * p * log(2 * pi) - 0.5 * rss
+    logretval <- -sum(log(diag(dec))) - 0.5 * p * log(2 * pi) - 0.5 * rss
   }
   names(logretval) <- rownames(x)
   if(log) logretval else exp(logretval)

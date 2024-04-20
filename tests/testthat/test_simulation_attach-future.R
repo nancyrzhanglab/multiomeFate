@@ -241,6 +241,58 @@ test_that(".compute_previous_to_future_mapping works", {
 
 ###################
 
+## .dmvnorm_log_many_samples is correct
+
+test_that(".dmvnorm_log_many_samples works", {
+  set.seed(10)
+  p <- 4; n <- 20
+  mean_vec <- rep(0, p)
+  sigma <- diag(p)
+  x_mat <- MASS::mvrnorm(n, mu = mean_vec, Sigma = sigma)
+  res1 <- .dmvnorm_log_many_samples(mean = mean_vec,
+                                sigma = sigma,
+                                x_mat = x_mat)
+  
+  res2 <- sum(sapply(1:n, function(i){
+    .dmvnorm(x = x_mat[i,],
+             mean = mean_vec,
+             sigma = sigma,
+             log = TRUE)
+  }))
+  
+  expect_true(abs(res1 - res2) <= 1e-5)
+})
+
+test_that(".dmvnorm_log_many_samples is correct", {
+  trials <- 200
+  p <- 20
+  n <- 200
+  bool_vec <- sapply(1:trials, function(trial){
+    set.seed(trial)
+    mean_vec <- stats::runif(p)
+    tmp <- matrix(stats::runif(p^2), nrow = p)
+    tmp <- tmp + t(tmp)
+    sigma <- crossprod(tmp)
+    x_mat <- MASS::mvrnorm(n, mu = mean_vec, Sigma = sigma)
+    res1 <- .dmvnorm_log_many_samples(mean = mean_vec,
+                                      sigma = sigma,
+                                      x_mat = x_mat)
+    
+    res2 <- sum(sapply(1:n, function(i){
+      .dmvnorm(x = x_mat[i,],
+               mean = mean_vec,
+               sigma = sigma,
+               log = TRUE)
+    }))
+    
+    abs(res1 - res2) <= 1e-4
+  })
+ 
+  expect_true(all(bool_vec))
+})
+
+###################
+
 ## .assign_future_to_previous is correct
 
 test_that(".assign_future_to_previous works", {
@@ -293,6 +345,7 @@ test_that(".assign_future_to_previous works", {
   
   expect_true(length(res$prev_lineage_size) == length(cell_contribution_rounded))
   expect_true(all(cell_contribution_rounded >= res$prev_lineage_size))
+  expect_true(length(res$prev_lineage_assignment) == num_future_cells)
   expect_true(all(res$prev_lineage_assignment %in% rownames(previous_cell_embedding_mat)))
   expect_true(all(names(res$prev_lineage_assignment) %in% rownames(future_cell_embedding_mat)))
   

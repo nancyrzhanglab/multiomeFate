@@ -17,7 +17,7 @@ generate_simulation_attachFuture <- function(
   if(!all(is.null(fatefeatures_coefficient_vec))){
     cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
   }
-  cell_contribution <- ceiling(exp(cell_contribution))
+  cell_contribution <- exp(cell_contribution)
   
   if(verbose > 0) print("Step 1: Adjusting all the ingredients")
   num_future_cells <- nrow(future_cell_embedding_mat)
@@ -28,15 +28,19 @@ generate_simulation_attachFuture <- function(
     coefficient_intercept = coefficient_intercept,
     num_future_cells = num_future_cells
   )
+  # print(paste0("New coefficient: ", new_coefficient_intercept))
   cell_contribution <- new_coefficient_intercept + as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) 
   names(cell_contribution) <- rownames(previous_cell_embedding_mat)
   if(!all(is.null(fatefeatures_coefficient_vec))){
     cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
   }
   cell_contribution <-  exp(cell_contribution)
-  cell_contribution_rounded <- ceiling(cell_contribution)
+  # print(quantile(cell_contribution))
+  # print(sum(cell_contribution))
+  cell_contribution_rounded <- round(cell_contribution)
   non_zero_idx <- which(cell_contribution_rounded > 0)
   stopifnot(length(non_zero_idx) > 1)
+  # print(paste0("Size of previous: ", length(non_zero_idx)))
   cell_contribution_rounded <- cell_contribution_rounded[non_zero_idx]
   previous_cell_embedding_mat <- previous_cell_embedding_mat[non_zero_idx,]
   if(verbose > 0) print(paste0("There are ", num_future_cells, " future cells, and the sum of potentials is ", sum(cell_contribution_rounded)))
@@ -68,7 +72,8 @@ generate_simulation_attachFuture <- function(
     lineage_spread = lineage_spread,
     previous_cell_embedding_mat = previous_cell_embedding_mat,
     pushforward_func = pushforward_res$pushforward_func,
-    sd_vec = sd_vec
+    sd_vec = sd_vec,
+    verbose = verbose - 1
   )
   
   if(verbose > 0) print("Step 5: Assigning future cells to a lineage")
@@ -76,12 +81,21 @@ generate_simulation_attachFuture <- function(
     mapping_mat = mapping_mat,
     previous_cell_contribution = cell_contribution_rounded
   )
-  prev_lineage_assignment = tmp$prev_lineage_assignment
+  future_cell_assignment <- tmp$prev_lineage_assignment
+  prev_cell_num_progenitor <- tmp$prev_lineage_size
+  stopifnot(length(prev_cell_num_progenitor) == length(lineage_assignment))
+  lineage_future_size <- sapply(levels(lineage_assignment), function(lev){
+    idx <- which(lineage_assignment == lev)
+    sum(prev_cell_num_progenitor[idx])
+  })
+  names(lineage_future_size) <- levels(lineage_assignment)
   
+  # [[Todo: Fix all these argument names...]]
   list(cell_fate_potential = cell_fate_potential,
        coefficient_intercept = new_coefficient_intercept,
-       lineage_future_size = lineage_future_size,
-       prev_lineage_assignment = prev_lineage_assignment)
+       future_cell_assignment = future_cell_assignment,
+       future_lineage_size = lineage_future_size,
+       prev_cell_num_progenitor = prev_cell_num_progenitor)
 }
 
 #######################################
@@ -92,8 +106,7 @@ generate_simulation_attachFuture <- function(
     coefficient_intercept,
     num_future_cells
 ){
-  ratio <- sum(cell_contribution)/num_future_cells
-  coefficient_intercept - log(ratio)
+  coefficient_intercept + log(num_future_cells) - log(sum(cell_contribution))
 }
 
 ########
@@ -189,7 +202,9 @@ generate_simulation_attachFuture <- function(
   stopifnot(ncol(previous_cell_embedding_mat) == ncol(future_cell_embedding_mat))
   
   n <- nrow(previous_cell_embedding_mat)
+  # print(paste0("n=",n))
   m <- nrow(future_cell_embedding_mat)
+  # print(paste0("m=",m))
   mapping_mat <- matrix(NA, nrow = n, ncol = m)
   if(length(rownames(future_cell_embedding_mat)) > 0){
     rownames(mapping_mat) <- rownames(previous_cell_embedding_mat)
@@ -199,19 +214,44 @@ generate_simulation_attachFuture <- function(
   }
   
   for(i in 1:n){
-    if(verbose > 0 && n > 10 && i %% floor(n/10) == 0) cat('*')
+    if(verbose == 1 && n > 10 && i %% floor(n/10) == 0) cat('*')
+    if(verbose > 1) print(paste0("i:", i))
     mean_vec <- pushforward_func(previous_cell_embedding_mat[i,])
-    
-    for(j in 1:m){
-      mapping_mat[i,j] <- .dmvnorm(x = future_cell_embedding_mat[j,],
-                                   mean = mean_vec,
-                                   sigma = lineage_spread*diag(sd_vec),
-                                   log = TRUE)
-    }
+    mapping_mat[i,] <- .dmvnorm_log_many_samples(
+      mean = mean_vec,
+      sigma = lineage_spread*diag(sd_vec),
+      x_mat = future_cell_embedding_mat
+    )
   }
   
   mapping_mat
 }
+
+.dmvnorm_log_many_samples <- function(mean,
+                                      sigma,
+                                      x_mat){
+  stopifnot(ncol(sigma) == nrow(sigma),
+            Matrix::rankMatrix(sigma) == ncol(sigma))
+  
+  p <- ncol(sigma)
+  n <- nrow(x_mat)
+  sigma_inv <- solve(sigma)
+  determinant_value <- determinant(sigma,
+                                   logarithm = TRUE)$modulus
+  determinant_value <- as.numeric(determinant_value)
+  
+  x_mat <- sweep(x_mat, 
+                 MARGIN = 2,
+                 STATS = mean, 
+                 FUN = "-")
+  lhs <- x_mat %*% sigma_inv
+  rss <- sum(sapply(1:p, function(j){
+    lhs[,j] %*% x_mat[,j]
+  }))
+  
+  n * (- 0.5 * determinant_value - 0.5 * p * log(2 * pi)) - 0.5 * rss
+}
+
 
 ########
 
@@ -234,8 +274,13 @@ generate_simulation_attachFuture <- function(
   # rearrange the columns of mapping_mat
   colsum_vec <- colSums(mapping_mat)
   mapping_mat <- mapping_mat[,order(colsum_vec, decreasing = TRUE)]
+  print(quantile(mapping_mat))
+  
+  print("===")
   for(j in 1:m){
-    sample_prev_name <- sample(rownames(mapping_mat), size = 1, prob = exp(mapping_mat[,j]))
+    prob_vec <- .log_sum_exp_normalization(mapping_mat[,j])
+    print(quantile(prob_vec))
+    sample_prev_name <- sample(rownames(mapping_mat), size = 1, prob = prob_vec)
     prev_lineage_assignment[colnames(mapping_mat)[j]] <- sample_prev_name
     prev_lineage_size[sample_prev_name] <- prev_lineage_size[sample_prev_name] + 1
     
