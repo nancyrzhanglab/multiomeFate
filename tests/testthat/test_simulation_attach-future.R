@@ -33,7 +33,30 @@ test_that(".adjust_coefficient_intercept works", {
   stopifnot(length(res) == 1)
   
   cell_contribution <- exp(as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) + res)
-  expect_true(abs(sum(cell_contribution) - num_future_cells) <= 2)
+  expect_true(sum(cell_contribution) >= num_future_cells)
+})
+
+test_that(".adjust_coefficient_intercept ensures enough future cells", {
+  trials <- 1000
+  
+  bool_vec <- sapply(1:trials, function(trial){
+    set.seed(trial)
+    n <- 1000
+    cell_contribution <- stats::rnorm(n, mean = 1)
+    coefficient_intercept <- stats::rnorm(1)
+    num_future_cells <- round(stats::runif(1, min = 100, max = 2000))
+    
+    res <- .adjust_coefficient_intercept(
+      cell_contribution = cell_contribution,
+      coefficient_intercept = coefficient_intercept,
+      num_future_cells = num_future_cells
+    )
+    
+    new_sum <- sum(round(exp(cell_contribution)*exp(-coefficient_intercept)*exp(res)))
+    new_sum >= num_future_cells
+  })
+  
+  expect_true(all(bool_vec))
 })
 
 ############
@@ -372,7 +395,7 @@ test_that("generate_simulation_attachFuture works", {
   
   coefficient_intercept <- 0
   embedding_coefficient_vec <- rep(1, ncol(previous_cell_embedding_mat))
-  lineage_assignment <- sample(paste0("lineage:", 1:K), size = n, replace = TRUE)
+  lineage_assignment <- factor(sample(paste0("lineage:", 1:K), size = n, replace = TRUE))
   names(lineage_assignment) <- rownames(previous_cell_embedding_mat)
   
   res <- generate_simulation_attachFuture(coefficient_intercept = coefficient_intercept,

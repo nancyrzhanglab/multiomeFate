@@ -11,7 +11,8 @@ generate_simulation_attachFuture <- function(
     num_subsamples = 200,
     verbose = 0
 ){
-  stopifnot(ncol(future_cell_embedding_mat) > 1)
+  stopifnot(ncol(future_cell_embedding_mat) > 1,
+            is.factor(lineage_assignment))
   
   cell_contribution <- coefficient_intercept + as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) 
   if(!all(is.null(fatefeatures_coefficient_vec))){
@@ -28,20 +29,19 @@ generate_simulation_attachFuture <- function(
     coefficient_intercept = coefficient_intercept,
     num_future_cells = num_future_cells
   )
-  # print(paste0("New coefficient: ", new_coefficient_intercept))
   cell_contribution <- new_coefficient_intercept + as.numeric(previous_cell_embedding_mat %*% embedding_coefficient_vec) 
   names(cell_contribution) <- rownames(previous_cell_embedding_mat)
   if(!all(is.null(fatefeatures_coefficient_vec))){
     cell_contribution <- cell_contribution + as.numeric(fatefeatures_mat %*% fatefeatures_coefficient_vec)
   }
   cell_contribution <-  exp(cell_contribution)
-  # print(quantile(cell_contribution))
-  # print(sum(cell_contribution))
   cell_contribution_rounded <- round(cell_contribution)
+  
+  # remove all the cells that don't contribute to the future timepoint
   non_zero_idx <- which(cell_contribution_rounded > 0)
   stopifnot(length(non_zero_idx) > 1)
-  # print(paste0("Size of previous: ", length(non_zero_idx)))
   cell_contribution_rounded <- cell_contribution_rounded[non_zero_idx]
+  lineage_assignment <- droplevels(lineage_assignment[non_zero_idx])
   previous_cell_embedding_mat <- previous_cell_embedding_mat[non_zero_idx,]
   if(verbose > 0) print(paste0("There are ", num_future_cells, " future cells, and the sum of potentials is ", sum(cell_contribution_rounded)))
   
@@ -83,6 +83,7 @@ generate_simulation_attachFuture <- function(
   )
   future_cell_assignment <- tmp$prev_lineage_assignment
   prev_cell_num_progenitor <- tmp$prev_lineage_size
+  
   stopifnot(length(prev_cell_num_progenitor) == length(lineage_assignment))
   lineage_future_size <- sapply(levels(lineage_assignment), function(lev){
     idx <- which(lineage_assignment == lev)
@@ -104,9 +105,25 @@ generate_simulation_attachFuture <- function(
 .adjust_coefficient_intercept <- function(
     cell_contribution,
     coefficient_intercept,
-    num_future_cells
+    num_future_cells,
+    interval_add = 0.1,
+    max_iter = 100
 ){
-  coefficient_intercept + log(num_future_cells) - log(sum(cell_contribution))
+  tmp <- log(num_future_cells) - log(sum(cell_contribution))
+  new_cell_contribution <- cell_contribution * exp(tmp)
+  
+  # now make sure when rounded, it still is larger
+  iter <- 0
+  interval_value <- 0
+  while(sum(round(new_cell_contribution)) < sum(num_future_cells)){
+    iter <- iter + 1
+    interval_value <- interval_value + interval_add
+    new_cell_contribution <- cell_contribution * exp(tmp+interval_value)
+    
+    if(iter > max_iter) stop("Error with computing intercept")
+  }
+  
+  coefficient_intercept + tmp + interval_value
 }
 
 ########
@@ -202,9 +219,7 @@ generate_simulation_attachFuture <- function(
   stopifnot(ncol(previous_cell_embedding_mat) == ncol(future_cell_embedding_mat))
   
   n <- nrow(previous_cell_embedding_mat)
-  # print(paste0("n=",n))
   m <- nrow(future_cell_embedding_mat)
-  # print(paste0("m=",m))
   mapping_mat <- matrix(NA, nrow = n, ncol = m)
   if(length(rownames(future_cell_embedding_mat)) > 0){
     rownames(mapping_mat) <- rownames(previous_cell_embedding_mat)
@@ -274,12 +289,9 @@ generate_simulation_attachFuture <- function(
   # rearrange the columns of mapping_mat
   colsum_vec <- colSums(mapping_mat)
   mapping_mat <- mapping_mat[,order(colsum_vec, decreasing = TRUE)]
-  print(quantile(mapping_mat))
-  
-  print("===")
+
   for(j in 1:m){
     prob_vec <- .log_sum_exp_normalization(mapping_mat[,j])
-    print(quantile(prob_vec))
     sample_prev_name <- sample(rownames(mapping_mat), size = 1, prob = prob_vec)
     prev_lineage_assignment[colnames(mapping_mat)[j]] <- sample_prev_name
     prev_lineage_size[sample_prev_name] <- prev_lineage_size[sample_prev_name] + 1

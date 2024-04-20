@@ -1,4 +1,4 @@
-generate_simulation<- function(embedding_mat, 
+generate_simulation <- function(embedding_mat, 
                                bool_add_randomness = TRUE, 
                                coefficient_intercept = 0, 
                                embedding_coefficient_vec = rep(1, ncol(embedding_mat)),
