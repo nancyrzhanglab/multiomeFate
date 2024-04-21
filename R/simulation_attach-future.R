@@ -92,12 +92,15 @@ generate_simulation_attachFuture <- function(
   })
   names(future_lineage_size) <- levels(lineage_assignment)
   
-  list(cell_fate_potential = cell_fate_potential,
-       coefficient_intercept = new_coefficient_intercept,
-       future_cell_assignment = future_cell_assignment,
-       future_lineage_size = future_lineage_size,
-       mapping_mat = round(mapping_mat*1e3),
-       prev_cell_num_progenitor = prev_cell_num_progenitor)
+  return(
+    structure(list(cell_fate_potential = cell_fate_potential,
+                   coefficient_intercept = new_coefficient_intercept,
+                   future_cell_assignment = future_cell_assignment,
+                   future_lineage_size = future_lineage_size,
+                   mapping_mat = round(mapping_mat*1e3),
+                   prev_cell_num_progenitor = prev_cell_num_progenitor),
+              class = "multiomeFate_simulation_future")
+  )
 }
 
 #######################################
@@ -124,7 +127,7 @@ generate_simulation_attachFuture <- function(
     if(iter > max_iter) stop("Error with computing intercept")
   }
   
-  coefficient_intercept + tmp + interval_value
+  return(coefficient_intercept + tmp + interval_value)
 }
 
 ########
@@ -166,16 +169,18 @@ generate_simulation_attachFuture <- function(
   })
   fit_vec <- sapply(pushforward_list, function(x){x$fit})
   
-  pushforward_list[[which.min(fit_vec)]]$pushforward_res
+  return(pushforward_list[[which.min(fit_vec)]]$pushforward_res)
 }
 
 .pushforward_func_constructor <- function(a, b){
   stopifnot(length(a) == 1)
   
-  function(vec){
-    stopifnot(length(vec) == length(b))
-    a * vec + b
-  }
+  return(
+    function(vec){
+      stopifnot(length(vec) == length(b))
+      a * vec + b
+    }
+  )
 }
 
 .compute_pushforward_fit <- function(
@@ -202,9 +207,11 @@ generate_simulation_attachFuture <- function(
     stats::median(future_mat[,j] - a*previous_mat[,j])
   })
   
-  list(a = a,
-       b = b,
-       pushforward_func = .pushforward_func_constructor(a = a, b = b))
+  return(
+    list(a = a,
+         b = b,
+         pushforward_func = .pushforward_func_constructor(a = a, b = b))
+  )
 }
 
 ########
@@ -248,7 +255,7 @@ generate_simulation_attachFuture <- function(
     mapping_mat[,j] <- .log_sum_exp_normalization(mapping_mat[,j])
   }
   
-  mapping_mat
+  return(mapping_mat)
 }
 
 # returns a vector of length nrow(x_mat), the log density for each row of x_mat
@@ -274,7 +281,7 @@ generate_simulation_attachFuture <- function(
     lhs[i,] %*% x_mat[i,]
   })
   
-  - 0.5 * determinant_value - 0.5 * p * log(2 * pi) - 0.5 * rss
+  return(- 0.5 * determinant_value - 0.5 * p * log(2 * pi) - 0.5 * rss)
 }
 
 
@@ -310,8 +317,10 @@ generate_simulation_attachFuture <- function(
     }
   }
   
-  list(future_cell_assignment = future_cell_assignment,
-       prev_cell_num_progenitor = prev_cell_num_progenitor)
+  return(
+    list(future_cell_assignment = future_cell_assignment,
+         prev_cell_num_progenitor = prev_cell_num_progenitor)
+  )
 }
 
 

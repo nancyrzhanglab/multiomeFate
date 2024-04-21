@@ -1,14 +1,14 @@
 generate_simulation <- function(embedding_mat, 
-                               bool_add_randomness = TRUE, 
-                               coefficient_intercept = 0, 
-                               embedding_coefficient_vec = rep(1, ncol(embedding_mat)),
-                               fatefeatures_coefficient_vec = NULL,
-                               fatefeatures_mat = NULL, 
-                               lineage_spread = 1, 
-                               lineage_prior = NA, 
-                               num_lineages = 10, 
-                               tol = 1e-06, 
-                               verbose = 0) 
+                                bool_add_randomness = TRUE, 
+                                coefficient_intercept = 0, 
+                                embedding_coefficient_vec = rep(1, ncol(embedding_mat)),
+                                fatefeatures_coefficient_vec = NULL,
+                                fatefeatures_mat = NULL, 
+                                lineage_spread = 1, 
+                                lineage_prior = NA, 
+                                num_lineages = 10, 
+                                tol = 1e-06, 
+                                verbose = 0) 
 {
   if (all(is.na(lineage_prior))) 
     lineage_prior <- rep(1/num_lineages, length = num_lineages)
@@ -18,6 +18,8 @@ generate_simulation <- function(embedding_mat,
   d <- ncol(embedding_mat)
   if(all(!is.null(fatefeatures_mat))){
     d2 <- ncol(fatefeatures_mat)
+    stopifnot(nrow(fatefeatures_mat) == nrow(embedding_mat),
+              length(fatefeatures_coefficient_vec) == d2)
   } else {
     d2 <- 0
   }
@@ -25,12 +27,11 @@ generate_simulation <- function(embedding_mat,
   rho <- lineage_spread
   if (length(names(lineage_prior)) > 0) {
     warning("Overwriting names in lineage_prior")
-  }
+  } 
   
   names(lineage_prior) <- paste0("lineage:", 1:K)
   stopifnot(d > 1, 
             length(embedding_coefficient_vec) == d, 
-            length(fatefeatures_coefficient_vec)==d2, 
             length(lineage_prior) == K, 
             all(lineage_prior >= 0), 
             abs(sum(lineage_prior) - 1) <= tol, 
@@ -88,16 +89,19 @@ generate_simulation <- function(embedding_mat,
   
   if (verbose > 0) 
     print("Step 6: Outputting")
-  list(cell_fate_potential = log10(cell_contribution_random + 1), 
-       cell_fate_potential_truth = log10(cell_contribution_truth), 
-       coefficient_intercept = coefficient_intercept,
-       embedding_coefficient_vec = embedding_coefficient_vec, 
-       fatefeatures_coefficient_vec = fatefeatures_coefficient_vec, 
-       fatefeatures_mat = fatefeatures_mat,
-       gaussian_list = gaussian_list, 
-       lineage_assignment = lineage_assignment, 
-       lineage_future_size = lineage_future_size, 
-       prob_mat = prob_mat)
+  return(
+    structure(list(cell_fate_potential = log10(cell_contribution_random + 1), 
+                   cell_fate_potential_truth = log10(cell_contribution_truth), 
+                   coefficient_intercept = coefficient_intercept,
+                   embedding_coefficient_vec = embedding_coefficient_vec, 
+                   fatefeatures_coefficient_vec = fatefeatures_coefficient_vec, 
+                   fatefeatures_mat = fatefeatures_mat,
+                   gaussian_list = gaussian_list, 
+                   lineage_assignment = lineage_assignment, 
+                   lineage_future_size = lineage_future_size, 
+                   prob_mat = prob_mat),
+              class = "multiomeFate_simulation_vanilla")
+  )
 }
 
 
@@ -112,7 +116,8 @@ generate_simulation <- function(embedding_mat,
     sample(which(kmeans_res$cluster == k), 1)
   })
   names(cluster_idxs) <- paste0("lineage:", 1:K)
-  cluster_idxs
+  
+  return(cluster_idxs)
 }
 
 .gaussian <- function(cov_mat,
@@ -120,9 +125,9 @@ generate_simulation <- function(embedding_mat,
   stopifnot(nrow(cov_mat) == ncol(cov_mat),
             nrow(cov_mat) == length(mean_vec))
   
-  structure(list(cov = cov_mat, 
-                 mean = mean_vec),
-            class = "gaussian")
+  return(structure(list(cov = cov_mat, 
+                        mean = mean_vec),
+                   class = "gaussian"))
 }
 
 .form_gaussian_distribution <- function(
@@ -140,8 +145,8 @@ generate_simulation <- function(embedding_mat,
   
   cov_mat <- diag(rho*sd_vec^2)
   
-  .gaussian(cov_mat = cov_mat, 
-            mean_vec = mean_vec)
+  return(.gaussian(cov_mat = cov_mat, 
+                   mean_vec = mean_vec))
 }
 
 .form_gaussian_distributions <- function(
@@ -159,7 +164,7 @@ generate_simulation <- function(embedding_mat,
   })
   names(gaussian_list) <- paste0("lineage:", 1:K)
   
-  gaussian_list
+  return(gaussian_list)
 }
 
 .compute_posteriors <- function(
@@ -193,7 +198,7 @@ generate_simulation <- function(embedding_mat,
     prob_mat[i,] <- .log_sum_exp_normalization(log_vec)
   }
   
-  prob_mat
+  return(prob_mat)
 }
 
 # we use the log-sum-exp trick: https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/
@@ -207,7 +212,7 @@ generate_simulation <- function(embedding_mat,
   
   stopifnot(all(res >= -tol, abs(sum(res)-1) <= tol))
   
-  res
+  return(res)
 }
 
 # from the mvtnorm package: https://github.com/cran/mvtnorm/blob/master/R/mvnorm.R
@@ -251,5 +256,5 @@ generate_simulation <- function(embedding_mat,
     logretval <- -sum(log(diag(dec))) - 0.5 * p * log(2 * pi) - 0.5 * rss
   }
   names(logretval) <- rownames(x)
-  if(log) logretval else exp(logretval)
+  if(log) return(logretval) else return(exp(logretval))
 }
