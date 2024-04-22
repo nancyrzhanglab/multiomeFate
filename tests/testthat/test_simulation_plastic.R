@@ -82,4 +82,5 @@ test_that("generate_simulation_plastic works", {
   expect_true(is.list(res))
   # plot(res$cell_fate_potential, res$lineage_future_size[res$lineage_assignment])
   # mean_val = sapply(levels(res$lineage_assignment), function(lineage){mean(res$cell_fate_potential[res$lineage_assignment == lineage])}); plot(mean_val, res$lineage_future_size)
+  # sd_val = sapply(levels(res$lineage_assignment), function(lineage){sd(res$cell_fate_potential[res$lineage_assignment == lineage])}); plot(sd_val, res$lineage_future_size)
 })

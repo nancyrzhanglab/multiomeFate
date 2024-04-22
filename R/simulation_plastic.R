@@ -95,19 +95,19 @@ generate_simulation_plastic <- function(embedding_mat,
   
   n <- length(cell_contribution_truth)
   K <- num_lineages
-  med_val <- stats::median(cell_contribution_truth)
+  mean_val <- mean(cell_contribution_truth)
   sd_val <- stats::sd(cell_contribution_truth)
   
   # compute rho if it's NA
   if(is.na(rho)){
-    rho <- (max(abs(cell_contribution_truth - med_val))/sd_val)/2
+    rho <- (max(abs(cell_contribution_truth - mean_val))/sd_val)/2
   }
   
   lineage_sd_vec <- seq(sd_val*rho, sd_val/rho, length.out = K)
   names(lineage_sd_vec) <- paste0("lineage:", 1:K) 
   
   # reorder the cell contribution
-  idx <- .reorder_by_contribution(abs(cell_contribution_truth - med_val))
+  idx <- .reorder_by_contribution(abs(cell_contribution_truth - mean_val))
   cell_contribution_truth <- cell_contribution_truth[idx]
   
   prob_mat <- matrix(0, nrow = n, ncol = K)
@@ -120,7 +120,7 @@ generate_simulation_plastic <- function(embedding_mat,
     
     prob_mat[,lineage] <- stats::dnorm(
       x = cell_contribution_truth,
-      mean = med_val,
+      mean = mean_val,
       sd = lineage_sd_vec[lineage],
       log = TRUE
     )
