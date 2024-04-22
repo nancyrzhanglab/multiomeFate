@@ -60,6 +60,8 @@ generate_simulation_plastic <- function(embedding_mat,
   if (verbose > 0) 
     print("Step 3: Assigning cells to lineages")
   lineage_assignment <- .assign_plastic_lineages(prob_mat)
+  # reorder the lineage assignment
+  lineage_assignment <- lineage_assignment[names(cell_contribution_truth)]
   
   lineage_future_size <- sapply(levels(lineage_assignment), 
                                 function(lev) {
