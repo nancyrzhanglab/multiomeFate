@@ -56,7 +56,7 @@ generate_simulation_plastic <- function(embedding_mat,
     verbose = verbose - 1
   )
   prob_mat <- tmp$prob_mat
-  
+
   if (verbose > 0) 
     print("Step 3: Assigning cells to lineages")
   lineage_assignment <- .assign_plastic_lineages(prob_mat)
@@ -69,7 +69,7 @@ generate_simulation_plastic <- function(embedding_mat,
                                   round(sum(cell_contribution_random[idx]))
                                 })
   names(lineage_future_size) <- levels(lineage_assignment)
-  
+ 
   if (verbose > 0) 
     print("Step 4: Outputting")
   return(
@@ -99,7 +99,7 @@ generate_simulation_plastic <- function(embedding_mat,
   K <- num_lineages
   mean_val <- mean(cell_contribution_truth)
   sd_val <- stats::sd(cell_contribution_truth)
-  
+ 
   # compute rho if it's NA
   if(is.na(rho)){
     rho <- (max(abs(cell_contribution_truth - mean_val))/sd_val)/2
@@ -111,7 +111,7 @@ generate_simulation_plastic <- function(embedding_mat,
   # reorder the cell contribution
   idx <- .reorder_by_contribution(abs(cell_contribution_truth - mean_val))
   cell_contribution_truth <- cell_contribution_truth[idx]
-  
+ 
   prob_mat <- matrix(0, nrow = n, ncol = K)
   rownames(prob_mat) <- names(cell_contribution_truth)
   colnames(prob_mat) <- names(lineage_sd_vec)
@@ -164,6 +164,10 @@ generate_simulation_plastic <- function(embedding_mat,
     prob_vec <- prob_mat[i,]
     if(all(prob_vec <= 1e-6)) 
       prob_vec <- rep(1/ncol(prob_mat), length = ncol(prob_mat))
+    
+    ## [[ruh-oh -- testing]]
+    # prob_vec <- prob_vec^5
+    # prob_vec <- prob_vec/sum(prob_vec)
     
     lineage <- colnames(prob_mat)[sample(1:ncol(prob_mat), size = 1, prob = prob_vec)]
     current_size[lineage] <- current_size[lineage] + 1
