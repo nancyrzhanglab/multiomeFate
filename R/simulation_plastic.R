@@ -4,7 +4,8 @@ generate_simulation_plastic <- function(embedding_mat,
                                         embedding_coefficient_vec = rep(1, ncol(embedding_mat)),
                                         fatefeatures_coefficient_vec = NULL,
                                         fatefeatures_mat = NULL, 
-                                        lineage_spread = NA, # NA or a value 1 or larger. "1" means no spread
+                                        lineage_mean_spread = 1, # NA or a value 1 or larger. "1" means no spread
+                                        lineage_sd_spread = NA, # NA or a value 1 or larger. "1" means no spread
                                         num_lineages = 10, 
                                         tol = 1e-06, 
                                         verbose = 0) 
@@ -20,7 +21,8 @@ generate_simulation_plastic <- function(embedding_mat,
     d2 <- 0
   }
   
-  rho <- lineage_spread
+  gamma <- lineage_mean_spread
+  rho <- lineage_sd_spread
   if (length(rownames(embedding_mat)) == 0){
     rownames(embedding_mat) <- paste0("cell:", 1:n)
   }
@@ -52,11 +54,12 @@ generate_simulation_plastic <- function(embedding_mat,
   tmp <- .compute_plastic_probabilities(
     cell_contribution_truth = cell_contribution_truth,
     num_lineages = num_lineages,
+    gamma = gamma,
     rho = rho,
     verbose = verbose - 1
   )
   prob_mat <- tmp$prob_mat
-
+  
   if (verbose > 0) 
     print("Step 3: Assigning cells to lineages")
   lineage_assignment <- .assign_plastic_lineages(prob_mat)
@@ -69,7 +72,11 @@ generate_simulation_plastic <- function(embedding_mat,
                                   round(sum(cell_contribution_random[idx]))
                                 })
   names(lineage_future_size) <- levels(lineage_assignment)
- 
+  
+  summary_mat <- .compute_summary_lineages(cell_fate_potential_truth = log10(cell_contribution_truth),
+                                           lineage_assignment = lineage_assignment)
+  summary_mat
+  
   if (verbose > 0) 
     print("Step 4: Outputting")
   return(
@@ -81,7 +88,9 @@ generate_simulation_plastic <- function(embedding_mat,
                    fatefeatures_mat = fatefeatures_mat,
                    lineage_assignment = lineage_assignment, 
                    lineage_future_size = lineage_future_size,
-                   prob_mat = prob_mat),
+                   lineage_sd_spread = rho,
+                   prob_mat = prob_mat,
+                   summary_mat = summary_mat),
               class = "multiomeFate_simulation_plastic")
   )
 }
@@ -91,27 +100,46 @@ generate_simulation_plastic <- function(embedding_mat,
 .compute_plastic_probabilities <- function(
     cell_contribution_truth,
     num_lineages,
+    gamma,
     rho,
     verbose = 0
 ){
+  
+  if(is.na(rho) & is.na(gamma)){
+    warning("lineage_mean_spread and lineage_sd_spread are both NA. Be aware the method will set lineages have large means AND large variances, and lineages to have small means and small variances.")
+  }
+  if(!is.na(gamma) && abs(gamma - 1) > 1e-4){
+    warning("lineage_mean_spread can only handle NA or 1. Defaulting to 1")
+  }
   
   n <- length(cell_contribution_truth)
   K <- num_lineages
   mean_val <- mean(cell_contribution_truth)
   sd_val <- stats::sd(cell_contribution_truth)
- 
+  
   # compute rho if it's NA
   if(is.na(rho)){
     rho <- (max(abs(cell_contribution_truth - mean_val))/sd_val)/2
   }
-  
   lineage_sd_vec <- seq(sd_val*rho, sd_val/rho, length.out = K)
-  names(lineage_sd_vec) <- paste0("lineage:", 1:K) 
+  
+  # compute gamma if it's NA
+  if(is.na(gamma)){
+    kmean_res <- stats::kmeans(x = cell_contribution_truth, 
+                               centers = num_lineages)
+    lineage_mean_vec <- sort(as.numeric(kmean_res$centers), decreasing = TRUE)
+    
+  } else {
+    lineage_mean_vec <- rep(mean_val, length = num_lineages)
+  }
+  
+  names(lineage_mean_vec) <- paste0("lineage:", 1:K) 
+  names(lineage_sd_vec) <- names(lineage_mean_vec)
   
   # reorder the cell contribution
   idx <- .reorder_by_contribution(abs(cell_contribution_truth - mean_val))
   cell_contribution_truth <- cell_contribution_truth[idx]
- 
+  
   prob_mat <- matrix(0, nrow = n, ncol = K)
   rownames(prob_mat) <- names(cell_contribution_truth)
   colnames(prob_mat) <- names(lineage_sd_vec)
@@ -122,7 +150,7 @@ generate_simulation_plastic <- function(embedding_mat,
     
     prob_mat[,lineage] <- stats::dnorm(
       x = cell_contribution_truth,
-      mean = mean_val,
+      mean = lineage_mean_vec[lineage],
       sd = lineage_sd_vec[lineage],
       log = TRUE
     )
@@ -165,10 +193,6 @@ generate_simulation_plastic <- function(embedding_mat,
     if(all(prob_vec <= 1e-6)) 
       prob_vec <- rep(1/ncol(prob_mat), length = ncol(prob_mat))
     
-    ## [[ruh-oh -- testing]]
-    # prob_vec <- prob_vec^5
-    # prob_vec <- prob_vec/sum(prob_vec)
-    
     lineage <- colnames(prob_mat)[sample(1:ncol(prob_mat), size = 1, prob = prob_vec)]
     current_size[lineage] <- current_size[lineage] + 1
     lineage_assignment[i] <- lineage
@@ -183,4 +207,26 @@ generate_simulation_plastic <- function(embedding_mat,
   names(lineage_assignment) <- rownames(prob_mat)
   
   return(lineage_assignment)
+}
+
+.compute_summary_lineages <- function(cell_fate_potential_truth,
+                                      lineage_assignment){
+  mean_val <- sapply(levels(lineage_assignment), function(lineage){
+    mean(cell_fate_potential_truth[lineage_assignment == lineage])
+  })
+  med_val <- sapply(levels(lineage_assignment), function(lineage){
+    stats::median(cell_fate_potential_truth[lineage_assignment == lineage])
+  })
+  sd_val <- sapply(levels(lineage_assignment), function(lineage){
+    stats::sd(cell_fate_potential_truth[lineage_assignment == lineage])
+  })
+  range_val <- sapply(levels(lineage_assignment), function(lineage){
+    diff(range(cell_fate_potential_truth[lineage_assignment == lineage]))
+  })
+  
+  mat <- rbind(mean_val, med_val, sd_val, range_val)
+  rownames(mat) <- c("mean", "median", "sd", "range")
+  colnames(mat) <- levels(lineage_assignment)
+  
+  return(mat)
 }

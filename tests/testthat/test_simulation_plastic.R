@@ -32,6 +32,7 @@ test_that(".compute_plastic_probabilities works", {
   res <- .compute_plastic_probabilities(
     cell_contribution_truth = cell_contribution_truth,
     num_lineages = num_lineages,
+    gamma = 1,
     rho = NA
   )
   
@@ -55,6 +56,7 @@ test_that(".assign_plastic_lineages works", {
   tmp <- .compute_plastic_probabilities(
     cell_contribution_truth = cell_contribution_truth,
     num_lineages = num_lineages,
+    gamma = 1,
     rho = NA
   )
   prob_mat <- tmp$prob_mat
