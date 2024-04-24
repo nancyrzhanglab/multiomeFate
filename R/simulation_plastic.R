@@ -58,7 +58,7 @@ generate_simulation_plastic <- function(embedding_mat,
     rho = rho,
     verbose = verbose - 1
   )
-  prob_mat <- tmp$prob_mat
+  prob_mat <- tmp$prob_mat; rho <- tmp$rho
   
   if (verbose > 0) 
     print("Step 3: Assigning cells to lineages")
@@ -74,7 +74,8 @@ generate_simulation_plastic <- function(embedding_mat,
   names(lineage_future_size) <- levels(lineage_assignment)
   
   summary_mat <- .compute_summary_lineages(cell_fate_potential_truth = log10(cell_contribution_truth),
-                                           lineage_assignment = lineage_assignment)
+                                           lineage_assignment = lineage_assignment,
+                                           lineage_future_size = lineage_future_size)
   summary_mat
   
   if (verbose > 0) 
@@ -125,8 +126,8 @@ generate_simulation_plastic <- function(embedding_mat,
   
   # compute gamma if it's NA
   if(is.na(gamma)){
-    kmean_res <- stats::kmeans(x = cell_contribution_truth, 
-                               centers = num_lineages)
+    kmean_res <- suppressWarnings(stats::kmeans(x = cell_contribution_truth, 
+                                                centers = num_lineages))
     lineage_mean_vec <- sort(as.numeric(kmean_res$centers), decreasing = TRUE)
     
   } else {
@@ -162,7 +163,8 @@ generate_simulation_plastic <- function(embedding_mat,
   
   return(
     list(lineage_sd_vec = lineage_sd_vec,
-         prob_mat = prob_mat)
+         prob_mat = prob_mat,
+         rho = rho)
   )
 }
 
@@ -210,7 +212,8 @@ generate_simulation_plastic <- function(embedding_mat,
 }
 
 .compute_summary_lineages <- function(cell_fate_potential_truth,
-                                      lineage_assignment){
+                                      lineage_assignment,
+                                      lineage_future_size){
   mean_val <- sapply(levels(lineage_assignment), function(lineage){
     mean(cell_fate_potential_truth[lineage_assignment == lineage])
   })
@@ -224,8 +227,10 @@ generate_simulation_plastic <- function(embedding_mat,
     diff(range(cell_fate_potential_truth[lineage_assignment == lineage]))
   })
   
-  mat <- rbind(mean_val, med_val, sd_val, range_val)
-  rownames(mat) <- c("mean", "median", "sd", "range")
+  lineage_future_size <- lineage_future_size[levels(lineage_assignment)]
+  
+  mat <- rbind(mean_val, med_val, sd_val, range_val, lineage_future_size)
+  rownames(mat) <- c("mean", "median", "sd", "range", "future_size")
   colnames(mat) <- levels(lineage_assignment)
   
   return(mat)

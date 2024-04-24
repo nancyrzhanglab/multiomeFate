@@ -83,9 +83,45 @@ test_that("generate_simulation_plastic works", {
   
   expect_true(is.list(res))
   expect_true(all(names(res$cell_fate_potential) == names(res$lineage_assignment)))
-  
-  
-  # plot(res$cell_fate_potential, res$lineage_future_size[res$lineage_assignment])
-  # mean_val = sapply(levels(res$lineage_assignment), function(lineage){mean(res$cell_fate_potential[res$lineage_assignment == lineage])}); plot(mean_val, res$lineage_future_size)
-  # sd_val = sapply(levels(res$lineage_assignment), function(lineage){sd(res$cell_fate_potential[res$lineage_assignment == lineage])}); plot(sd_val, res$lineage_future_size)
 })
+
+test_that("generate_simulation_plastic generates lineages with different variances", {
+  set.seed(10)
+  n <- 1000; d <- 5
+  K <- 5
+  embedding_mat <- matrix(stats::rt(n*d, df = 3), nrow = n, ncol = d)
+  
+  res1 <- generate_simulation_plastic(embedding_mat, 
+                                      num_lineages = 50)
+  sd1 <- sd(res1$summary_mat["sd",])
+  
+  res2 <- generate_simulation_plastic(embedding_mat, 
+                                      num_lineages = 50,
+                                      lineage_sd_spread = 1)
+  sd2 <- sd(res2$summary_mat["sd",])
+  
+  expect_true(sd1 > sd2)
+})
+
+
+test_that("generate_simulation_plastic generates lineages with different means", {
+  set.seed(10)
+  n <- 1000; d <- 5
+  K <- 5
+  embedding_mat <- matrix(stats::rt(n*d, df = 3), nrow = n, ncol = d)
+  
+  res1 <- generate_simulation_plastic(embedding_mat, 
+                                      num_lineages = 20,
+                                      lineage_mean_spread = NA, 
+                                      lineage_sd_spread = 1)
+  sd1 <- sd(res1$summary_mat["mean",])
+  
+  res2 <- generate_simulation_plastic(embedding_mat, 
+                                      num_lineages = 20,
+                                      lineage_mean_spread = 1, 
+                                      lineage_sd_spread = 1)
+  sd2 <- sd(res2$summary_mat["mean",])
+  
+  expect_true(sd1 > sd2)
+})
+
