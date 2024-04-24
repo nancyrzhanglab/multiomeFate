@@ -25,7 +25,7 @@ test_that(".reorder_by_contribution works", {
 test_that(".compute_plastic_probabilities works", {
   set.seed(10)
   n <- 101
-  cell_contribution_truth <- stats::rnorm(n)
+  cell_contribution_truth <- abs(stats::rnorm(n))
   names(cell_contribution_truth) <- paste0("cell:", 1:n)
   num_lineages <- 10
   
@@ -49,7 +49,7 @@ test_that(".compute_plastic_probabilities works", {
 test_that(".assign_plastic_lineages works", {
   set.seed(10)
   n <- 101
-  cell_contribution_truth <- stats::rnorm(n)
+  cell_contribution_truth <- abs(stats::rnorm(n))
   names(cell_contribution_truth) <- paste0("cell:", 1:n)
   num_lineages <- 10
   
@@ -61,7 +61,8 @@ test_that(".assign_plastic_lineages works", {
   )
   prob_mat <- tmp$prob_mat
   
-  lineage_assignment <- .assign_plastic_lineages(prob_mat)
+  lineage_assignment <- .assign_plastic_lineages(enforce_equal_size = TRUE,
+                                                 prob_mat = prob_mat)
   
   expect_true(all(!is.na(lineage_assignment)))
   expect_true(length(lineage_assignment) == n)

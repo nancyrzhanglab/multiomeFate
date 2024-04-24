@@ -5,7 +5,7 @@ generate_simulation_plastic <- function(embedding_mat,
                                         fatefeatures_coefficient_vec = NULL,
                                         fatefeatures_mat = NULL, 
                                         lineage_mean_spread = 1, # NA or a value 1 or larger. "1" means no spread
-                                        lineage_sd_spread = NA, # NA or a value 1 or larger. "1" means no spread
+                                        lineage_sd_spread = NA, # NA or a numeric. Lineage 1 is lineage_sd_spread, and Lineage num_lineage is 1/lineage_sd_spread.
                                         num_lineages = 10, 
                                         tol = 1e-06, 
                                         verbose = 0) 
@@ -27,8 +27,7 @@ generate_simulation_plastic <- function(embedding_mat,
     rownames(embedding_mat) <- paste0("cell:", 1:n)
   }
   
-  stopifnot(is.na(rho) || rho >= 1, 
-            d > 1, 
+  stopifnot(d > 1, 
             length(embedding_coefficient_vec) == d)
   
   if (verbose > 0) 
@@ -62,7 +61,9 @@ generate_simulation_plastic <- function(embedding_mat,
   
   if (verbose > 0) 
     print("Step 3: Assigning cells to lineages")
-  lineage_assignment <- .assign_plastic_lineages(prob_mat)
+  enforce_equal_size <- !is.na(gamma)
+  lineage_assignment <- .assign_plastic_lineages(enforce_equal_size = enforce_equal_size,
+                                                 prob_mat = prob_mat)
   # reorder the lineage assignment
   lineage_assignment <- lineage_assignment[names(cell_contribution_truth)]
   
@@ -106,6 +107,8 @@ generate_simulation_plastic <- function(embedding_mat,
     verbose = 0
 ){
   
+  stopifnot(all(cell_contribution_truth > 0))
+  
   if(is.na(rho) & is.na(gamma)){
     warning("lineage_mean_spread and lineage_sd_spread are both NA. Be aware the method will set lineages have large means AND large variances, and lineages to have small means and small variances.")
   }
@@ -113,10 +116,22 @@ generate_simulation_plastic <- function(embedding_mat,
     warning("lineage_mean_spread can only handle NA or 1. Defaulting to 1")
   }
   
+  cell_contribution_truth <- log(cell_contribution_truth)
   n <- length(cell_contribution_truth)
   K <- num_lineages
   mean_val <- mean(cell_contribution_truth)
   sd_val <- stats::sd(cell_contribution_truth)
+
+  # compute gamma if it's NA
+  if(is.na(gamma)){
+    # kmean_res <- suppressWarnings(stats::kmeans(x = cell_contribution_truth, 
+    #                                             centers = num_lineages))
+    # lineage_mean_vec <- sort(as.numeric(kmean_res$centers), decreasing = TRUE)
+    lineage_mean_vec <- stats::quantile(cell_contribution_truth, probs = seq(1, 0, length.out = num_lineages))
+    sd_val <- sd_val/4
+  } else {
+    lineage_mean_vec <- rep(mean_val, length = num_lineages)
+  }
   
   # compute rho if it's NA
   if(is.na(rho)){
@@ -124,18 +139,17 @@ generate_simulation_plastic <- function(embedding_mat,
   }
   lineage_sd_vec <- seq(sd_val*rho, sd_val/rho, length.out = K)
   
-  # compute gamma if it's NA
-  if(is.na(gamma)){
-    kmean_res <- suppressWarnings(stats::kmeans(x = cell_contribution_truth, 
-                                                centers = num_lineages))
-    lineage_mean_vec <- sort(as.numeric(kmean_res$centers), decreasing = TRUE)
-    
-  } else {
-    lineage_mean_vec <- rep(mean_val, length = num_lineages)
-  }
   
   names(lineage_mean_vec) <- paste0("lineage:", 1:K) 
   names(lineage_sd_vec) <- names(lineage_mean_vec)
+  
+  if(verbose > 1){
+    print("Lineage means: ")
+    print(round(lineage_mean_vec,2))
+    print("Lineage std's: ")
+    print(lineage_sd_vec)
+  }
+
   
   # reorder the cell contribution
   idx <- .reorder_by_contribution(abs(cell_contribution_truth - mean_val))
@@ -179,7 +193,8 @@ generate_simulation_plastic <- function(embedding_mat,
   return(vec)
 }
 
-.assign_plastic_lineages <- function(prob_mat){
+.assign_plastic_lineages <- function(enforce_equal_size,
+                                     prob_mat){
   n <- nrow(prob_mat)
   K <- ncol(prob_mat)
   
@@ -199,7 +214,7 @@ generate_simulation_plastic <- function(embedding_mat,
     current_size[lineage] <- current_size[lineage] + 1
     lineage_assignment[i] <- lineage
     
-    if(current_size[lineage] >= maximum_lineage_size){
+    if(enforce_equal_size & current_size[lineage] >= maximum_lineage_size){
       prob_mat <- prob_mat[,-which(colnames(prob_mat) == lineage), drop = FALSE]
     }
   }
@@ -214,6 +229,9 @@ generate_simulation_plastic <- function(embedding_mat,
 .compute_summary_lineages <- function(cell_fate_potential_truth,
                                       lineage_assignment,
                                       lineage_future_size){
+  stopifnot(all(names(cell_fate_potential_truth) == names(lineage_assignment)))
+  stopifnot(all(sort(unique(lineage_assignment)) == names(lineage_future_size)))
+  
   mean_val <- sapply(levels(lineage_assignment), function(lineage){
     mean(cell_fate_potential_truth[lineage_assignment == lineage])
   })
