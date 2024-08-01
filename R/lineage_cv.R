@@ -86,5 +86,6 @@ lineage_cv <- function(cell_features,
     }
   }
   
-  cv_fit_list
+  structure(cv_fit_list,
+            class = "lineage_cv")
 }

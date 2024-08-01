@@ -2,8 +2,8 @@ lineage_imputation_sequence <- function(cell_features,
                                         cell_lineage,
                                         lineage_future_count,
                                         lambda_initial = NA,
-                                        lambda_max = 101,
-                                        lambda_min = 101,
+                                        lambda_max = 101, # only for controlling the initial lambda
+                                        lambda_min = 101, # only for controlling the initial lambda
                                         lambda_sequence_length = 50,
                                         multipler = 1e4,
                                         verbose = 1){

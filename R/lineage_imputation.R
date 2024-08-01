@@ -134,8 +134,9 @@ lineage_imputation <- function(cell_features,
     print(stats::quantile(obj_vec))
   }
   
-  list(fit =  res_list[[which.min(obj_vec)]],
-       res_list = res_list)
+  structure(list(fit =  res_list[[which.min(obj_vec)]],
+                 res_list = res_list),
+            class = "lineage_imputation")
 }
 
 evaluate_loglikelihood <- function(cell_features,
@@ -189,7 +190,7 @@ evaluate_loglikelihood <- function(cell_features,
     which(cell_lineage == lineage)
   })
   names(cell_lineage_idx_list) <- uniq_lineages
-
+  
   
   # add intercept to cell_features
   if(!"Intercept" %in% colnames(cell_features)){
