@@ -7,9 +7,12 @@ plot_anova <- function(seurat_object,
                        bool_mark_median = TRUE,
                        min_lineage_size = 2,
                        num_lineages = 20,
-                       ylab = ""){
+                       ylab = "",
+                       ylim = NA){
   assigned_lineage <- seurat_object@meta.data[,assigned_lineage_variable]
+  names(assigned_lineage) <- Seurat::Cells(seurat_object)
   time_celltype <- seurat_object@meta.data[,time_celltype_variable]
+  names(time_celltype) <- Seurat::Cells(seurat_object)
   stopifnot(day_later %in% time_celltype)
   
   lineage_vec <- assigned_lineage[names(cell_imputed_score)]
@@ -50,6 +53,10 @@ plot_anova <- function(seurat_object,
   plot1 <- plot1 + ggplot2::scale_x_discrete(limits = c(lineage_names, "All"),
                                        guide = ggplot2::guide_axis(angle = 45))
   plot1 <- plot1 + ggplot2::ylab(ylab)
+  
+  if(!all(is.na(ylim))){
+    plot1 <- plot1 + ggplot2::ylim(ylim[1], ylim[2])
+  }
   
   if(bool_mark_mean) 
     plot1 <- plot1 + ggplot2::stat_summary(fun=mean, geom="point", shape=16, size=3, color="red")

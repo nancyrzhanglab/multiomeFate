@@ -1,11 +1,16 @@
 plot_cellGrowthUmap <- function(seurat_object,
-                                cell_imputed_variable,
+                                cell_imputed_score,
                                 colors_use = list("red", "lightgray", "blue"),
                                 na_color = "bisque",
                                 reduction = "umap",
                                 title = ""){
-  cell_imputed_score <- seurat_object@meta.data[,cell_imputed_variable]
-  max_val <- stats::quantile(cell_imputed_score, 
+  
+  cell_imputed_score_full <- rep(NA, ncol(seurat_object))
+  names(cell_imputed_score_full) <- colnames(seurat_object)
+  cell_imputed_score_full[names(cell_imputed_score)] <- cell_imputed_score
+  seurat_object$cell_imputed_score <- cell_imputed_score_full
+  
+  max_val <- stats::quantile(cell_imputed_score_full, 
                              probs = 0.99, 
                              na.rm = TRUE)
   cell_imputed_score_thres <- pmin(cell_imputed_score_full, max_val)
