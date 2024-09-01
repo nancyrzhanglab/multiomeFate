@@ -23,6 +23,7 @@ data_loader <- function(
     file_rna_dimred = "Writeup10a_data_rna_dimred.RData",
     file_saver = "Writeup10a_data_saver.RData",
     file_wnn = "Writeup10a_data_wnn.RData",
+    remove_unassigned_cells = TRUE,
     verbose = 1
 ){
   possible_assay_vec <- c("atac", "chromvar", "lineage", "rna", "saver")
@@ -136,6 +137,16 @@ data_loader <- function(
   if(length(assay_vec) > 0){
     Seurat::DefaultAssay(all_data) <- assay_vec[1]
     all_data[["Empty"]] <- NULL
+  }
+  
+  # remove cells with no lineage
+  if(remove_unassigned_cells) {
+    print("Removing cells with no assigned lineage")
+    all_data$keep <- !is.na(all_data$assigned_lineage)
+    if(any(!all_data$keep)){
+      print(paste0("There are ", length(which(all_data$keep)), " cells being removed"))
+      all_data <- subset(all_data, keep == TRUE)
+    }
   }
   
   return(all_data)
