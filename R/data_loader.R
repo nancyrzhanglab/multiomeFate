@@ -181,7 +181,7 @@ data_loader <- function(
     print("Removing cells with no assigned lineage")
     all_data$keep <- !is.na(all_data$assigned_lineage)
     if(any(!all_data$keep)){
-      print(paste0("There are ", length(which(all_data$keep)), " cells being removed"))
+      print(paste0("There are ", length(which(!all_data$keep)), " cells being removed"))
       all_data <- subset(all_data, keep == TRUE)
     }
   }
