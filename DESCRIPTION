@@ -9,10 +9,14 @@ License: MIT +file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
-    GenomicRanges,
     MASS,
     Matrix,
-    Seurat
+    Seurat,
+    cowplot,
+    ggplot2,
+    ggrepel,
+    ggtern,
+    scCustomize
 Suggests:
     testthat
 RoxygenNote: 7.1.1

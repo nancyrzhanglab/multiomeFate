@@ -1,3 +1,29 @@
+#' Data loader designed for the paper 
+#' 
+#' Even if \code{remove_unassigned_cells} is \code{FALSE}, all cells have a posterior of a lineage above 0.5
+#' The reason some cells do not have a lineage is because during the calculations,
+#' the posterior of a lineage above 0.5 wasn't large compared to the second-highest-posterior lineage.
+#'
+#' @param which_files A vector of strings denoting which things you want to load in. 
+#' The choices are among: 
+#' "atac", "chromvar", "lineage", "rna", "saver", 
+#' "fasttopics", "peakvi", "rna_dimred", "wnn".
+#' @param folder_path Folder for all the preprocessed objects. Do not change.
+#' @param file_atac File name for the ATAC counts. Do not change.
+#' @param file_chromvar Vector of file name for the chromVar analysis on each treatment-timepoint (7 of them). Do not change.
+#' @param file_empty File name for the base file. Do not change.
+#' @param file_fasttopics Vector of file name for the fastTopic analysis on each treatment arms and their UMAPs (3 of them). Do not change.
+#' @param file_lineage File name for the Lineage gRNA counts. Do not change.
+#' @param file_peakvi Vector of file name for the peakVI analysis on each treatment arms and their UMAPs (4 of them). Do not change.
+#' @param file_rna File name for the RNA counts. Do not change.
+#' @param file_rna_dimred File name for the PCA and UMAP on the RNA counts. Do not change.
+#' @param file_saver File name for the SAVER analysis on the RNA counts. Do not change.
+#' @param file_wnn File name for the WNN analysis. Do not change.
+#' @param remove_unassigned_cells boolean, on whether to include the cells that do not have an assigned lineage
+#' @param verbose positive integer
+#'
+#' @return a Seurat object
+#' @export
 data_loader <- function(
     which_files = c("rna", "atac", "lineage"),
     folder_path = "~/project/Multiome_fate/out/kevin/Writeup10a/",
@@ -14,7 +40,6 @@ data_loader <- function(
                         COCL2 = "Writeup10a_data_fasttopic_COCL2.RData",
                         DABTRAM = "Writeup10a_data_fasttopic_DABTRAM.RData"),
     file_lineage = "Writeup10a_data_lineage.RData",
-    file_metadata = "Writeup10a_data_metadata.RData",
     file_peakvi = c(All = "Writeup10a_data_peakVI_All.RData",
                     CIS = "Writeup10a_data_peakVI_CIS.RData",
                     COCL2 = "Writeup10a_data_peakVI_COCL2.RData",
