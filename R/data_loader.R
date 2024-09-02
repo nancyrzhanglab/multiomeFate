@@ -26,7 +26,7 @@
 #' @export
 data_loader <- function(
     which_files = c("rna", "atac", "lineage"),
-    folder_path = "~/project/Multiome_fate/out/kevin/Writeup10a/",
+    folder_path = "~/nzhanglab/project/Multiome_fate/out/kevin/Writeup10a/",
     file_atac = "Writeup10a_data_atac.RData",
     file_chromvar = c(day0 = "Writeup10a_data_chromVar_day0.RData",
                       day10_CIS = "Writeup10a_data_chromVar_day10_CIS.RData",
