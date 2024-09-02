@@ -55,6 +55,18 @@ data_loader <- function(
   possible_dimred_vec <- c("fasttopics", "peakvi", "rna_dimred", "wnn")
   stopifnot(all(which_files %in% c(possible_assay_vec, possible_dimred_vec)))
   
+  # to appease R's check
+  all_data_atac <- NULL
+  all_data_rna <- NULL
+  all_data_saver <- NULL
+  all_data_saver_pca <- NULL
+  all_data_saver_umap <- NULL
+  all_data_lineage <- NULL
+  all_data_pca <- NULL
+  all_data_umap <- NULL
+  all_data_wnn <- NULL
+  keep <- NULL
+  
   # start by loading the empty 
   load(paste0(folder_path, file_empty))
   
@@ -91,11 +103,11 @@ data_loader <- function(
       print("Loading Chromvar")
       stopifnot(length(names(file_chromvar)) > 0)
       
-      for(kk in 1:length(files_chromvar)){
-        dataset <- names(files_chromvar)[kk]
+      for(kk in 1:length(file_chromvar)){
+        dataset <- names(file_chromvar)[kk]
         print(paste0("Loading Chromvar: ", dataset))
         
-        load(paste0(folder_path, files_chromvar[kk]))
+        load(paste0(folder_path, file_chromvar[kk]))
         all_data[[paste0("chromVar.", dataset)]] <- eval(parse(text = paste0("all_data_chromVar_", dataset)))
       }
     }
