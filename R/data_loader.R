@@ -13,6 +13,7 @@
 #' @param file_chromvar Vector of file name for the chromVar analysis on each treatment-timepoint (7 of them). Do not change.
 #' @param file_empty File name for the base file. Do not change.
 #' @param file_fasttopics Vector of file name for the fastTopic analysis on each treatment arms and their UMAPs (3 of them). Do not change.
+#' @param file_fatepotential File name for the fate potential fits. Do not change.
 #' @param file_lineage File name for the Lineage gRNA counts. Do not change.
 #' @param file_peakvi Vector of file name for the peakVI analysis on each treatment arms and their UMAPs (4 of them). Do not change.
 #' @param file_rna File name for the RNA counts. Do not change.
@@ -39,6 +40,7 @@ data_loader <- function(
     file_fasttopics = c(CIS = "Writeup10a_data_fasttopic_CIS.RData",
                         COCL2 = "Writeup10a_data_fasttopic_COCL2.RData",
                         DABTRAM = "Writeup10a_data_fasttopic_DABTRAM.RData"),
+    file_fatepotential = "Writeup10a_data_fatepotential.RData",
     file_lineage = "Writeup10a_data_lineage.RData",
     file_peakvi = c(All = "Writeup10a_data_peakVI_All.RData",
                     CIS = "Writeup10a_data_peakVI_CIS.RData",
@@ -53,7 +55,8 @@ data_loader <- function(
 ){
   possible_assay_vec <- c("atac", "chromvar", "lineage", "rna", "saver")
   possible_dimred_vec <- c("fasttopics", "peakvi", "rna_dimred", "wnn")
-  stopifnot(all(which_files %in% c(possible_assay_vec, possible_dimred_vec)))
+  possible_misc <- c("fatepotential")
+  stopifnot(all(which_files %in% c(possible_assay_vec, possible_dimred_vec, possible_misc)))
   
   # to appease R's check
   all_data_atac <- NULL
@@ -65,6 +68,7 @@ data_loader <- function(
   all_data_pca <- NULL
   all_data_umap <- NULL
   all_data_wnn <- NULL
+  all_data_fatepotential <- NULL
   keep <- NULL
   
   # start by loading the empty 
@@ -158,6 +162,18 @@ data_loader <- function(
     }
   }
   
+  # put in all the miscs
+  possible_misc <- intersect(possible_misc, which_files)
+  for(misc in possible_misc){
+    if(misc == "fatepotential"){
+      print("Loading fate potentials")
+
+      load(paste0(folder_path, file_fatepotential))
+      all_data@misc <- all_data_fatepotential
+    }
+  }
+  
+  
   # put in the colors
   dataset_colors <- c(day0 = "gray",
                       day10_CIS = "#FBD08C",
@@ -167,6 +183,10 @@ data_loader <- function(
                       week5_COCL2 = "#0F8241",
                       week5_DABTRAM = "#623594")
   all_data@misc$dataset_colors <- dataset_colors
+  all_data@misc$fatepotential_colors <- c("red", "bisque", "blue")
+  all_data@misc$fatepotential_na_colors <- "gray90"
+  all_data@misc$modality_colors <- c(RNA = "#FF7F7F",
+                                     chromVar = "#4682B4")
   
   # remove the empty
   assay_vec <- Seurat::Assays(all_data)
