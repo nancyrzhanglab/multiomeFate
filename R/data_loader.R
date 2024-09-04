@@ -19,6 +19,7 @@
 #' @param file_rna File name for the RNA counts. Do not change.
 #' @param file_rna_dimred File name for the PCA and UMAP on the RNA counts. Do not change.
 #' @param file_saver File name for the SAVER analysis on the RNA counts. Do not change.
+#' @param file_saver_treatment File name for the SAVER treatment-specific PCA. Do not change.
 #' @param file_wnn File name for the WNN analysis. Do not change.
 #' @param remove_unassigned_cells boolean, on whether to include the cells that do not have an assigned lineage
 #' @param verbose positive integer
@@ -49,12 +50,15 @@ data_loader <- function(
     file_rna = "Writeup10a_data_rna.RData",
     file_rna_dimred = "Writeup10a_data_rna_dimred.RData",
     file_saver = "Writeup10a_data_saver.RData",
+    file_saver_treatment = c(CIS = "Writeup10a_data_saver_CIS_pca.RData",
+                             COCL2 = "Writeup10a_data_saver_COCL2_pca.RData",
+                             DABTRAM = "Writeup10a_data_saver_DABTRAM_pca.RData"),
     file_wnn = "Writeup10a_data_wnn.RData",
     remove_unassigned_cells = TRUE,
     verbose = 1
 ){
   possible_assay_vec <- c("atac", "chromvar", "lineage", "rna", "saver")
-  possible_dimred_vec <- c("fasttopics", "peakvi", "rna_dimred", "wnn")
+  possible_dimred_vec <- c("fasttopics", "peakvi", "rna_dimred", "wnn", "saver_treatment")
   possible_misc <- c("fatepotential")
   stopifnot(all(which_files %in% c(possible_assay_vec, possible_dimred_vec, possible_misc)))
   
@@ -64,6 +68,9 @@ data_loader <- function(
   all_data_saver <- NULL
   all_data_saver_pca <- NULL
   all_data_saver_umap <- NULL
+  all_data_saver_cis_pca <- NULL
+  all_data_saver_cocl2_pca <- NULL
+  all_data_saver_dabtram_pca <- NULL
   all_data_lineage <- NULL
   all_data_pca <- NULL
   all_data_umap <- NULL
@@ -160,6 +167,19 @@ data_loader <- function(
         all_data[[paste0("ft.", treatment, ".umap")]] <- eval(parse(text = paste0("all_data_ft_", treatment, "_umap")))
       }
     }
+    
+    if(dimred == "saver_treatment"){
+      print("Loading Saver for treatment-specific PCAs")
+      stopifnot(length(names(file_saver_treatment)) > 0)
+      
+      for(kk in 1:length(file_saver_treatment)){
+        treatment <- names(file_saver_treatment)[kk]
+        print(paste0("Loading Saver PCA: ", treatment))
+        
+        load(paste0(folder_path, file_saver_treatment[kk]))
+        all_data[[paste0("Saver.", treatment, ".pca")]] <- eval(parse(text = paste0("all_data_saver_", treatment, "_pca")))
+      }
+    }
   }
   
   # put in all the miscs
@@ -167,7 +187,7 @@ data_loader <- function(
   for(misc in possible_misc){
     if(misc == "fatepotential"){
       print("Loading fate potentials")
-
+      
       load(paste0(folder_path, file_fatepotential))
       all_data@misc <- all_data_fatepotential
     }

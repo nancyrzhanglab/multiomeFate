@@ -27,6 +27,9 @@ data_loader(
   file_rna = "Writeup10a_data_rna.RData",
   file_rna_dimred = "Writeup10a_data_rna_dimred.RData",
   file_saver = "Writeup10a_data_saver.RData",
+  file_saver_treatment = c(CIS = "Writeup10a_data_saver_CIS_pca.RData", COCL2 =
+    "Writeup10a_data_saver_COCL2_pca.RData", DABTRAM =
+    "Writeup10a_data_saver_DABTRAM_pca.RData"),
   file_wnn = "Writeup10a_data_wnn.RData",
   remove_unassigned_cells = TRUE,
   verbose = 1
@@ -59,6 +62,8 @@ The choices are among:
 \item{file_rna_dimred}{File name for the PCA and UMAP on the RNA counts. Do not change.}
 
 \item{file_saver}{File name for the SAVER analysis on the RNA counts. Do not change.}
+
+\item{file_saver_treatment}{File name for the SAVER treatment-specific PCA. Do not change.}
 
 \item{file_wnn}{File name for the WNN analysis. Do not change.}
 
