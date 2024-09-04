@@ -1,6 +1,6 @@
 Package: multiomeFate
 Title: Useful functions for modeling cancer cells
-Version: 0.0.0.0087
+Version: 0.0.0.0088
 Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
 Description: A package to do multiome fate prediction. Currently under development.
 Depends:
@@ -20,4 +20,4 @@ Imports:
 Suggests:
     testthat,
     numDeriv
-RoxygenNote: 7.1.1
+RoxygenNote: 7.3.1
