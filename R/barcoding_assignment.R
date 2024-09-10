@@ -10,7 +10,7 @@ barcoding_posterior <- function(lin_mat,
   nlineages <- nrow(lin_mat)
   
   # to initialize the estimator, find the maximum count for each cell
-  if(verbose) print("Starting barcoding assignment")
+  if(verbose > 0) print("Starting barcoding assignment")
   cell_max_barcode_count <- apply(lin_mat, 2, max)
   lineage_maximizing <- lapply(1:nlineages, function(b){
     which(lin_mat[b,] == cell_max_barcode_count & lin_mat[b,] > 0)
@@ -88,7 +88,8 @@ barcode_clustering <- function(lin_mat,
   #  assigned to which "cluster"
   lineage_list <- vector("list", length = 0)
   uniq_lineage <- sort(unique(as.numeric(arr_idx)))
-  uniq_lineage <- cbind(uniq_lineage, rep(NA, length(uniq_lineage)))
+  uniq_lineage <- data.frame(Lineage = uniq_lineage, 
+                             Cluster = rep(NA, length(uniq_lineage)))
   lineage_name <- rownames(cor_mat)
   
   if(verbose > 0) print("Determining how to merge lineages")
@@ -98,13 +99,14 @@ barcode_clustering <- function(lin_mat,
     
     # find the rows in the uniq_lineage table on which we're currently working on
     # this represents a pair of lineages
-    lineage_idx <- which(uniq_lineage[,1] %in% arr_idx[i,])
+    lineage_idx <- which(uniq_lineage[,"Lineage"] %in% arr_idx[i,])
     
     if(length(lineage_list) == 0) {
       # if we have not yet merged any lineages, then this is straight-forward
       # create a new cluster
       lineage_list[[1]] <- sort(arr_idx[1,])
-      uniq_lineage[lineage_idx,2] <- 1
+      names(lineage_list)[[1]] <- "c1"
+      uniq_lineage[lineage_idx,"Cluster"] <- "c1"
       
     } else {
       # otherwise...
@@ -113,65 +115,104 @@ barcode_clustering <- function(lin_mat,
         # if this is a completely new cluster (i.e., all unassigned), also pretty straight-forward
         # create a new cluster
         
-        lineage_list[[length(lineage_list)+1]] <- sort(arr_idx[i,])
-        uniq_lineage[lineage_idx,2] <- length(lineage_list)
-        if(verbose > 2) print(paste0("There are currently ", length(lineage_list), " cluster of lineages"))
+        new_list <- list(sort(arr_idx[i,])); names(new_list) <- paste0("c", length(lineage_list)+1)
+        lineage_list <- c(lineage_list, new_list)
+        uniq_lineage[lineage_idx,"Cluster"] <- paste0("c", length(lineage_list))
+        if(verbose > 2 && length(lineage_list) %% 100 == 0) {
+          print(paste0("There are currently ", length(lineage_list), " cluster of lineages"))
+          
+          if(verbose > 3) {
+            print("The size of the lineages are: ")
+            print(quantile(sapply(lineage_list, length)))
+          }
+        }
         
       } else {
         # the difficulty is this step. The new lineage in question has a high
         #  correlation with an existing cluster of lineages
         
         # first find all the lineages in this existing cluster
-        val <- uniq_lineage[lineage_idx,2]
+        val <- uniq_lineage[lineage_idx,"Cluster"]
         val <- val[!is.na(val)]
         val <- unique(val)
         if(length(val) > 1) {
-          if(warn_merging) {stop("Merging happening")}
-          ## THIS CODE ISN'T MADE YET. KL: I suspect implementing this as part of an igraph is easier
-          # This code would be designed to account of the scenario that the two lineages
-          #  (which are themselves correlated) are each correlated with two separate cluster of lineages
+          if(warn_merging) {warning("Merging happening")}
+          
+          # just merge the two lineages
+          ## to do this, we need to remove the old lineage from lineage_list 
+          stopifnot(length(val) == 2)
+          val <- sort(val)
+          val_pick <- val[1]
+          val_dump <- val[2]
+          lineage_list[[val_pick]] <- sort(unique(c(lineage_list[[val_pick]], lineage_list[[val_dump]], arr_idx[i,])))
+          lineage_list[[val_dump]] <- NA
+        
+          ## we also need to update all the values in uniq_lineage
+          uniq_lineage[lineage_idx,"Cluster"] <- val_pick
+          changing_idx <- which(uniq_lineage[,"Cluster"] == val_dump)
+          uniq_lineage[changing_idx,"Cluster"] <- val_pick
+          
         } else {
           # just add this lineage to the existing cluster
           lineage_list[[val]] <- sort(unique(c(lineage_list[[val]], arr_idx[i,])))
-          uniq_lineage[lineage_idx,2] <- val
+          uniq_lineage[lineage_idx,"Cluster"] <- val
         }
-        
       }
     }
   }
+  
+  # cleanup
+  notna_idx <- which(sapply(lineage_list, function(x){!all(is.na(x))}))
+  lineage_list <- lineage_list[notna_idx]
   
   # rename all the indices with their lineage name
   lineage_list_name <- lapply(lineage_list, function(vec){
     lineage_name[vec]
   })
+  uniq_lineage[,"Lineage"] <- lineage_name[uniq_lineage[,"Lineage"]]
+  
+  # compute the minimum correlations
+  min_cor_vec <- sapply(lineage_list_name, function(vec){
+    min(cor_mat[vec,vec], na.rm = TRUE)
+  })
+  min_cor_vec <- min_cor_vec[!is.na(min_cor_vec)]
   
   list(arr_idx = arr_idx,
        lineage_clusters = lineage_list_name,
-       uniq_lineage = uniq_lineage)
+       uniq_lineage = uniq_lineage,
+       minimum_correlation = min_cor_vec)
 }
 
 barcode_combine <- function(lin_mat,
                             lineage_clusters,
                             verbose = 0){
-  stopifnot(is.matrix(lin_mat))
+  stopifnot(is.matrix(lin_mat) || class(lin_mat) == "dgCMatrix", 
+            is.list(lineage_clusters))
+  if(any(is.na(unlist(lineage_clusters)))){
+    idx <- which(sapply(lineage_clusters, function(x){all(!is.na(x))}))
+    lineage_clusters <- lineage_clusters[idx]
+  }
+  
   nlineages <- nrow(lin_mat)
   
-  print("Starting combination")
+  if(verbose > 0) print("Starting combination")
   lineage_included_names <- sort(unique(unlist(lineage_clusters)))
   lineage_included_idx <- which(rownames(lin_mat) %in% lineage_included_names)
   lineage_excluded_idx <- setdiff(1:nlineages, lineage_included_idx)
   
-  print("Extracting unaffected lineages")
-  lin_untounced <- lin_mat[lineage_excluded_idx,]
+  if(verbose > 0) print("Extracting unaffected lineages")
+  lin_untouched <- lin_mat[lineage_excluded_idx,]
+  
+  if(verbose > 0) print("Extracting affected lineages")
   len <- length(lineage_clusters)
   lin_list <- lapply(lineage_clusters, function(vec){
     lin_idx <- which(rownames(lin_mat) %in% vec)
     lin_mat[lin_idx,]
   })
   
-  print("Adding lineages to be combined")
+  if(verbose > 0) print("Adding lineages to be combined")
   for(i in 1:len){
-    if(verbose >0 && len > 10 && i %% floor(len/10) == 0) cat('*')
+    if(verbose > 1 && len > 10 && i %% floor(len/10) == 0) cat('*')
     vec <- rownames(lin_list[[i]])
     colname_vec <- colnames(lin_list[[i]])
     lin_list[[i]] <- matrix(Matrix::colSums(lin_list[[i]]), ncol = ncol(lin_list[[i]]), nrow = 1)
@@ -179,8 +220,8 @@ barcode_combine <- function(lin_mat,
     colnames(lin_list[[i]]) <- colname_vec
   }
   
-  print("Formatting final matrix")
-  rbind(lin_untounced, do.call(rbind, lin_list))
+  if(verbose > 0) print("Formatting final matrix")
+  rbind(lin_untouched, do.call(rbind, lin_list))
 }
 
 barcoding_assignment <- function(posterior_mat,
@@ -190,13 +231,13 @@ barcoding_assignment <- function(posterior_mat,
   
   lineage_names <- rownames(posterior_mat)
   lineage_idx <- apply(posterior_mat, 2, which.max)
-  if(verbose) print("Computing difference between maximizing and second-maximizing")
+  if(verbose > 0) print("Computing difference between maximizing and second-maximizing")
   difference_vec <- apply(posterior_mat, 2, function(x){
     abs(diff(sort(x, decreasing = T)[1:2]))
   })
   
   assignment_vec <- sapply(1:n, function(i){
-    if(verbose && n > 10 && i %% floor(n/10) == 0) cat('*')
+    if(verbose > 0 && n > 10 && i %% floor(n/10) == 0) cat('*')
     if(difference_vec[i] >= difference_val){
       return(lineage_names[lineage_idx[i]]) 
     } else {
