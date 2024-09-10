@@ -9,12 +9,20 @@ plot_anova <- function(seurat_object,
                        num_lineages = 20,
                        ylab = "",
                        ylim = NA){
+  stopifnot(length(names(cell_imputed_score)) == length(cell_imputed_score))
+  
+  if(any(is.na(cell_imputed_score))){
+    cell_imputed_score <- cell_imputed_score[!is.na(cell_imputed_score)]
+  }
+  
+  # grab the vector of which celltype-time each cell is
   assigned_lineage <- seurat_object@meta.data[,assigned_lineage_variable]
   names(assigned_lineage) <- Seurat::Cells(seurat_object)
   time_celltype <- seurat_object@meta.data[,time_celltype_variable]
   names(time_celltype) <- Seurat::Cells(seurat_object)
   stopifnot(day_later %in% time_celltype)
   
+  # determine which lineages qualify to be in the plot
   lineage_vec <- assigned_lineage[names(cell_imputed_score)]
   tab_mat <- table(assigned_lineage, 
                    time_celltype)
