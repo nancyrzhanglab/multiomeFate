@@ -315,9 +315,9 @@ barcoding_assignment <- function(posterior_mat,
 # from https://stackoverflow.com/questions/5888287/running-cor-or-any-variant-over-a-sparse-matrix-in-r
 .custom_correlation <- function(x){
   n <- nrow(x)
-  cMeans <- colMeans(x)
-  covmat <- (as.matrix(crossprod(x)) - n*tcrossprod(cMeans))/(n-1)
-  sdvec <- sqrt(diag(covmat)) 
-  cormat <- covmat/tcrossprod(sdvec)
+  cMeans <- Matrix::colMeans(x)
+  covmat <- (as.matrix(Matrix::crossprod(x)) - n*Matrix::tcrossprod(cMeans))/(n-1)
+  sdvec <- sqrt(Matrix::diag(covmat)) 
+  cormat <- covmat/Matrix::tcrossprod(sdvec)
   cormat
 }
