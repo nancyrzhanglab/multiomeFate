@@ -87,6 +87,11 @@ generate_simulation <- function(embedding_mat,
                                 })
   names(lineage_future_size) <- levels(lineage_assignment)
   
+  summary_mat <- .compute_summary_lineages(cell_fate_potential_truth = log10(cell_contribution_truth),
+                                           lineage_assignment = lineage_assignment,
+                                           lineage_future_size = lineage_future_size)
+  summary_mat
+  
   if (verbose > 0) 
     print("Step 6: Outputting")
   return(
@@ -99,7 +104,8 @@ generate_simulation <- function(embedding_mat,
                    gaussian_list = gaussian_list, 
                    lineage_assignment = lineage_assignment, 
                    lineage_future_size = lineage_future_size, 
-                   prob_mat = prob_mat),
+                   prob_mat = prob_mat,
+                   summary_mat = summary_mat),
               class = "multiomeFate_simulation_vanilla")
   )
 }

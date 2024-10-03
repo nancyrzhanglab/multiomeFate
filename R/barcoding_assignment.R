@@ -1,6 +1,6 @@
 # cells as columns, lineage as rows
 barcoding_posterior <- function(lin_mat,
-                                bool_force_rebase = F,
+                                bool_force_rebase = FALSE,
                                 tol = 1e-8,
                                 verbose = 0){
   stopifnot(is.matrix(lin_mat))
@@ -38,7 +38,7 @@ barcoding_posterior <- function(lin_mat,
   }
   
   # global averages
-  beta1_mean <- mean(beta1, na.rm = T)
+  beta1_mean <- mean(beta1, na.rm = TRUE)
   
   # prevent underflow
   beta0_thresh <- pmax(pmin(beta0, quantile(beta0[beta0 > tol], 0.98)), max(quantile(beta0[beta0 > tol], 0.02)))
@@ -77,7 +77,7 @@ barcode_clustering <- function(lin_mat,
   lin_mat_t <- lin_mat_t[,which(num_cells >= cell_lower_limit)]
   # compute a correlation matrix (# rows/columsn = number of lineages)
   cor_mat <- .custom_correlation(lin_mat_t)
-  cor_mat[lower.tri(cor_mat, diag = T)] <- NA
+  cor_mat[lower.tri(cor_mat, diag = TRUE)] <- NA
   # determine all the lineages to merge. arr_idx is a 2-column matrix
   arr_idx <- which(cor_mat >= cor_threshold, arr.ind = TRUE)
   if(verbose > 2){
