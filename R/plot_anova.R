@@ -75,7 +75,7 @@ plot_anova <- function(seurat_object,
   df <- rbind(df, df2)
   
   # compute percentage
-  lineage_effect <- multiomeFate:::.anova_percentage(
+  lineage_effect <- .anova_percentage(
     df = df_tmp,
     lineage_variable = "lineage",
     value_variable = "imputed_count"
