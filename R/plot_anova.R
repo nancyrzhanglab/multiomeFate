@@ -9,6 +9,45 @@ plot_anova <- function(seurat_object,
                        num_lineages = 20,
                        ylab = "",
                        ylim = NA){
+  
+  # grab the vector of which celltype-time each cell is
+  assigned_lineage <- seurat_object@meta.data[,assigned_lineage_variable]
+  names(assigned_lineage) <- Seurat::Cells(seurat_object)
+  
+  time_celltype <- seurat_object@meta.data[,time_celltype_variable]
+  names(time_celltype) <- Seurat::Cells(seurat_object)
+  stopifnot(day_later %in% time_celltype)
+  
+  # determine which lineages qualify to be in the plot
+  lineage_vec <- assigned_lineage[names(cell_imputed_score)]
+  tab_mat <- table(assigned_lineage, time_celltype)
+  lineage_future_size <- tab_mat[, day_later]
+  names(lineage_future_size) <- rownames(tab_mat)
+  
+  .plot_anova_helper(seurat_object = seurat_object,
+                     cell_imputed_score = cell_imputed_score,
+                     assigned_lineage_variable = assigned_lineage_variable,
+                     lineage_future_size = lineage_future_size,
+                     bool_mark_mean = bool_mark_mean,
+                     bool_mark_median = bool_mark_median,
+                     min_lineage_size = min_lineage_size,
+                     num_lineages = num_lineages,
+                     ylab = ylab,
+                     ylim = ylim)
+}
+
+#########################
+
+.plot_anova_helper <- function(seurat_object,
+                               cell_imputed_score,
+                               assigned_lineage_variable,
+                               lineage_future_size,
+                               bool_mark_mean = TRUE,
+                               bool_mark_median = TRUE,
+                               min_lineage_size = 2,
+                               num_lineages = 20,
+                               ylab = "",
+                               ylim = NA){
   stopifnot(length(names(cell_imputed_score)) == length(cell_imputed_score))
   
   if(any(is.na(cell_imputed_score))){
@@ -18,31 +57,25 @@ plot_anova <- function(seurat_object,
   # grab the vector of which celltype-time each cell is
   assigned_lineage <- seurat_object@meta.data[,assigned_lineage_variable]
   names(assigned_lineage) <- Seurat::Cells(seurat_object)
-  time_celltype <- seurat_object@meta.data[,time_celltype_variable]
-  names(time_celltype) <- Seurat::Cells(seurat_object)
-  stopifnot(day_later %in% time_celltype)
   
   # determine which lineages qualify to be in the plot
   lineage_vec <- assigned_lineage[names(cell_imputed_score)]
-  tab_mat <- table(assigned_lineage, 
-                   time_celltype)
-  tab_vec <- table(lineage_vec)
-  tab_vec <- tab_vec[tab_vec >= min_lineage_size]
-  later_size <- tab_mat[names(tab_vec), day_later]
-  lineage_names <- names(sort(later_size, decreasing = T))[1:num_lineages]
+  tab_vec <- table(assigned_lineage)
+  tab_vec <- tab_vec[tab_vec >= min_lineage_size] # current size needs to be big enough
+  lineage_names <- names(lineage_future_size)[order(lineage_future_size, decreasing = TRUE)[1:num_lineages]]
   idx <- which(lineage_vec %in% lineage_names)
   
   # form data frame
   df <- data.frame(lineage = lineage_vec[idx],
                    imputed_count = cell_imputed_score[idx])
-  df_tmp <- df; df_tmp$lineage <- as.factor(df_tmp$lineage)
+  df_tmp <- df; df_tmp$lineage <- droplevels(as.factor(df_tmp$lineage))
   anova_res <- stats::oneway.test(imputed_count ~ lineage, data = df_tmp)
   df2 <- data.frame(lineage = "All",
                     imputed_count = cell_imputed_score)
   df <- rbind(df, df2)
   
   # compute percentage
-  lineage_effect <- .anova_percentage(
+  lineage_effect <- multiomeFate:::.anova_percentage(
     df = df_tmp,
     lineage_variable = "lineage",
     value_variable = "imputed_count"
@@ -59,7 +92,7 @@ plot_anova <- function(seurat_object,
   plot1 <- plot1 + Seurat::NoLegend()
   plot1 <- plot1 + ggplot2::geom_boxplot(width=0.05)
   plot1 <- plot1 + ggplot2::scale_x_discrete(limits = c(lineage_names, "All"),
-                                       guide = ggplot2::guide_axis(angle = 45))
+                                             guide = ggplot2::guide_axis(angle = 45))
   plot1 <- plot1 + ggplot2::ylab(ylab)
   
   if(!all(is.na(ylim))){
@@ -77,6 +110,8 @@ plot_anova <- function(seurat_object,
   
   plot1
 }
+
+##################
 
 .anova_percentage <- function(df,
                               lineage_variable,

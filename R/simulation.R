@@ -44,11 +44,13 @@ generate_simulation <- function(embedding_mat,
   if (verbose > 0) 
     print("Step 2: Computing Gaussian distributions")
   gaussian_list <- .form_gaussian_distributions(cluster_idxs = cluster_idxs, 
-                                                embedding_mat = embedding_mat, rho = rho)
+                                                embedding_mat = embedding_mat, 
+                                                rho = rho)
   if (verbose > 0) 
     print("Step 3: Computing posterior distributions")
   prob_mat <- .compute_posteriors(embedding_mat = embedding_mat, 
-                                  gaussian_list = gaussian_list, lineage_prior = lineage_prior, 
+                                  gaussian_list = gaussian_list, 
+                                  lineage_prior = lineage_prior, 
                                   verbose = verbose - 1)
   if (verbose > 0) 
     print("Step 4: Sampling lineages")
@@ -98,7 +100,8 @@ generate_simulation <- function(embedding_mat,
     structure(list(cell_fate_potential = log10(cell_contribution_random + 1), 
                    cell_fate_potential_truth = log10(cell_contribution_truth), 
                    coefficient_intercept = coefficient_intercept,
-                   embedding_coefficient_vec = embedding_coefficient_vec, 
+                   coefficient_vec = coefficient_vec, 
+                   embedding_mat = embedding_mat,
                    fatefeatures_coefficient_vec = fatefeatures_coefficient_vec, 
                    fatefeatures_mat = fatefeatures_mat,
                    gaussian_list = gaussian_list, 

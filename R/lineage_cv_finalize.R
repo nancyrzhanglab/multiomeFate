@@ -30,6 +30,7 @@ lineage_cv_finalize <- function(cell_features,
   lineage_imputed_count <- sapply(uniq_lineage, function(lineage){
     sum(cell_imputed_count[which(cell_lineage == lineage)])
   })
+  names(lineage_imputed_count) <- uniq_lineage
   cell_imputed_score2 <- log10(exp(cell_imputed_score)) # this one is on the log10 scale
   
   list(cell_imputed_score = cell_imputed_score2,

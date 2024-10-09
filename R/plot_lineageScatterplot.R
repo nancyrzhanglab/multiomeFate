@@ -5,7 +5,9 @@ plot_lineageScatterplot <- function(lineage_future_count,
                                     threshold_y = 1.5,
                                     title = ""){
   
-  all(names(lineage_imputed_count) == names(lineage_future_count))
+  stopifnot(length(names(lineage_imputed_count)) > 0,
+            length(names(lineage_future_count)) > 0,
+            all(names(lineage_imputed_count) == names(lineage_future_count)))
   
   lineage_imputed_count2 <- log10(lineage_imputed_count+1)
   lineage_future_count2 <- log10(lineage_future_count+1)
