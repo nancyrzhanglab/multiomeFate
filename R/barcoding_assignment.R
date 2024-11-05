@@ -84,6 +84,16 @@ barcode_clustering <- function(lin_mat,
     print(paste0("There are ", nrow(arr_idx), " number of highly correlated lineages to resolve."))
   }
   
+  if(nrow(arr_idx) == 0){
+    if(verbose > 0) print("Finishing since there is nothing to do")
+    
+    return(list(arr_idx = NULL,
+                lineage_clusters = NULL,
+                uniq_lineage = NULL,
+                minimum_correlation = NULL))
+  }
+  
+  if(verbose > 0) print("Determining how to merge lineages")
   # tabulate uniq_lineage, which is going to keep track of which lineage is 
   #  assigned to which "cluster"
   lineage_list <- vector("list", length = 0)
@@ -92,10 +102,10 @@ barcode_clustering <- function(lin_mat,
                              Cluster = rep(NA, length(uniq_lineage)))
   lineage_name <- rownames(cor_mat)
   
-  if(verbose > 0) print("Determining how to merge lineages")
   # determine the clusters of lineages to merge
   for(i in 1:nrow(arr_idx)){
-    if(verbose > 1 && nrow(arr_idx) > 10 && i %% floor(nrow(arr_idx)/10) == 0) cat('*')
+    if(verbose == 1 && nrow(arr_idx) > 10 && i %% floor(nrow(arr_idx)/10) == 0) cat('*')
+    if(verbose >= 2) print(paste0("Working on lineage correlation pair ", i , " out of ", nrow(arr_idx)))
     
     # find the rows in the uniq_lineage table on which we're currently working on
     # this represents a pair of lineages
@@ -146,7 +156,7 @@ barcode_clustering <- function(lin_mat,
           val_dump <- val[2]
           lineage_list[[val_pick]] <- sort(unique(c(lineage_list[[val_pick]], lineage_list[[val_dump]], arr_idx[i,])))
           lineage_list[[val_dump]] <- NA
-        
+          
           ## we also need to update all the values in uniq_lineage
           uniq_lineage[lineage_idx,"Cluster"] <- val_pick
           changing_idx <- which(uniq_lineage[,"Cluster"] == val_dump)
@@ -188,6 +198,12 @@ barcode_combine <- function(lin_mat,
                             verbose = 0){
   stopifnot(is.matrix(lin_mat) || class(lin_mat) == "dgCMatrix", 
             is.list(lineage_clusters))
+  
+  if(all(is.null(lineage_clusters))){
+    if(verbose > 0) print("No lineage clusters, so returning original matrix")
+    return(lin_mat)
+  }
+  
   if(any(is.na(unlist(lineage_clusters)))){
     idx <- which(sapply(lineage_clusters, function(x){all(!is.na(x))}))
     lineage_clusters <- lineage_clusters[idx]
