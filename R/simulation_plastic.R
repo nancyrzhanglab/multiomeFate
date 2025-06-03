@@ -8,8 +8,7 @@ generate_simulation_plastic <- function(embedding_mat,
                                         lineage_sd_spread = NA, # NA or a numeric. Lineage 1 is lineage_sd_spread, and Lineage num_lineage is 1/lineage_sd_spread.
                                         num_lineages = 10, 
                                         tol = 1e-06, 
-                                        verbose = 0) 
-{
+                                        verbose = 0) {
   K <- num_lineages
   n <- nrow(embedding_mat)
   d <- ncol(embedding_mat)
@@ -77,7 +76,6 @@ generate_simulation_plastic <- function(embedding_mat,
   summary_mat <- .compute_summary_lineages(cell_fate_potential_truth = log10(cell_contribution_truth),
                                            lineage_assignment = lineage_assignment,
                                            lineage_future_size = lineage_future_size)
-  summary_mat
   
   if (verbose > 0) 
     print("Step 4: Outputting")

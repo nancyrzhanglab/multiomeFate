@@ -44,8 +44,11 @@ plot_anova <- function(seurat_object,
                                lineage_future_size,
                                bool_mark_mean = TRUE,
                                bool_mark_median = TRUE,
+                               col_all_lineages = "#E69F00",
+                               col_lineages = "#999999",
                                min_lineage_size = 2,
-                               num_lineages = 20,
+                               num_lineages_top = 10,
+                               num_lineages_bottom = 10,
                                ylab = "",
                                ylim = NA){
   stopifnot(length(names(cell_imputed_score)) == length(cell_imputed_score))
@@ -62,7 +65,10 @@ plot_anova <- function(seurat_object,
   lineage_vec <- assigned_lineage[names(cell_imputed_score)]
   tab_vec <- table(assigned_lineage)
   tab_vec <- tab_vec[tab_vec >= min_lineage_size] # current size needs to be big enough
-  lineage_names <- names(lineage_future_size)[order(lineage_future_size, decreasing = TRUE)[1:num_lineages]]
+  lineage_names_ordered <- names(lineage_future_size)[order(lineage_future_size, decreasing = TRUE)]
+  lineage_names_top <- lineage_names_ordered[1:num_lineages_top]
+  lineage_names_bottom <- lineage_names_ordered[(length(lineage_names_ordered)-num_lineages_bottom+1):length(lineage_names_ordered)]
+  lineage_names <- unique(c(lineage_names_top, lineage_names_bottom))
   idx <- which(lineage_vec %in% lineage_names)
   
   # form data frame
@@ -81,7 +87,7 @@ plot_anova <- function(seurat_object,
     value_variable = "imputed_count"
   )
   
-  col_vec <- c(rep("#999999", length(lineage_names)), "#E69F00")
+  col_vec <- c(rep(col_lineages, length(lineage_names)), col_all_lineages)
   names(col_vec) <- c(lineage_names, "All")
   
   plot1 <- ggplot2::ggplot(df, ggplot2::aes(x=lineage, y=imputed_count))

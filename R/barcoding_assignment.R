@@ -1,12 +1,12 @@
 # cells as columns, lineage as rows
-barcoding_posterior <- function(lin_mat,
+barcoding_posterior <- function(lin_mat, # barcode-by-cell matrix
                                 bool_force_rebase = FALSE,
                                 tol = 1e-8,
                                 verbose = 0){
   stopifnot(is.matrix(lin_mat))
   library_size <- Matrix::colSums(lin_mat)
   
-  n <- ncol(lin_mat)
+  n <- ncol(lin_mat) 
   nlineages <- nrow(lin_mat)
   
   # to initialize the estimator, find the maximum count for each cell
