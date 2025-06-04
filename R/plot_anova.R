@@ -65,14 +65,15 @@ plot_anova <- function(seurat_object,
   # grab the vector of which celltype-time each cell is
   assigned_lineage <- seurat_object@meta.data[,assigned_lineage_variable]
   names(assigned_lineage) <- Seurat::Cells(seurat_object)
+  assigned_lineage <- assigned_lineage[names(cell_imputed_score)]
   
   # filter out lineages that too small
   lineage_vec <- assigned_lineage[names(cell_imputed_score)]
   tab_vec <- table(assigned_lineage)
   tab_vec <- tab_vec[tab_vec >= min_lineage_size] # current size needs to be big enough
   passed_lineages <- names(tab_vec)
-  passed_cells_idx <- which(assigned_lineage %in% passed_lineages)
-  cell_imputed_score <- cell_imputed_score[passed_cells_idx]
+  passed_cells_names <- names(assigned_lineage)[which(assigned_lineage %in% passed_lineages)]
+  cell_imputed_score <- cell_imputed_score[passed_cells_names]
   lineage_vec <- assigned_lineage[names(cell_imputed_score)]
   lineage_future_size <- lineage_future_size[which(names(lineage_future_size) %in% passed_lineages)]
   
