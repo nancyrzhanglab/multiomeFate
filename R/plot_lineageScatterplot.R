@@ -28,10 +28,10 @@ plot_lineageScatterplot <- function(lineage_future_count,
                                                   stats::runif(n, min = 0, max = 0.5)),
                    name = names(lineage_imputed_count2),
                    labeling = labeling_vec)
-  df$labeling <- factor(df$labeling, levels = c(FALSE, TRUE))
-  
   # put all the labeling == TRUE on bottom
-  df <- df[c(which(!df[,"labeling"]), which(df[,"labeling"])),]
+  if(any(df[,"labeling"])) df <- df[c(which(!df[,"labeling"]), which(df[,"labeling"])),]
+  
+  df$labeling <- factor(df$labeling, levels = c(FALSE, TRUE))
   
   plot1 <- ggplot2::ggplot(df, ggplot2::aes(x = lineage_future_count, 
                                             y = lineage_imputed_count))
