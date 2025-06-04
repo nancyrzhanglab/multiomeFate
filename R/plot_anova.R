@@ -91,6 +91,7 @@ plot_anova <- function(seurat_object,
       paste0(lineage_name, " (", lineage_future_size[lineage_name], ")")
     })
     lineage_vec <- plyr::mapvalues(lineage_vec, from = lineage_names, to = lineage_names_new)
+    lineage_names <- lineage_names_new
   }
   
   # form data frame
