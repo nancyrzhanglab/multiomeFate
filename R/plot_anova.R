@@ -88,7 +88,7 @@ plot_anova <- function(seurat_object,
   
   if(bool_add_future_size){
     lineage_names <- sapply(lineage_names, function(lineage_name){
-      paste0(lineage_names, " (", lineage_future_size[lineage_name], ")")
+      paste0(lineage_name, " (", lineage_future_size[lineage_name], ")")
     })
   }
   
