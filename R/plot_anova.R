@@ -5,7 +5,7 @@ plot_anova <- function(seurat_object,
                        day_later,
                        bool_anova = TRUE,
                        bool_mark_mean = TRUE,
-                       bool_mark_median = TRUE,
+                       bool_mark_max = FALSE,
                        min_lineage_size = 2,
                        num_lineages_top = 10,
                        num_lineages_bottom = 10,
@@ -32,7 +32,7 @@ plot_anova <- function(seurat_object,
                      lineage_future_size = lineage_future_size,
                      bool_anova = bool_anova,
                      bool_mark_mean = bool_mark_mean,
-                     bool_mark_median = bool_mark_median,
+                     bool_mark_max = bool_mark_max,
                      min_lineage_size = min_lineage_size,
                      num_lineages_top = num_lineages_top,
                      num_lineages_bottom = num_lineages_bottom,
@@ -48,7 +48,7 @@ plot_anova <- function(seurat_object,
                                lineage_future_size,
                                bool_anova = TRUE,
                                bool_mark_mean = TRUE,
-                               bool_mark_median = TRUE,
+                               bool_mark_max = TRUE,
                                col_all_lineages = "#E69F00",
                                col_lineages = "#999999",
                                min_lineage_size = 2,
@@ -66,10 +66,17 @@ plot_anova <- function(seurat_object,
   assigned_lineage <- seurat_object@meta.data[,assigned_lineage_variable]
   names(assigned_lineage) <- Seurat::Cells(seurat_object)
   
-  # determine which lineages qualify to be in the plot
+  # filter out lineages that too small
   lineage_vec <- assigned_lineage[names(cell_imputed_score)]
   tab_vec <- table(assigned_lineage)
   tab_vec <- tab_vec[tab_vec >= min_lineage_size] # current size needs to be big enough
+  passed_lineages <- names(tab_vec)
+  passed_cells_idx <- which(assigned_lineage %in% passed_lineages)
+  cell_imputed_score <- cell_imputed_score[passed_cells_idx]
+  lineage_vec <- assigned_lineage[names(cell_imputed_score)]
+  lineage_future_size <- lineage_future_size[which(names(lineage_future_size) %in% passed_lineages)]
+  
+  # determine which lineages qualify to be in the plot
   lineage_names_ordered <- names(lineage_future_size)[order(lineage_future_size, decreasing = TRUE)]
   lineage_names_top <- lineage_names_ordered[1:num_lineages_top]
   lineage_names_bottom <- lineage_names_ordered[(length(lineage_names_ordered)-num_lineages_bottom+1):length(lineage_names_ordered)]
@@ -115,7 +122,7 @@ plot_anova <- function(seurat_object,
   if(bool_mark_mean) 
     plot1 <- plot1 + ggplot2::stat_summary(fun=mean, geom="point", shape=16, size=3, color="red")
   
-  if(bool_mark_median) 
+  if(bool_mark_max) 
     plot1 <- plot1 + ggplot2::stat_summary(fun=max, geom="point", shape=10, size=5, color="blue")
   
   if(bool_anova){
