@@ -32,6 +32,8 @@ plot_lineageScatterplot <- function(lineage_future_count,
   if(any(df[,"labeling"])) df <- df[c(which(!df[,"labeling"]), which(df[,"labeling"])),]
   
   df$labeling <- factor(df$labeling, levels = c(FALSE, TRUE))
+  lims <- range(c(df$lineage_imputed_count, df$lineage_future_count), na.rm = TRUE)
+  
   
   plot1 <- ggplot2::ggplot(df, ggplot2::aes(x = lineage_future_count, 
                                             y = lineage_imputed_count))
@@ -47,7 +49,7 @@ plot_lineageScatterplot <- function(lineage_future_count,
     "\nCorr:", round(stats::cor(lineage_imputed_count2, lineage_future_count2), 2))
   )
   plot1 <- plot1 + ggplot2::xlab("Observed lineage count (Log10, jittered)") + ggplot2::ylab("Predicted lineage count (Log10)")
-  plot1 <- plot1 + Seurat::NoLegend() + ggplot2::coord_fixed()
+  plot1 <- plot1 + Seurat::NoLegend() + ggplot2::coord_fixed(ratio = 1, xlim = lims, ylim = lims)
   
   plot1
 }
