@@ -1,6 +1,6 @@
 plot_cellGrowthUmap <- function(seurat_object,
                                 cell_imputed_score,
-                                colors_use = list("red", "lightgray", "blue"),
+                                colors_use = list("blue", "lightgray", "red"),
                                 na_color = "bisque",
                                 reduction = "umap",
                                 title = ""){

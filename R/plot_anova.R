@@ -6,7 +6,8 @@ plot_anova <- function(seurat_object,
                        bool_mark_mean = TRUE,
                        bool_mark_median = TRUE,
                        min_lineage_size = 2,
-                       num_lineages = 20,
+                       num_lineages_top = 10,
+                       num_lineages_bottom = 10,
                        ylab = "",
                        ylim = NA){
   
@@ -31,7 +32,8 @@ plot_anova <- function(seurat_object,
                      bool_mark_mean = bool_mark_mean,
                      bool_mark_median = bool_mark_median,
                      min_lineage_size = min_lineage_size,
-                     num_lineages = num_lineages,
+                     num_lineages_top = num_lineages_top,
+                     num_lineages_bottom = num_lineages_bottom,
                      ylab = ylab,
                      ylim = ylim)
 }
