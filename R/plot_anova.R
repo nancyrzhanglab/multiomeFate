@@ -3,6 +3,7 @@ plot_anova <- function(seurat_object,
                        assigned_lineage_variable,
                        time_celltype_variable,
                        day_later,
+                       bool_anova = TRUE,
                        bool_mark_mean = TRUE,
                        bool_mark_median = TRUE,
                        min_lineage_size = 2,
@@ -29,6 +30,7 @@ plot_anova <- function(seurat_object,
                      cell_imputed_score = cell_imputed_score,
                      assigned_lineage_variable = assigned_lineage_variable,
                      lineage_future_size = lineage_future_size,
+                     bool_anova = bool_anova,
                      bool_mark_mean = bool_mark_mean,
                      bool_mark_median = bool_mark_median,
                      min_lineage_size = min_lineage_size,
@@ -44,6 +46,7 @@ plot_anova <- function(seurat_object,
                                cell_imputed_score,
                                assigned_lineage_variable,
                                lineage_future_size,
+                               bool_anova = TRUE,
                                bool_mark_mean = TRUE,
                                bool_mark_median = TRUE,
                                col_all_lineages = "#E69F00",
@@ -77,18 +80,20 @@ plot_anova <- function(seurat_object,
   df <- data.frame(lineage = lineage_vec[idx],
                    imputed_count = cell_imputed_score[idx])
   df_tmp <- df; df_tmp$lineage <- droplevels(as.factor(df_tmp$lineage))
-  anova_res <- stats::oneway.test(imputed_count ~ lineage, data = df_tmp)
+  if(bool_anova) anova_res <- stats::oneway.test(imputed_count ~ lineage, data = df_tmp)
   df2 <- data.frame(lineage = "All",
                     imputed_count = cell_imputed_score)
   df <- rbind(df, df2)
   
   # compute percentage
-  lineage_effect <- .anova_percentage(
-    df = df_tmp,
-    lineage_variable = "lineage",
-    value_variable = "imputed_count"
-  )
-  
+  if(bool_anova){
+    lineage_effect <- .anova_percentage(
+      df = df_tmp,
+      lineage_variable = "lineage",
+      value_variable = "imputed_count"
+    )
+  }
+ 
   col_vec <- c(rep(col_lineages, length(lineage_names)), col_all_lineages)
   names(col_vec) <- c(lineage_names, "All")
   
@@ -113,9 +118,11 @@ plot_anova <- function(seurat_object,
   if(bool_mark_median) 
     plot1 <- plot1 + ggplot2::stat_summary(fun=max, geom="point", shape=10, size=5, color="blue")
   
-  plot1 <- plot1 + ggplot2::ggtitle(paste0("ANOVA -Log10(pvalue)=", round(-log10(anova_res$p.value), 2), 
-                                           ", Lineage effect = ", lineage_effect, "%"))
-  
+  if(bool_anova){
+    plot1 <- plot1 + ggplot2::ggtitle(paste0("ANOVA -Log10(pvalue)=", round(-log10(anova_res$p.value), 2), 
+                                             ", Lineage effect = ", lineage_effect, "%"))
+  }
+ 
   plot1
 }
 
