@@ -87,9 +87,10 @@ plot_anova <- function(seurat_object,
   idx <- which(lineage_vec %in% lineage_names)
   
   if(bool_add_future_size){
-    lineage_names <- sapply(lineage_names, function(lineage_name){
+    lineage_names_new <- sapply(lineage_names, function(lineage_name){
       paste0(lineage_name, " (", lineage_future_size[lineage_name], ")")
     })
+    lineage_vec <- plyr::mapvalues(lineage_vec, from = lineage_names, to = lineage_names_new)
   }
   
   # form data frame
