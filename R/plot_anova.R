@@ -3,6 +3,7 @@ plot_anova <- function(seurat_object,
                        assigned_lineage_variable,
                        time_celltype_variable,
                        day_later,
+                       bool_add_future_size = TRUE,
                        bool_anova = TRUE,
                        bool_mark_mean = TRUE,
                        bool_mark_max = FALSE,
@@ -46,6 +47,7 @@ plot_anova <- function(seurat_object,
                                cell_imputed_score,
                                assigned_lineage_variable,
                                lineage_future_size,
+                               bool_add_future_size = TRUE,
                                bool_anova = TRUE,
                                bool_mark_mean = TRUE,
                                bool_mark_max = TRUE,
@@ -83,6 +85,12 @@ plot_anova <- function(seurat_object,
   lineage_names_bottom <- lineage_names_ordered[(length(lineage_names_ordered)-num_lineages_bottom+1):length(lineage_names_ordered)]
   lineage_names <- unique(c(lineage_names_top, lineage_names_bottom))
   idx <- which(lineage_vec %in% lineage_names)
+  
+  if(bool_add_future_size){
+    lineage_names <- sapply(lineage_names, function(lineage_name){
+      paste0(lineage_names, " (", lineage_future_size[lineage_name], ")")
+    })
+  }
   
   # form data frame
   df <- data.frame(lineage = lineage_vec[idx],
