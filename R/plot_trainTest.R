@@ -1,6 +1,7 @@
 plot_trainTest <- function(cv_fit_list,
                            axis_size = 8,
                            bool_include_lambda_title = TRUE,
+                           fill_col = "gray",
                            quantile_vec = c(0.1, 0.5, 0.9),
                            xlab = "Lambda+1 (Log10-scale tickmarks)",
                            ylab_test = "Negative loglikelihood (Testing)",
@@ -36,6 +37,7 @@ plot_trainTest <- function(cv_fit_list,
   plot_list[["test"]] <- .plot_trainTest_helper(
     res_test$df,
     axis_size = axis_size,
+    fill_col = fill_col,
     lambda_value = res_test$lambda,
     title = title_test,
     title_size = title_size,
@@ -84,6 +86,7 @@ plot_trainTest <- function(cv_fit_list,
 
 .plot_trainTest_helper <- function(axis_size,
                                    df,
+                                   fill_col,
                                    lambda_value,
                                    title,
                                    title_size,
@@ -100,7 +103,7 @@ plot_trainTest <- function(cv_fit_list,
                  y = y,
                  fill = value)
   )
-  plot1 <- plot1 + ggplot2::scale_fill_manual(values = c(tmp = "gray"))
+  plot1 <- plot1 + ggplot2::scale_fill_manual(values = c(tmp = fill_col))
   
   # add lines
   plot1 <- plot1 + ggplot2::geom_point(data = subset(df, quantile == 'median'), 
