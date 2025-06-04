@@ -23,6 +23,7 @@ plot_trainTest <- function(cv_fit_list,
   plot_list[["train"]] <- .plot_trainTest_helper(
     res_train$df,
     axis_size = axis_size,
+    fill_col = fill_col,
     lambda_value = NULL,
     title = title_train,
     title_size = title_size,
