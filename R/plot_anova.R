@@ -113,11 +113,14 @@ plot_anova <- function(seurat_object,
     )
   }
   
+  gray_vec <- rep("lightgray", length(unique(df$lineage)))
+  names(gray_vec) <- unique(df$lineage)
+  
   plot1 <- ggplot2::ggplot(df, ggplot2::aes(x = lineage, y = imputed_count))
   plot1 <- plot1 + ggplot2::geom_violin(trim = TRUE, 
                                         scale = "width", 
                                         ggplot2::aes(fill=lineage))
-  plot1 <- plot1 + ggplot2::scale_fill_manual(values = "lightgray") 
+  plot1 <- plot1 + ggplot2::scale_fill_manual(values = gray_vec) 
   plot1 <- plot1 + ggplot2::geom_jitter(shape=16, 
                                         position=ggplot2::position_jitter(0.2), alpha = 0.3, size = 0.5)
   plot1 <- plot1 + Seurat::NoLegend()
