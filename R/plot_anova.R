@@ -55,8 +55,7 @@ plot_anova <- function(seurat_object,
                                bool_anova = TRUE,
                                bool_mark_mean = TRUE,
                                bool_mark_max = TRUE,
-                               col_all_lineages = "#E69F00",
-                               col_lineages = "#999999",
+                               col = "#E69F00",
                                min_lineage_size = 2,
                                num_lineages_top = 10,
                                num_lineages_bottom = 10,
@@ -116,16 +115,16 @@ plot_anova <- function(seurat_object,
     )
   }
  
-  col_vec <- c(rep(col_lineages, length(lineage_names)), col_all_lineages)
   names(col_vec) <- c(lineage_names, "All")
   
-  plot1 <- ggplot2::ggplot(df, ggplot2::aes(x=lineage, y=imputed_count))
-  plot1 <- plot1 + ggplot2::geom_violin(trim=T, scale = "width", ggplot2::aes(fill=lineage))
-  plot1 <- plot1 + ggplot2::scale_fill_manual(values = col_vec) 
+  plot1 <- ggplot2::ggplot(df, ggplot2::aes(x = lineage, y = imputed_count))
+  plot1 <- plot1 + ggplot2::geom_violin(trim = TRUE, 
+                                        scale = "width", 
+                                        ggplot2::aes(fill=lineage))
+  plot1 <- plot1 + ggplot2::scale_fill_manual(values = "lightgray") 
   plot1 <- plot1 + ggplot2::geom_jitter(shape=16, 
                                         position=ggplot2::position_jitter(0.2), alpha = 0.3, size = 0.5)
   plot1 <- plot1 + Seurat::NoLegend()
-  plot1 <- plot1 + ggplot2::geom_boxplot(width=0.05)
   plot1 <- plot1 + ggplot2::scale_x_discrete(limits = c(lineage_names, "All"),
                                              guide = ggplot2::guide_axis(angle = 45))
   plot1 <- plot1 + ggplot2::ylab(ylab)
@@ -135,11 +134,13 @@ plot_anova <- function(seurat_object,
   }
   
   if(bool_mark_mean) 
-    plot1 <- plot1 + ggplot2::stat_summary(fun=mean, geom="point", shape=16, size=3, color="red")
+    plot1 <- plot1 + ggplot2::stat_summary(fun = median, geom = "crossbar", 
+                                           width = 0.75, color = col)
   
   if(bool_mark_max) 
-    plot1 <- plot1 + ggplot2::stat_summary(fun=max, geom="point", shape=10, size=5, color="blue")
-  
+    plot1 <- plot1 + ggplot2::stat_summary(fun = max, geom = "crossbar", 
+                                           width = 0.75, color = col)
+ 
   if(bool_anova){
     plot1 <- plot1 + ggplot2::ggtitle(paste0("ANOVA -Log10(pvalue)=", round(-log10(anova_res$p.value), 2), 
                                              ", Lineage effect = ", lineage_effect, "%"))

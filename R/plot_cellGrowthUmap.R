@@ -3,7 +3,8 @@ plot_cellGrowthUmap <- function(seurat_object,
                                 colors_use = list("blue", "lightgray", "red"),
                                 na_color = "bisque",
                                 reduction = "umap",
-                                title = ""){
+                                title = "",
+                                order = TRUE){
   
   cell_imputed_score_full <- rep(NA, ncol(seurat_object))
   names(cell_imputed_score_full) <- colnames(seurat_object)
@@ -25,7 +26,8 @@ plot_cellGrowthUmap <- function(seurat_object,
                                              na_cutoff = na_cutoff,
                                              na_color = na_color,
                                              reduction = reduction, 
-                                             features = "tmp")
+                                             features = "tmp",
+                                             order = order)
   plot1 <- plot1 + ggplot2::ggtitle(title)
   plot1
 }
