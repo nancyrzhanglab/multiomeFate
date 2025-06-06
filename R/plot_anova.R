@@ -112,8 +112,6 @@ plot_anova <- function(seurat_object,
       value_variable = "imputed_count"
     )
   }
- 
-  names(col_vec) <- c(lineage_names, "All")
   
   plot1 <- ggplot2::ggplot(df, ggplot2::aes(x = lineage, y = imputed_count))
   plot1 <- plot1 + ggplot2::geom_violin(trim = TRUE, 
