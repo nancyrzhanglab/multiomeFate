@@ -41,7 +41,7 @@ barcoding_posterior <- function(lin_mat, # barcode-by-cell matrix
   beta1_mean <- mean(beta1, na.rm = TRUE)
   
   # prevent underflow
-  beta0_thresh <- pmax(pmin(beta0, quantile(beta0[beta0 > tol], 0.98)), max(quantile(beta0[beta0 > tol], 0.02)))
+  beta0_thresh <- pmax(pmin(beta0, stats::quantile(beta0[beta0 > tol], 0.98)), max(stats::quantile(beta0[beta0 > tol], 0.02)))
   
   gamma <- beta1_mean/beta0_thresh # vector of length nlineages
   names(gamma) <- rownames(lin_mat)
@@ -133,7 +133,7 @@ barcode_clustering <- function(lin_mat,
           
           if(verbose > 3) {
             print("The size of the lineages are: ")
-            print(quantile(sapply(lineage_list, length)))
+            print(stats::quantile(sapply(lineage_list, length)))
           }
         }
         

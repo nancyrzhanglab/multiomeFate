@@ -1,3 +1,4 @@
+#' @importFrom rlang .data
 plot_simplex <- function(df,
                          aes_formula, # ggplot2::aes(x = Monocyte, y = Neutrophil, z = Undifferentiated, color = celltype, size = size)
                          col_palette = NULL,
@@ -10,7 +11,7 @@ plot_simplex <- function(df,
   plot1 <- plot1 + ggplot2::geom_point()
   
   if(!all(is.null(col_palette))){
-    plot1 <- plot1 + ggplot2::scale_color_manual(values = color_palette)
+    plot1 <- plot1 + ggplot2::scale_color_manual(values = col_palette)
   }
   
   plot1 <- plot1 + ggtern::theme_showarrows() 

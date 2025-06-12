@@ -78,13 +78,14 @@ plot_trainTest <- function(cv_fit_list,
   
   df <- data.frame(lambda = rep(lambda_sequence+1, times = 3),
                    value = as.numeric(t(loglik_quantile)),
-                   quantile = rep(c("lower", "median", "upper"), 
+                   quantile_str = rep(c("lower", "median", "upper"), 
                                   each = length(lambda_sequence)))
   
   list(df = df,
        lambda = lambda)
 }
 
+#' @importFrom rlang .data
 .plot_trainTest_helper <- function(axis_size,
                                    df,
                                    fill_col,
@@ -93,25 +94,25 @@ plot_trainTest <- function(cv_fit_list,
                                    title_size,
                                    xlab,
                                    ylab){
-  plot1 <- ggplot2::ggplot(df, ggplot2::aes(x = lambda, y = value))
+  plot1 <- ggplot2::ggplot(df, ggplot2::aes(x = .data$lambda, y = .data$value))
   
   # add polygon
   plot1 <- plot1 + ggplot2::geom_polygon(
-    data = data.frame(x = c(df$lambda[df$quantile == 'lower'], rev(df$lambda[df$quantile == 'upper'])),
-                      y = c(df$value[df$quantile == 'lower'], rev(df$value[df$quantile == 'upper'])),
+    data = data.frame(x = c(df$lambda[df$quantile_str == 'lower'], rev(df$lambda[df$quantile_str == 'upper'])),
+                      y = c(df$value[df$quantile_str == 'lower'], rev(df$value[df$quantile_str == 'upper'])),
                       value = "tmp"),
-    ggplot2::aes(x = x, 
-                 y = y,
-                 fill = value)
+    ggplot2::aes(x = .data$x, 
+                 y = .data$y,
+                 fill = .data$value)
   )
   plot1 <- plot1 + ggplot2::scale_fill_manual(values = c(tmp = fill_col))
   
   # add lines
-  plot1 <- plot1 + ggplot2::geom_point(data = subset(df, quantile == 'median'), 
-                                       ggplot2::aes(x = lambda, y = value), 
+  plot1 <- plot1 + ggplot2::geom_point(data = subset(df, .data$quantile_str == 'median'), 
+                                       ggplot2::aes(x = .data$lambda, y = .data$value), 
                                        shape = 16) 
-  plot1 <- plot1 + ggplot2::geom_line(data = subset(df, quantile == 'median'), 
-                                      ggplot2::aes(x = lambda, y = value), 
+  plot1 <- plot1 + ggplot2::geom_line(data = subset(df, .data$quantile_str == 'median'), 
+                                      ggplot2::aes(x = .data$lambda, y = .data$value), 
                                       size = 1) 
   
   plot1 <- plot1 + ggplot2::scale_x_log10() 

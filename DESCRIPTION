@@ -1,11 +1,12 @@
 Package: multiomeFate
-Title: Useful functions for modeling cancer cells
-Version: 0.0.0.0101
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: A package to do multiome fate prediction. Currently under development.
+Title: Useful Functions for Modeling Cancer Cells
+Version: 1.0.0
+Authors@R: c(person("Kevin", "Lin",  role = c("aut", "cre"), email = "kzlin@uw.edu"),
+    person("Xinyi", "Chen", role = "aut"))
+Description: Tools for multiome fate prediction in cancer cells.
 Depends:
     R (>= 3.5.0)
-License: MIT +file LICENSE
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -17,7 +18,8 @@ Imports:
     ggrepel,
     ggtern,
     scCustomize,
-    plyr
+    plyr,
+    rlang
 Suggests:
     testthat,
     numDeriv

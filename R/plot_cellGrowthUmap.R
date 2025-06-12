@@ -18,9 +18,9 @@ plot_cellGrowthUmap <- function(seurat_object,
   
   seurat_object$tmp <- cell_imputed_score_thres
   
-  na_cutoff <- quantile(cell_imputed_score_thres, 
-                        probs = 0.05, 
-                        na.rm = TRUE)
+  na_cutoff <- stats::quantile(cell_imputed_score_thres, 
+                               probs = 0.05, 
+                               na.rm = TRUE)
   plot1 <- scCustomize::FeaturePlot_scCustom(seurat_object, 
                                              colors_use = colors_use,
                                              na_cutoff = na_cutoff,
