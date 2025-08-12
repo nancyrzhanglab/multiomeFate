@@ -85,8 +85,8 @@ data_loader <- function(
   possible_assay_vec <- intersect(possible_assay_vec, which_files)
   for(assay in possible_assay_vec){
     if(assay == "atac"){
-      if(print("Loading ATAC"))
-        load(paste0(folder_path, file_atac))
+      print("Loading ATAC")
+      load(paste0(folder_path, file_atac))
       all_data[["ATAC"]] <- all_data_atac
     }
     
