@@ -1,0 +1,117 @@
+# Data loader designed for the paper
+
+Even if `remove_unassigned_cells` is `FALSE`, all cells have a posterior
+of a lineage above 0.5 The reason some cells do not have a lineage is
+because during the calculations, the posterior of a lineage above 0.5
+wasn't large compared to the second-highest-posterior lineage.
+
+## Usage
+
+``` r
+data_loader(
+  which_files = c("rna", "atac", "lineage"),
+  folder_path = "~/nzhanglab/project/Multiome_fate/out/kevin/Writeup10a/",
+  file_atac = "Writeup10a_data_atac.RData",
+  file_chromvar = c(day0 = "Writeup10a_data_chromVar_day0.RData", day10_CIS =
+    "Writeup10a_data_chromVar_day10_CIS.RData", day10_COCL2 =
+    "Writeup10a_data_chromVar_day10_COCL2.RData", day10_DABTRAM =
+    "Writeup10a_data_chromVar_day10_DABTRAM.RData", week5_CIS =
+    "Writeup10a_data_chromVar_week5_CIS.RData", week5_COCL2 =
+    "Writeup10a_data_chromVar_week5_COCL2.RData", week5_DABTRAM =
+    "Writeup10a_data_chromVar_week5_DABTRAM.RData"),
+  file_empty = "Writeup10a_data_empty.RData",
+  file_fasttopics = c(CIS = "Writeup10a_data_fasttopic_CIS.RData", COCL2 =
+    "Writeup10a_data_fasttopic_COCL2.RData", DABTRAM =
+    "Writeup10a_data_fasttopic_DABTRAM.RData"),
+  file_fatepotential = "Writeup10a_data_fatepotential.RData",
+  file_lineage = "Writeup10a_data_lineage.RData",
+  file_peakvi = c(All = "Writeup10a_data_peakVI_All.RData", CIS =
+    "Writeup10a_data_peakVI_CIS.RData", COCL2 = "Writeup10a_data_peakVI_COCL2.RData",
+    DABTRAM = "Writeup10a_data_peakVI_DABTRAM.RData"),
+  file_rna = "Writeup10a_data_rna.RData",
+  file_rna_dimred = "Writeup10a_data_rna_dimred.RData",
+  file_saver = "Writeup10a_data_saver.RData",
+  file_saver_treatment = c(CIS = "Writeup10a_data_saver_CIS_pca.RData", COCL2 =
+    "Writeup10a_data_saver_COCL2_pca.RData", DABTRAM =
+    "Writeup10a_data_saver_DABTRAM_pca.RData"),
+  file_wnn = "Writeup10a_data_wnn.RData",
+  remove_unassigned_cells = TRUE,
+  verbose = 1
+)
+```
+
+## Arguments
+
+- which_files:
+
+  A vector of strings denoting which things you want to load in. The
+  choices are among: "atac", "chromvar", "lineage", "rna", "saver",
+  "fasttopics", "peakvi", "rna_dimred", "wnn".
+
+- folder_path:
+
+  Folder for all the preprocessed objects. Do not change.
+
+- file_atac:
+
+  File name for the ATAC counts. Do not change.
+
+- file_chromvar:
+
+  Vector of file name for the chromVar analysis on each
+  treatment-timepoint (7 of them). Do not change.
+
+- file_empty:
+
+  File name for the base file. Do not change.
+
+- file_fasttopics:
+
+  Vector of file name for the fastTopic analysis on each treatment arms
+  and their UMAPs (3 of them). Do not change.
+
+- file_fatepotential:
+
+  File name for the fate potential fits. Do not change.
+
+- file_lineage:
+
+  File name for the Lineage gRNA counts. Do not change.
+
+- file_peakvi:
+
+  Vector of file name for the peakVI analysis on each treatment arms and
+  their UMAPs (4 of them). Do not change.
+
+- file_rna:
+
+  File name for the RNA counts. Do not change.
+
+- file_rna_dimred:
+
+  File name for the PCA and UMAP on the RNA counts. Do not change.
+
+- file_saver:
+
+  File name for the SAVER analysis on the RNA counts. Do not change.
+
+- file_saver_treatment:
+
+  File name for the SAVER treatment-specific PCA. Do not change.
+
+- file_wnn:
+
+  File name for the WNN analysis. Do not change.
+
+- remove_unassigned_cells:
+
+  boolean, on whether to include the cells that do not have an assigned
+  lineage
+
+- verbose:
+
+  positive integer
+
+## Value
+
+a Seurat object
