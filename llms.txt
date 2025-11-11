@@ -2,6 +2,13 @@
 
 `{r, include = FALSE} knitr::opts_chunk$set( collapse = TRUE, comment = "#>" )`
 
+- R Package: To see the CYFER method and understand its implementation,
+  please see <https://github.com/nancyrzhanglab/multiomeFate>.
+- Vignette: To see examples of how to use CYFER, please see
+  <https://nancyrzhanglab.github.io/multiomeFate/articles/simulation.html>.
+- Reproducibility: To reproduce the analyses in our manuscript, please
+  see <https://github.com/nancyrzhanglab/multiomeFate_analysis>.
+
 This repository contains all the functions to perform CYFER and the
 downstream analysis, for the paper “Temporal and Clonal Resolution of
 Cellular Evolution Under Stress”. See the companion GitHub package
