@@ -26,3 +26,4 @@ Suggests:
     testthat
 VignetteBuilder: knitr
 RoxygenNote: 7.3.3
+URL: https://nancyrzhanglab.github.io/multiomeFate/
