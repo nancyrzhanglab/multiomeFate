@@ -5,7 +5,7 @@
 - R Package: To see the CYFER method and understand its implementation,
   please see <https://github.com/nancyrzhanglab/multiomeFate>.
 - Vignette: To see examples of how to use CYFER, please see
-  <https://nancyrzhanglab.github.io/multiomeFate/articles/simulation.html>.
+  <https://nancyrzhanglab.github.io/multiomeFate/index.html>.
 - Reproducibility: To reproduce the analyses in our manuscript, please
   see <https://github.com/nancyrzhanglab/multiomeFate_analysis>.
 
