@@ -3,6 +3,7 @@ title: "Simulation"
 output: 
   rmarkdown::html_vignette:
     df_print: "kable"
+    mathjax: default
 vignette: >
   %\VignetteIndexEntry{Simulation}
   %\VignetteEngine{knitr::rmarkdown}
