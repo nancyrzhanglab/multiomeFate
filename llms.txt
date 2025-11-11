@@ -1,7 +1,5 @@
 # Purpose
 
-`{r, include = FALSE} knitr::opts_chunk$set( collapse = TRUE, comment = "#>" )`
-
 - R Package: To see the CYFER method and understand its implementation,
   please see <https://github.com/nancyrzhanglab/multiomeFate>.
 - Vignette: To see examples of how to use CYFER, please see
