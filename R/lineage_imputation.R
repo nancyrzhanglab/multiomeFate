@@ -1,3 +1,14 @@
+#' Fit lineage imputation at a single lambda
+#'
+#' @inheritParams lineage_cv
+#' @param coefficient_initial_list A numeric vector or list of numeric vectors
+#'   of starting coefficients (names should match feature names; \code{Intercept} added if missing).
+#' @param lambda Ridge penalty weight on non-intercept coefficients.
+#' @param random_initializations Number of additional random starts.
+#' @param upper_randomness Upper cap for random initial coefficients.
+#' 
+#' @return An object of class \code{"lineage_imputation"} with \code{fit} and \code{res_list}.
+#' @export
 lineage_imputation <- function(cell_features,
                                cell_lineage,
                                coefficient_initial_list,

@@ -1,6 +1,6 @@
 Package: multiomeFate
-Title: Useful Functions for Modeling Cancer Cells
-Version: 1.0.0
+Title: CYFER, for modeling the number of progenies of cancer cells
+Version: 1.0.0.001
 Authors@R: c(person("Kevin", "Lin",  role = c("aut", "cre"), email = "kzlin@uw.edu"),
     person("Xinyi", "Chen", role = "aut"))
 Description: Tools for multiome fate prediction in cancer cells.
@@ -16,11 +16,13 @@ Imports:
     cowplot,
     ggplot2,
     ggrepel,
-    ggtern,
     scCustomize,
     plyr,
     rlang
 Suggests:
-    testthat,
-    numDeriv
-RoxygenNote: 7.3.2
+    knitr,
+    numDeriv,
+    rmarkdown,
+    testthat
+VignetteBuilder: knitr
+RoxygenNote: 7.3.3

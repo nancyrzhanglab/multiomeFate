@@ -1,3 +1,13 @@
+#' Fit lineage imputation along a lambda path
+#' 
+#' This function calls \code{lineage_imputation()} for a sequence of lambdas.
+#'
+#' @inheritParams lineage_cv
+#' @param lambda_max,lambda_min Bounds used when computing an internal \code{lambda_initial}.
+#' @param multipler Scaling factor for the internal \code{lambda_initial} heuristic.
+#' 
+#' @return A list with \code{fit_list} (solution estimated by \code{lineage_imputation()} per lambda) and \code{lambda_sequence}.
+#' @export
 lineage_imputation_sequence <- function(cell_features,
                                         cell_lineage,
                                         lineage_future_count,

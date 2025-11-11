@@ -122,10 +122,8 @@ generate_simulation_plastic <- function(embedding_mat,
 
   # compute gamma if it's NA
   if(is.na(gamma)){
-    # kmean_res <- suppressWarnings(stats::kmeans(x = cell_contribution_truth, 
-    #                                             centers = num_lineages))
-    # lineage_mean_vec <- sort(as.numeric(kmean_res$centers), decreasing = TRUE)
-    lineage_mean_vec <- stats::quantile(cell_contribution_truth, probs = seq(1, 0, length.out = num_lineages))
+    lineage_mean_vec <- stats::quantile(cell_contribution_truth, 
+                                        probs = seq(1, 0, length.out = num_lineages))
     sd_val <- sd_val/4
   } else {
     lineage_mean_vec <- rep(mean_val, length = num_lineages)
