@@ -1,25 +1,25 @@
-#' Finalize lineage imputation after cross validation
-#' 
-#' This function is used after running \code{multiomeFate::lineage_cv()}.
+#' Finalize CYFER after cross-validation
+#'
+#' This function is used after running \code{multiomeFate::cyfer()}.
 #' Chooses \code{lambda} by minimizing the median held-out objective across folds,
 #' then refits once on all cells at the chosen \code{lambda}.
 #'
-#' @inheritParams lineage_cv
-#' @param fit_res This is the output of \code{lineage_cv()}. 
-#' 
+#' @inheritParams cyfer
+#' @param fit_res This is the output of \code{cyfer()}.
+#'
 #' @returns A list with the following elements: \code{cell_imputed_score} (a
 #' vector of length \code{nrow(cell_features)}) that denotes the predicted
 #' progenies spawning from each particular cell, \code{coefficient_vec} (the
-#' coefficient vector of lenght \code{ncol(cell_features)+1}) that denotes
+#' coefficient vector of length \code{ncol(cell_features)+1}) that denotes
 #' the coefficients in the GLM, \code{lambda} (the chosen parameter after
 #' cross-validation), and \code{lineage_imputed_count} (the vector of length
-#' \code{lineage_future_count} that denotes the number of predicted cells 
-#' at the future timepoint in each lineage).
+#' \code{lineage_future_count} that denotes the number of predicted cells
+#' at the future time point in each lineage).
 #' @export
-lineage_cv_finalize <- function(cell_features,
-                                cell_lineage,
-                                fit_res,
-                                lineage_future_count){
+cyfer_finalize <- function(cell_features,
+                           cell_lineage,
+                           fit_res,
+                           lineage_future_count){
   test_vec <- sapply(fit_res, function(x){x$test_loglik})
   test_quantile <- apply(test_vec, 1, function(vec){stats::median(vec)})
   lambda_sequence <- fit_res[[1]]$train_fit$lambda_sequence

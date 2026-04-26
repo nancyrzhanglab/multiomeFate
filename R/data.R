@@ -48,7 +48,7 @@
 #'   \code{.search_for_priming_parameters()} returned \code{coefficient_vec}
 #'   and \code{coefficient_intercept}. The intercept was decreased in small steps
 #'   until the expected total number of descendants across all cells matched a
-#'   target size (chosen from a later timepoint, e.g. \code{"week5_COCL2"}), using
+#'   target size (chosen from a later time point, e.g. \code{"week5_COCL2"}), using
 #'   \code{.compute_mean_total_cells()}.
 #'
 #' \item Assigned cells to lineages with \code{.assign_lineages_priming()},
@@ -77,8 +77,8 @@
 #'
 #' \strong{Intended use.}
 #' \itemize{
-#'   \item Quick-start examples for \code{\link{lineage_cv}},
-#'     \code{\link{lineage_cv_finalize}}, and \code{\link{lineage_imputation_sequence}}.
+#'   \item Quick-start examples for \code{\link{cyfer}},
+#'     \code{\link{cyfer_finalize}}, and \code{\link{lineage_imputation_sequence}}.
 #'   \item Unit tests where a small but structured dataset is helpful.
 #' }
 #'
@@ -91,7 +91,7 @@
 #' }
 #'
 #' @seealso
-#' \code{\link{lineage_cv}}, \code{\link{lineage_cv_finalize}},
+#' \code{\link{cyfer}}, \code{\link{cyfer_finalize}},
 #' \code{\link{lineage_imputation_sequence}}
 #'
 #' @examples
@@ -102,18 +102,16 @@
 #' # Minimal end-to-end example:
 #' with(priming_simulation, {
 #'   set.seed(10)
-#'   cv <- lineage_cv(
+#'   cv <- cyfer(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
-#'     future_timepoint = "future",
 #'     lineage_future_count = lineage_future_count,
 #'     lambda_initial = NA,
 #'     lambda_sequence_length = 20,
-#'     tab_mat = tab_mat,
 #'     num_folds = 5,
 #'     verbose = 1
 #'   )
-#'   fit <- lineage_cv_finalize(
+#'   fit <- cyfer_finalize(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
 #'     fit_res = cv,
@@ -202,8 +200,8 @@
 #'
 #' \strong{Intended use.}
 #' \itemize{
-#'   \item Quick-start examples for \code{\link{lineage_cv}},
-#'     \code{\link{lineage_cv_finalize}}, and \code{\link{lineage_imputation_sequence}}.
+#'   \item Quick-start examples for \code{\link{cyfer}},
+#'     \code{\link{cyfer_finalize}}, and \code{\link{lineage_imputation_sequence}}.
 #'   \item Unit tests where a small but structured dataset is helpful.
 #' }
 #'
@@ -216,7 +214,7 @@
 #' }
 #'
 #' @seealso
-#' \code{\link{lineage_cv}}, \code{\link{lineage_cv_finalize}},
+#' \code{\link{cyfer}}, \code{\link{cyfer_finalize}},
 #' \code{\link{lineage_imputation_sequence}}
 #'
 #' @examples
@@ -227,18 +225,16 @@
 #' # Minimal end-to-end example:
 #' with(plastic_simulation, {
 #'   set.seed(10)
-#'   cv <- lineage_cv(
+#'   cv <- cyfer(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
-#'     future_timepoint = "future",
 #'     lineage_future_count = lineage_future_count,
 #'     lambda_initial = NA,
 #'     lambda_sequence_length = 20,
-#'     tab_mat = tab_mat,
 #'     num_folds = 5,
 #'     verbose = 1
 #'   )
-#'   fit <- lineage_cv_finalize(
+#'   fit <- cyfer_finalize(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
 #'     fit_res = cv,

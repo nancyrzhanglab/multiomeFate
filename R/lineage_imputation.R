@@ -1,6 +1,6 @@
 #' Fit lineage imputation at a single lambda
 #'
-#' @inheritParams lineage_cv
+#' @inheritParams cyfer
 #' @param coefficient_initial_list A numeric vector or list of numeric vectors
 #'   of starting coefficients (names should match feature names; \code{Intercept} added if missing).
 #' @param lambda Ridge penalty weight on non-intercept coefficients.

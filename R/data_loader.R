@@ -1,4 +1,16 @@
-#' Data loader designed for the paper 
+# If the DimReduc object references an assay not present in the Seurat object,
+# update assay.used to the first available non-Empty assay. This prevents
+# "Cannot find assay 'RNA'" errors when loading dimreductions without RNA.
+.fix_dimreduc_assay <- function(dr, seurat_obj) {
+  if (!inherits(dr, "DimReduc")) return(dr)
+  available <- setdiff(Seurat::Assays(seurat_obj), "Empty")
+  if (!dr@assay.used %in% Seurat::Assays(seurat_obj)) {
+    dr@assay.used <- if (length(available) > 0) available[1] else ""
+  }
+  dr
+}
+
+#' Data loader designed for the paper
 #' 
 #' Even if \code{remove_unassigned_cells} is \code{FALSE}, all cells have a posterior of a lineage above 0.5
 #' The reason some cells do not have a lineage is because during the calculations,
@@ -100,8 +112,8 @@ data_loader <- function(
       print("Loading Saver")
       load(paste0(folder_path, file_saver))
       all_data[["Saver"]] <- all_data_saver
-      all_data[["Saver.pca"]] <- all_data_saver_pca
-      all_data[["Saver.umap"]] <- all_data_saver_umap
+      all_data[["Saver.pca"]] <- .fix_dimreduc_assay(all_data_saver_pca, all_data)
+      all_data[["Saver.umap"]] <- .fix_dimreduc_assay(all_data_saver_umap, all_data)
     }
     
     if(assay == "lineage"){
@@ -130,54 +142,59 @@ data_loader <- function(
     if(dimred == "rna_dimred"){
       print("Loading RNA dimred")
       load(paste0(folder_path, file_rna_dimred))
-      all_data[["pca"]] <- all_data_pca
-      all_data[["umap"]] <- all_data_umap
+      all_data[["pca"]] <- .fix_dimreduc_assay(all_data_pca, all_data)
+      all_data[["umap"]] <- .fix_dimreduc_assay(all_data_umap, all_data)
     }
-    
+
     if(dimred == "wnn"){
       print("Loading WNN")
       load(paste0(folder_path, file_wnn))
-      all_data[["wnn.umap"]] <- all_data_wnn
+      all_data[["wnn.umap"]] <- .fix_dimreduc_assay(all_data_wnn, all_data)
     }
-    
+
     if(dimred == "peakvi"){
       print("Loading PeakVI")
       stopifnot(length(names(file_peakvi)) > 0)
-      
+
       for(kk in 1:length(file_peakvi)){
         treatment <- names(file_peakvi)[kk]
         print(paste0("Loading PeakVI: ", treatment))
-        
+
         load(paste0(folder_path, file_peakvi[kk]))
-        all_data[[paste0("peakVI.", treatment)]] <- eval(parse(text = paste0("all_data_peakVI_", treatment)))
-        all_data[[paste0("pVI.", treatment, ".umap")]] <- eval(parse(text = paste0("all_data_pVI_", treatment, "_umap")))
+        dr1 <- eval(parse(text = paste0("all_data_peakVI_", treatment)))
+        dr2 <- eval(parse(text = paste0("all_data_pVI_", treatment, "_umap")))
+        all_data[[paste0("peakVI.", treatment)]] <- .fix_dimreduc_assay(dr1, all_data)
+        all_data[[paste0("pVI.", treatment, ".umap")]] <- .fix_dimreduc_assay(dr2, all_data)
       }
     }
-    
+
     if(dimred == "fasttopics"){
       print("Loading fastTopics")
       stopifnot(length(names(file_fasttopics)) > 0)
-      
+
       for(kk in 1:length(file_fasttopics)){
         treatment <- names(file_fasttopics)[kk]
         print(paste0("Loading fastTopics: ", treatment))
-        
+
         load(paste0(folder_path, file_fasttopics[kk]))
-        all_data[[paste0("fasttopic.", treatment)]] <- eval(parse(text = paste0("all_data_fasttopic_", treatment)))
-        all_data[[paste0("ft.", treatment, ".umap")]] <- eval(parse(text = paste0("all_data_ft_", treatment, "_umap")))
+        dr1 <- eval(parse(text = paste0("all_data_fasttopic_", treatment)))
+        dr2 <- eval(parse(text = paste0("all_data_ft_", treatment, "_umap")))
+        all_data[[paste0("fasttopic.", treatment)]] <- .fix_dimreduc_assay(dr1, all_data)
+        all_data[[paste0("ft.", treatment, ".umap")]] <- .fix_dimreduc_assay(dr2, all_data)
       }
     }
-    
+
     if(dimred == "saver_treatment"){
       print("Loading Saver for treatment-specific PCAs")
       stopifnot(length(names(file_saver_treatment)) > 0)
-      
+
       for(kk in 1:length(file_saver_treatment)){
         treatment <- names(file_saver_treatment)[kk]
         print(paste0("Loading Saver PCA: ", treatment))
-        
+
         load(paste0(folder_path, file_saver_treatment[kk]))
-        all_data[[paste0("Saver.", treatment, ".pca")]] <- eval(parse(text = paste0("all_data_saver_", treatment, "_pca")))
+        dr1 <- eval(parse(text = paste0("all_data_saver_", treatment, "_pca")))
+        all_data[[paste0("Saver.", treatment, ".pca")]] <- .fix_dimreduc_assay(dr1, all_data)
       }
     }
   }

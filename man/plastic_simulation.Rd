@@ -76,8 +76,8 @@ Plastic simulation dataset (15 lineages)
 
 \strong{Intended use.}
 \itemize{
-  \item Quick-start examples for \code{\link{lineage_cv}},
-    \code{\link{lineage_cv_finalize}}, and \code{\link{lineage_imputation_sequence}}.
+  \item Quick-start examples for \code{\link{cyfer}},
+    \code{\link{cyfer_finalize}}, and \code{\link{lineage_imputation_sequence}}.
   \item Unit tests where a small but structured dataset is helpful.
 }
 
@@ -97,18 +97,16 @@ str(plastic_simulation)
 # Minimal end-to-end example:
 with(plastic_simulation, {
   set.seed(10)
-  cv <- lineage_cv(
+  cv <- cyfer(
     cell_features = cell_features,
     cell_lineage  = cell_lineage,
-    future_timepoint = "future",
     lineage_future_count = lineage_future_count,
     lambda_initial = NA,
     lambda_sequence_length = 20,
-    tab_mat = tab_mat,
     num_folds = 5,
     verbose = 1
   )
-  fit <- lineage_cv_finalize(
+  fit <- cyfer_finalize(
     cell_features = cell_features,
     cell_lineage  = cell_lineage,
     fit_res = cv,
@@ -123,7 +121,7 @@ with(plastic_simulation, {
 
 }
 \seealso{
-\code{\link{lineage_cv}}, \code{\link{lineage_cv_finalize}},
+\code{\link{cyfer}}, \code{\link{cyfer_finalize}},
 \code{\link{lineage_imputation_sequence}}
 }
 \keyword{datasets}

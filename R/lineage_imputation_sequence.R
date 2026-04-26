@@ -2,7 +2,7 @@
 #' 
 #' This function calls \code{lineage_imputation()} for a sequence of lambdas.
 #'
-#' @inheritParams lineage_cv
+#' @inheritParams cyfer
 #' @param lambda_max,lambda_min Bounds used when computing an internal \code{lambda_initial}.
 #' @param multipler Scaling factor for the internal \code{lambda_initial} heuristic.
 #' 

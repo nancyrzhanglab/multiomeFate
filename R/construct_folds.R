@@ -1,10 +1,7 @@
 construct_folds <- function(cell_lineage,
-                            tab_mat,
-                            future_timepoint,
+                            lineage_future_count,
                             num_folds = 10){
-  stopifnot(future_timepoint %in% colnames(tab_mat))
-  
-  lineages_ordered <- rownames(tab_mat)[order(tab_mat[,future_timepoint], decreasing = T)]
+  lineages_ordered <- names(lineage_future_count)[order(lineage_future_count, decreasing = TRUE)]
   num_lineages <- length(lineages_ordered)
   num_per_fold <- ceiling(length(lineages_ordered)/num_folds)
   

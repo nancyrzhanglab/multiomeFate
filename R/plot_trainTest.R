@@ -9,7 +9,7 @@ plot_trainTest <- function(cv_fit_list,
                            title_size = 10,
                            title_test = "",
                            title_train = ""){
-  stopifnot(inherits(cv_fit_list, "lineage_cv"))
+  stopifnot(inherits(cv_fit_list, "cyfer"))
   
   res_train <- .prepare_trainTest_data(cv_fit_list,
                                        what = "train",

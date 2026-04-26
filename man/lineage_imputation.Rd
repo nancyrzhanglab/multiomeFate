@@ -16,13 +16,12 @@ lineage_imputation(
 )
 }
 \arguments{
-\item{cell_features}{A numeric matrix where each row represents a cell, and each 
-column represents a feature (for instance, the fastTopics scores). 
-Let \code{n} denote the number of cells (rows). 
-Please ensure there are row names for \code{cell_features} (denoting the 
-cell IDs), and column names (denoting the feature names).}
+\item{cell_features}{A numeric matrix where each row represents a cell, and each
+column represents a feature (for instance, the fastTopics scores).
+Let \code{n} denote the number of cells (rows).
+Row names (cell IDs) and column names (feature names) are required.}
 
-\item{cell_lineage}{A character or factor vector of length \code{n} where 
+\item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
 belongs to.}
 
@@ -31,7 +30,7 @@ of starting coefficients (names should match feature names; \code{Intercept} add
 
 \item{lineage_future_count}{A named numeric vector (where the names are the
 lineage names that appeared in \code{cell_lineage}) that denotes the
-number of cells at the future timepoint for each lineage.}
+number of cells at the future time point for each lineage.}
 
 \item{lambda}{Ridge penalty weight on non-intercept coefficients.}
 
@@ -39,7 +38,7 @@ number of cells at the future timepoint for each lineage.}
 
 \item{upper_randomness}{Upper cap for random initial coefficients.}
 
-\item{verbose}{A numeric, where numbers larger than 1 successively request more 
+\item{verbose}{A numeric, where numbers larger than 1 successively request more
 information to be printed out as the algorithm proceeds.}
 }
 \value{
