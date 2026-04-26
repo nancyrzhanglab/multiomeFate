@@ -4,8 +4,7 @@
 
 ### Quick API map (what each function does)
 
-- **`lineage_cv(...)`**  
-  K-fold CV over a decreasing λ-sequence produced by
+- **`cyfer(...)`** K-fold CV over a decreasing λ-sequence produced by
   [`lineage_imputation_sequence()`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation_sequence.md).
   For each fold, trains on `cell_features[-fold]` and evaluates the
   *unpenalized* objective on held-out cells (and on the train split).
@@ -18,7 +17,7 @@
     this is the objective value, not a literal log-likelihood)
   - Optional checkpointing via `savefile_tmp`.
 
-- **`lineage_cv_finalize(cell_features, cell_lineage, fit_res, lineage_future_count)`**  
+- **`cyfer_finalize(cell_features, cell_lineage, fit_res, lineage_future_count)`**
   Picks λ by minimizing the **median** across folds of `test_loglik` at
   each λ. Refits **once** on all data at the chosen λ, initializing at
   the corresponding coefficients from the first fold’s path. Returns:
@@ -60,14 +59,10 @@
   internally where needed.
 - `cell_lineage`: factor/character vector of length
   `nrow(cell_features)`, giving each cell’s lineage label.
-- `lineage_future_count`: **named** numeric vector; names are lineage
-  IDs. The code intersects `names(lineage_future_count)` with observed
-  lineages and silently drops cells/lineages that aren’t shared.
-- `tab_mat`, `future_timepoint`: numeric 2-column matrix where the rows
-  are named and are of each lineage (which appeared in ). There are two
-  columns, one for the number of cells in the current timepoint
-  (corresponding to ). The other is the number of cells in the future
-  timepoint (corresponding to ).
+- `lineage_future_count`: **named** numeric vector — names are lineage
+  IDs, values are cell counts at the future time point. The code
+  intersects `names(lineage_future_count)` with observed lineages and
+  silently drops cells/lineages that aren’t shared.
 
 ------------------------------------------------------------------------
 
@@ -134,14 +129,12 @@ head(priming_simulation$tab_mat)
 
 ``` r
 set.seed(10)
-fit_res <- multiomeFate:::lineage_cv(
+fit_res <- multiomeFate::cyfer(
   cell_features = priming_simulation$cell_features,
   cell_lineage = priming_simulation$cell_lineage,
-  future_timepoint = "future",
   lineage_future_count = priming_simulation$lineage_future_count,
   lambda_initial = 3,
   lambda_sequence_length = 10,
-  tab_mat = priming_simulation$tab_mat,
   num_folds = 2,
   verbose = 2
 )
@@ -150,7 +143,7 @@ fit_res <- multiomeFate:::lineage_cv(
 ```
 
 ``` r
-final_fit <- multiomeFate:::lineage_cv_finalize(
+final_fit <- multiomeFate::cyfer_finalize(
   cell_features = priming_simulation$cell_features,
   cell_lineage = priming_simulation$cell_lineage,
   fit_res = fit_res,
@@ -209,21 +202,19 @@ data("plastic_simulation")
 
 ``` r
 set.seed(10)
-fit_res <- multiomeFate:::lineage_cv(
+fit_res <- multiomeFate::cyfer(
   cell_features = plastic_simulation$cell_features,
   cell_lineage = plastic_simulation$cell_lineage,
-  future_timepoint = "future",
   lineage_future_count = plastic_simulation$lineage_future_count,
   lambda_initial = 3,
   lambda_sequence_length = 10,
-  tab_mat = plastic_simulation$tab_mat,
   num_folds = 2,
   verbose = 2
 )
 #> [1] "Dropping fold #1 out of 2"
 #> [1] "Dropping fold #2 out of 2"
 
-final_fit <- multiomeFate:::lineage_cv_finalize(
+final_fit <- multiomeFate::cyfer_finalize(
   cell_features = plastic_simulation$cell_features,
   cell_lineage = plastic_simulation$cell_lineage,
   fit_res = fit_res,

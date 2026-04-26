@@ -83,8 +83,8 @@ Plastic simulation dataset (15 lineages)
 **Intended use.**
 
 - Quick-start examples for
-  [`lineage_cv`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv.md),
-  [`lineage_cv_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv_finalize.md),
+  [`cyfer`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md),
+  [`cyfer_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer_finalize.md),
   and
   [`lineage_imputation_sequence`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation_sequence.md).
 
@@ -100,8 +100,8 @@ Plastic simulation dataset (15 lineages)
 
 ## See also
 
-[`lineage_cv`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv.md),
-[`lineage_cv_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv_finalize.md),
+[`cyfer`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md),
+[`cyfer_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer_finalize.md),
 [`lineage_imputation_sequence`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation_sequence.md)
 
 ## Examples
@@ -126,18 +126,16 @@ str(plastic_simulation)
 # Minimal end-to-end example:
 with(plastic_simulation, {
   set.seed(10)
-  cv <- lineage_cv(
+  cv <- cyfer(
     cell_features = cell_features,
     cell_lineage  = cell_lineage,
-    future_timepoint = "future",
     lineage_future_count = lineage_future_count,
     lambda_initial = NA,
     lambda_sequence_length = 20,
-    tab_mat = tab_mat,
     num_folds = 5,
     verbose = 1
   )
-  fit <- lineage_cv_finalize(
+  fit <- cyfer_finalize(
     cell_features = cell_features,
     cell_lineage  = cell_lineage,
     fit_res = cv,

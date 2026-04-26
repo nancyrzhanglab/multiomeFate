@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multiomeFate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0.001</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1.000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,8 +75,8 @@
 </h3>
 <ul>
 <li>
-<p><strong><code>lineage_cv(...)</code></strong><br>
-K-fold CV over a decreasing λ-sequence produced by
+<p><strong><code>cyfer(...)</code></strong> K-fold CV over a
+decreasing λ-sequence produced by
 <code><a href="../reference/lineage_imputation_sequence.html">lineage_imputation_sequence()</a></code>. For each fold, trains on
 <code>cell_features[-fold]</code> and evaluates the <em>unpenalized</em>
 objective on held-out cells (and on the train split). Returns a list
@@ -94,7 +94,7 @@ literal log-likelihood)</li>
 </ul>
 </li>
 <li>
-<p><strong><code>lineage_cv_finalize(cell_features, cell_lineage, fit_res, lineage_future_count)</code></strong><br>
+<p><strong><code>cyfer_finalize(cell_features, cell_lineage, fit_res, lineage_future_count)</code></strong>
 Picks λ by minimizing the <strong>median</strong> across folds of
 <code>test_loglik</code> at each λ. Refits <strong>once</strong> on all
 data at the chosen λ, initializing at the corresponding coefficients
@@ -153,15 +153,10 @@ IDs</strong>, <strong>colnames = feature names</strong>, no NAs. If no
 <code>nrow(cell_features)</code>, giving each cell’s lineage label.</li>
 <li>
 <code>lineage_future_count</code>: <strong>named</strong> numeric
-vector; names are lineage IDs. The code intersects
-<code>names(lineage_future_count)</code> with observed lineages and
-silently drops cells/lineages that aren’t shared.</li>
-<li>
-<code>tab_mat</code>, <code>future_timepoint</code>: numeric
-2-column matrix where the rows are named and are of each lineage (which
-appeared in ). There are two columns, one for the number of cells in the
-current timepoint (corresponding to ). The other is the number of cells
-in the future timepoint (corresponding to ).</li>
+vector — names are lineage IDs, values are cell counts at the future
+time point. The code intersects <code>names(lineage_future_count)</code>
+with observed lineages and silently drops cells/lineages that aren’t
+shared.</li>
 </ul>
 <hr>
 </div>
@@ -221,21 +216,19 @@ to 0 during evaluation) to assess generalization of the data term.</p>
 <span><span class="co">#&gt; lineage:14 144    126</span></span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
-<span><span class="va">fit_res</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">:::</span><span class="fu"><a href="../reference/lineage_cv.html">lineage_cv</a></span><span class="op">(</span></span>
+<span><span class="va">fit_res</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">::</span><span class="fu"><a href="../reference/cyfer.html">cyfer</a></span><span class="op">(</span></span>
 <span>  cell_features <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">cell_features</span>,</span>
 <span>  cell_lineage <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">cell_lineage</span>,</span>
-<span>  future_timepoint <span class="op">=</span> <span class="st">"future"</span>,</span>
 <span>  lineage_future_count <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">lineage_future_count</span>,</span>
 <span>  lambda_initial <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  lambda_sequence_length <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  tab_mat <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">tab_mat</span>,</span>
 <span>  num_folds <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fl">2</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Dropping fold #1 out of 2"</span></span>
 <span><span class="co">#&gt; [1] "Dropping fold #2 out of 2"</span></span></code></pre></div>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">final_fit</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">:::</span><span class="fu"><a href="../reference/lineage_cv_finalize.html">lineage_cv_finalize</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">final_fit</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">::</span><span class="fu"><a href="../reference/cyfer_finalize.html">cyfer_finalize</a></span><span class="op">(</span></span>
 <span>  cell_features <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">cell_features</span>,</span>
 <span>  cell_lineage <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">cell_lineage</span>,</span>
 <span>  fit_res <span class="op">=</span> <span class="va">fit_res</span>,</span>
@@ -287,21 +280,19 @@ to 0 during evaluation) to assess generalization of the data term.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"plastic_simulation"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
-<span><span class="va">fit_res</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">:::</span><span class="fu"><a href="../reference/lineage_cv.html">lineage_cv</a></span><span class="op">(</span></span>
+<span><span class="va">fit_res</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">::</span><span class="fu"><a href="../reference/cyfer.html">cyfer</a></span><span class="op">(</span></span>
 <span>  cell_features <span class="op">=</span> <span class="va">plastic_simulation</span><span class="op">$</span><span class="va">cell_features</span>,</span>
 <span>  cell_lineage <span class="op">=</span> <span class="va">plastic_simulation</span><span class="op">$</span><span class="va">cell_lineage</span>,</span>
-<span>  future_timepoint <span class="op">=</span> <span class="st">"future"</span>,</span>
 <span>  lineage_future_count <span class="op">=</span> <span class="va">plastic_simulation</span><span class="op">$</span><span class="va">lineage_future_count</span>,</span>
 <span>  lambda_initial <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  lambda_sequence_length <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  tab_mat <span class="op">=</span> <span class="va">plastic_simulation</span><span class="op">$</span><span class="va">tab_mat</span>,</span>
 <span>  num_folds <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fl">2</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Dropping fold #1 out of 2"</span></span>
 <span><span class="co">#&gt; [1] "Dropping fold #2 out of 2"</span></span>
 <span></span>
-<span><span class="va">final_fit</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">:::</span><span class="fu"><a href="../reference/lineage_cv_finalize.html">lineage_cv_finalize</a></span><span class="op">(</span></span>
+<span><span class="va">final_fit</span> <span class="op">&lt;-</span> <span class="fu">multiomeFate</span><span class="fu">::</span><span class="fu"><a href="../reference/cyfer_finalize.html">cyfer_finalize</a></span><span class="op">(</span></span>
 <span>  cell_features <span class="op">=</span> <span class="va">plastic_simulation</span><span class="op">$</span><span class="va">cell_features</span>,</span>
 <span>  cell_lineage <span class="op">=</span> <span class="va">plastic_simulation</span><span class="op">$</span><span class="va">cell_lineage</span>,</span>
 <span>  fit_res <span class="op">=</span> <span class="va">fit_res</span>,</span>

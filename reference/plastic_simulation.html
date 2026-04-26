@@ -23,7 +23,7 @@ The dataset was reduced to **15 lineages** for a fast example."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">multiomeFate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0.001</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1.000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -123,8 +123,8 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
 <span>                    future <span class="op">=</span> <span class="va">lineage_future_size_subset</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span>  </span></code></pre></div></li>
-</ol><p><strong>Intended use.</strong></p><ul><li><p>Quick-start examples for <code><a href="lineage_cv.html">lineage_cv</a></code>,
-    <code><a href="lineage_cv_finalize.html">lineage_cv_finalize</a></code>, and <code><a href="lineage_imputation_sequence.html">lineage_imputation_sequence</a></code>.</p></li>
+</ol><p><strong>Intended use.</strong></p><ul><li><p>Quick-start examples for <code><a href="cyfer.html">cyfer</a></code>,
+    <code><a href="cyfer_finalize.html">cyfer_finalize</a></code>, and <code><a href="lineage_imputation_sequence.html">lineage_imputation_sequence</a></code>.</p></li>
 <li><p>Unit tests where a small but structured dataset is helpful.</p></li>
 </ul><p><strong>Notes.</strong></p><ul><li><p>An intercept column is <em>not</em> present in <code>cell_features</code>; modeling
         functions add it automatically where required.</p></li>
@@ -133,7 +133,7 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="lineage_cv.html">lineage_cv</a></code>, <code><a href="lineage_cv_finalize.html">lineage_cv_finalize</a></code>,
+    <div class="dont-index"><p><code><a href="cyfer.html">cyfer</a></code>, <code><a href="cyfer_finalize.html">cyfer_finalize</a></code>,
 <code><a href="lineage_imputation_sequence.html">lineage_imputation_sequence</a></code></p></div>
     </div>
 
@@ -158,18 +158,16 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
 <span class="r-in"><span><span class="co"># Minimal end-to-end example:</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">plastic_simulation</span>, <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="lineage_cv.html">lineage_cv</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="cyfer.html">cyfer</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    cell_features <span class="op">=</span> <span class="va">cell_features</span>,</span></span>
 <span class="r-in"><span>    cell_lineage  <span class="op">=</span> <span class="va">cell_lineage</span>,</span></span>
-<span class="r-in"><span>    future_timepoint <span class="op">=</span> <span class="st">"future"</span>,</span></span>
 <span class="r-in"><span>    lineage_future_count <span class="op">=</span> <span class="va">lineage_future_count</span>,</span></span>
 <span class="r-in"><span>    lambda_initial <span class="op">=</span> <span class="cn">NA</span>,</span></span>
 <span class="r-in"><span>    lambda_sequence_length <span class="op">=</span> <span class="fl">20</span>,</span></span>
-<span class="r-in"><span>    tab_mat <span class="op">=</span> <span class="va">tab_mat</span>,</span></span>
 <span class="r-in"><span>    num_folds <span class="op">=</span> <span class="fl">5</span>,</span></span>
 <span class="r-in"><span>    verbose <span class="op">=</span> <span class="fl">1</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="lineage_cv_finalize.html">lineage_cv_finalize</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="cyfer_finalize.html">cyfer_finalize</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    cell_features <span class="op">=</span> <span class="va">cell_features</span>,</span></span>
 <span class="r-in"><span>    cell_lineage  <span class="op">=</span> <span class="va">cell_lineage</span>,</span></span>
 <span class="r-in"><span>    fit_res <span class="op">=</span> <span class="va">cv</span>,</span></span>

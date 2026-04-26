@@ -26,9 +26,8 @@ lineage_imputation_sequence(
 
   A numeric matrix where each row represents a cell, and each column
   represents a feature (for instance, the fastTopics scores). Let `n`
-  denote the number of cells (rows). Please ensure there are row names
-  for `cell_features` (denoting the cell IDs), and column names
-  (denoting the feature names).
+  denote the number of cells (rows). Row names (cell IDs) and column
+  names (feature names) are required.
 
 - cell_lineage:
 
@@ -39,7 +38,7 @@ lineage_imputation_sequence(
 
   A named numeric vector (where the names are the lineage names that
   appeared in `cell_lineage`) that denotes the number of cells at the
-  future timepoint for each lineage.
+  future time point for each lineage.
 
 - lambda_initial:
 

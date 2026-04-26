@@ -60,7 +60,7 @@ Priming simulation dataset (15 lineages)
     `.search_for_priming_parameters()` returned `coefficient_vec` and
     `coefficient_intercept`. The intercept was decreased in small steps
     until the expected total number of descendants across all cells
-    matched a target size (chosen from a later timepoint, e.g.
+    matched a target size (chosen from a later time point, e.g.
     `"week5_COCL2"`), using `.compute_mean_total_cells()`.
 
 3.  Assigned cells to lineages with `.assign_lineages_priming()`,
@@ -89,8 +89,8 @@ Priming simulation dataset (15 lineages)
 **Intended use.**
 
 - Quick-start examples for
-  [`lineage_cv`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv.md),
-  [`lineage_cv_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv_finalize.md),
+  [`cyfer`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md),
+  [`cyfer_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer_finalize.md),
   and
   [`lineage_imputation_sequence`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation_sequence.md).
 
@@ -106,8 +106,8 @@ Priming simulation dataset (15 lineages)
 
 ## See also
 
-[`lineage_cv`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv.md),
-[`lineage_cv_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_cv_finalize.md),
+[`cyfer`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md),
+[`cyfer_finalize`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer_finalize.md),
 [`lineage_imputation_sequence`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation_sequence.md)
 
 ## Examples
@@ -132,18 +132,16 @@ str(priming_simulation)
 # Minimal end-to-end example:
 with(priming_simulation, {
   set.seed(10)
-  cv <- lineage_cv(
+  cv <- cyfer(
     cell_features = cell_features,
     cell_lineage  = cell_lineage,
-    future_timepoint = "future",
     lineage_future_count = lineage_future_count,
     lambda_initial = NA,
     lambda_sequence_length = 20,
-    tab_mat = tab_mat,
     num_folds = 5,
     verbose = 1
   )
-  fit <- lineage_cv_finalize(
+  fit <- cyfer_finalize(
     cell_features = cell_features,
     cell_lineage  = cell_lineage,
     fit_res = cv,
