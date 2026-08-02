@@ -6,5 +6,9 @@
 ^docs$
 ^pkgdown$
 ^\.github$
+^\.githooks$
 ^\.claude$
-^CLAUDE\.md$
+^CLAUDE.*\.md$
+^HISTORY.*\.md$
+^brainstorming.*\.md$
+^additional_context$
