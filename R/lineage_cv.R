@@ -10,7 +10,8 @@
 #' Row names (cell IDs) and column names (feature names) are required.
 #' @param cell_lineage A character or factor vector of length \code{n} where
 #' element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
-#' belongs to.
+#' belongs to. Factors are coerced to character internally, so unused factor
+#' levels are harmless.
 #' @param lineage_future_count A named numeric vector (where the names are the
 #' lineage names that appeared in \code{cell_lineage}) that denotes the
 #' number of cells at the future time point for each lineage.
@@ -18,9 +19,11 @@
 #' @param lambda_sequence_length The number of lambdas to perform cross-validation on.
 #' The search starts with \code{lambda_initial} and then decays exponentially to 0.
 #' @param num_folds Number of folds to do cross-validation on. Default is \code{10}.
+#' Must be at least 2 and at most the number of distinct lineages.
 #' @param savefile_tmp Filepath to save files to. Default is \code{NULL} (no
 #' temporary save files).
 #' @param seed_number Seed value for reproducibility reasons. Default is \code{10}.
+#' Governs both the fold assignment and the optimizer's random restarts.
 #' @param verbose A numeric, where numbers larger than 1 successively request more
 #' information to be printed out as the algorithm proceeds.
 #'
@@ -42,6 +45,14 @@ cyfer <- function(cell_features,
   if (is.null(rownames(cell_features))) stop("cell_features must have row names (cell IDs)")
   if (is.null(colnames(cell_features))) stop("cell_features must have column names (feature names)")
 
+  # Subsetting a factor retains its unused levels, which would misalign it with
+  # the per-fold `lineage_future_count`. Work in character throughout.
+  cell_lineage <- as.character(cell_lineage)
+
+  # `construct_folds()` calls sample(), so the seed must be set before it runs
+  # for `seed_number` to make the fold assignment reproducible.
+  if(!is.null(seed_number)) set.seed(seed_number)
+
   tmp <- construct_folds(
     cell_lineage = cell_lineage,
     lineage_future_count = lineage_future_count,
@@ -53,7 +64,6 @@ cyfer <- function(cell_features,
   cv_fit_list <- vector("list", length = num_folds)
   names(cv_fit_list) <- names(cv_cell_list)
 
-  if(!is.null(seed_number)) set.seed(seed_number)
   for(i in 1:num_folds){
     fold <- names(cv_cell_list)[i]
     if(verbose > 0) print(paste0("Dropping fold #", i, " out of ", num_folds))

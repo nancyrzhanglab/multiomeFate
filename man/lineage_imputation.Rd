@@ -23,7 +23,8 @@ Row names (cell IDs) and column names (feature names) are required.}
 
 \item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
-belongs to.}
+belongs to. Factors are coerced to character internally, so unused factor
+levels are harmless.}
 
 \item{coefficient_initial_list}{A numeric vector or list of numeric vectors
 of starting coefficients (names should match feature names; \code{Intercept} added if missing).}

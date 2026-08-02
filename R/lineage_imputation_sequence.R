@@ -3,7 +3,9 @@
 #' This function calls \code{lineage_imputation()} for a sequence of lambdas.
 #'
 #' @inheritParams cyfer
-#' @param lambda_max,lambda_min Bounds used when computing an internal \code{lambda_initial}.
+#' @param lambda_min,lambda_max Floor and cap applied to the internal
+#'   data-driven \code{lambda_initial} heuristic. Only used when
+#'   \code{lambda_initial} is \code{NA}.
 #' @param multipler Scaling factor for the internal \code{lambda_initial} heuristic.
 #' 
 #' @return A list with \code{fit_list} (solution estimated by \code{lineage_imputation()} per lambda) and \code{lambda_sequence}.
@@ -13,7 +15,7 @@ lineage_imputation_sequence <- function(cell_features,
                                         lineage_future_count,
                                         lambda_initial = NA,
                                         lambda_max = 101, # only for controlling the initial lambda
-                                        lambda_min = 101, # only for controlling the initial lambda
+                                        lambda_min = 0.01, # only for controlling the initial lambda
                                         lambda_sequence_length = 50,
                                         multipler = 1e4,
                                         verbose = 1){
@@ -66,7 +68,7 @@ lineage_imputation_sequence <- function(cell_features,
                                         cell_lineage,
                                         lineage_future_count,
                                         lambda_max = 101,
-                                        lambda_min = 101,
+                                        lambda_min = 0.01,
                                         multipler = 10){
   
   tmp <- .lineage_cleanup(cell_features = cell_features,
@@ -87,7 +89,10 @@ lineage_imputation_sequence <- function(cell_features,
   term2 <- sum(lineage_future_count * log(lineage_current_count))
   
   lambda_initial <- -multipler*(term1 - term2)/num_lineages
-  lambda_initial <- min(max(lambda_initial, lambda_max), lambda_min)
+  # floor at lambda_min, cap at lambda_max (these were swapped, and both
+  # defaulted to 101, which collapsed the clamp to the constant 101)
+  stopifnot(lambda_min <= lambda_max)
+  lambda_initial <- min(max(lambda_initial, lambda_min), lambda_max)
   
   coefficient_initial <- rep(0, ncol(cell_features))
   names(coefficient_initial) <- colnames(cell_features)

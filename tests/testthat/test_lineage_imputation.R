@@ -319,3 +319,200 @@ test_that("lineage_imputation works can set all non-intercept terms to 0 for lar
   
   expect_true(all(abs(res$fit$coefficient_vec[-1]) <= 1e-4))
 })
+
+######################################
+## Factor-valued cell_lineage
+##
+## `cell_lineage` is documented as "character or factor". Indexing a *named*
+## vector with a factor (`lineage_future_count[cell_lineage]`) silently uses the
+## factor's integer codes rather than its labels. On a full-data fit the level
+## order happens to coincide with the sorted count vector so the result is
+## correct by accident; inside a CV fold the factor retains its unused levels
+## while lineage_future_count has been trimmed, and the lookup returns NA.
+
+test_that(".lineage_gradient gives the same answer for factor and character cell_lineage", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+
+  grad_of <- function(cell_lineage) {
+    tmp <- .lineage_cleanup(cell_features = res$cell_features,
+                            cell_lineage = cell_lineage,
+                            lineage_future_count = res$lineage_future_count)
+    .lineage_gradient(cell_features = tmp$cell_features,
+                      cell_lineage = tmp$cell_lineage,
+                      cell_lineage_idx_list = tmp$cell_lineage_idx_list,
+                      coefficient_vec = res$coefficient_vec,
+                      lambda = 0,
+                      lineage_future_count = tmp$lineage_future_count)
+  }
+
+  expect_equal(grad_of(factor(res$cell_lineage)), grad_of(res$cell_lineage))
+})
+
+test_that(".lineage_gradient is finite when cell_lineage is a factor with unused levels", {
+  # This is the cross-validation situation: subsetting a factor never drops
+  # levels, so the training factor still carries the held-out lineages.
+  set.seed(10)
+  res <- .construct_lineage_data()
+
+  held_out <- c("lin:1", "lin:2", "lin:3")
+  keep_idx <- which(!res$cell_lineage %in% held_out)
+  cell_lineage_train <- factor(res$cell_lineage)[keep_idx]
+  lineage_future_count_train <-
+    res$lineage_future_count[!names(res$lineage_future_count) %in% held_out]
+
+  expect_true(all(held_out %in% levels(cell_lineage_train)))  # levels really are retained
+
+  tmp <- .lineage_cleanup(cell_features = res$cell_features[keep_idx, , drop = FALSE],
+                          cell_lineage = cell_lineage_train,
+                          lineage_future_count = lineage_future_count_train)
+  grad <- .lineage_gradient(cell_features = tmp$cell_features,
+                            cell_lineage = tmp$cell_lineage,
+                            cell_lineage_idx_list = tmp$cell_lineage_idx_list,
+                            coefficient_vec = res$coefficient_vec,
+                            lambda = 0,
+                            lineage_future_count = tmp$lineage_future_count)
+
+  expect_false(anyNA(grad))
+  expect_true(all(is.finite(grad)))
+
+  # and it must equal the character-input answer
+  tmp_chr <- .lineage_cleanup(cell_features = res$cell_features[keep_idx, , drop = FALSE],
+                              cell_lineage = res$cell_lineage[keep_idx],
+                              lineage_future_count = lineage_future_count_train)
+  grad_chr <- .lineage_gradient(cell_features = tmp_chr$cell_features,
+                                cell_lineage = tmp_chr$cell_lineage,
+                                cell_lineage_idx_list = tmp_chr$cell_lineage_idx_list,
+                                coefficient_vec = res$coefficient_vec,
+                                lambda = 0,
+                                lineage_future_count = tmp_chr$lineage_future_count)
+  expect_equal(grad, grad_chr)
+})
+
+test_that("lineage_imputation actually moves off its starting point with a factor cell_lineage", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+
+  held_out <- c("lin:1", "lin:2", "lin:3")
+  keep_idx <- which(!res$cell_lineage %in% held_out)
+  lineage_future_count_train <-
+    res$lineage_future_count[!names(res$lineage_future_count) %in% held_out]
+  coefficient_initial <- res$coefficient_vec/2
+
+  fit <- lineage_imputation(cell_features = res$cell_features[keep_idx, , drop = FALSE],
+                            cell_lineage = factor(res$cell_lineage)[keep_idx],
+                            coefficient_initial_list = coefficient_initial,
+                            lineage_future_count = lineage_future_count_train,
+                            lambda = 0,
+                            random_initializations = 0,
+                            verbose = 0)
+
+  expect_false(isTRUE(all.equal(unname(fit$fit$coefficient_vec),
+                                unname(fit$fit$coefficient_initial))))
+})
+
+test_that("lineage_imputation gives the same fit for factor and character cell_lineage", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+  coefficient_initial <- res$coefficient_vec/2
+
+  fit_of <- function(cell_lineage) {
+    set.seed(1)
+    lineage_imputation(cell_features = res$cell_features,
+                       cell_lineage = cell_lineage,
+                       coefficient_initial_list = coefficient_initial,
+                       lineage_future_count = res$lineage_future_count,
+                       lambda = 0.1,
+                       random_initializations = 2,
+                       verbose = 0)$fit$coefficient_vec
+  }
+
+  expect_equal(fit_of(factor(res$cell_lineage)), fit_of(res$cell_lineage))
+})
+
+######################################
+## .lineage_cleanup reconciles partial mismatches
+##
+## The guard was `all(a != b)`, which is TRUE only when *every* element differs.
+## A partial mismatch -- the case the branch exists to handle -- slipped through.
+
+test_that(".lineage_cleanup drops lineages missing from lineage_future_count", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+
+  # remove one lineage from the counts; its cells should be dropped
+  lineage_future_count <- res$lineage_future_count[names(res$lineage_future_count) != "lin:1"]
+  n_dropped <- sum(res$cell_lineage == "lin:1")
+  expect_gt(n_dropped, 0)
+
+  tmp <- .lineage_cleanup(cell_features = res$cell_features,
+                          cell_lineage = res$cell_lineage,
+                          lineage_future_count = lineage_future_count)
+
+  expect_false("lin:1" %in% tmp$cell_lineage)
+  expect_equal(length(tmp$cell_lineage), length(res$cell_lineage) - n_dropped)
+  expect_equal(nrow(tmp$cell_features), length(res$cell_lineage) - n_dropped)
+  expect_setequal(names(tmp$lineage_future_count), unique(tmp$cell_lineage))
+})
+
+test_that(".lineage_cleanup drops counts for lineages absent from cell_lineage", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+
+  lineage_future_count <- c(res$lineage_future_count, "lin:999" = 5)
+
+  tmp <- .lineage_cleanup(cell_features = res$cell_features,
+                          cell_lineage = res$cell_lineage,
+                          lineage_future_count = lineage_future_count)
+
+  expect_false("lin:999" %in% names(tmp$lineage_future_count))
+  expect_setequal(names(tmp$lineage_future_count), unique(tmp$cell_lineage))
+})
+
+test_that(".lineage_gradient errors rather than returning an NA gradient", {
+  # A misalignment between cell_lineage and lineage_future_count used to yield a
+  # NaN gradient, which BFGS cannot use: optim() returned its starting value
+  # while still reporting convergence = 0.
+  set.seed(10)
+  res <- .construct_lineage_data()
+
+  tmp <- .lineage_cleanup(cell_features = res$cell_features,
+                          cell_lineage = res$cell_lineage,
+                          lineage_future_count = res$lineage_future_count)
+  # drop one lineage's count, leaving its cells behind
+  broken_count <- tmp$lineage_future_count[names(tmp$lineage_future_count) != "lin:1"]
+
+  expect_error(
+    .lineage_gradient(cell_features = tmp$cell_features,
+                      cell_lineage = tmp$cell_lineage,
+                      cell_lineage_idx_list = tmp$cell_lineage_idx_list,
+                      coefficient_vec = res$coefficient_vec,
+                      lambda = 0,
+                      lineage_future_count = broken_count),
+    "misaligned"
+  )
+})
+
+test_that(".lineage_gradient distinguishes numerical degeneracy from misalignment", {
+  # Underflow makes every scalar1 zero, so denom_vec is zero and 0/0 is NaN --
+  # with inputs that are perfectly aligned. The error must not blame the inputs.
+  set.seed(10)
+  res <- .construct_lineage_data()
+
+  tmp <- .lineage_cleanup(cell_features = res$cell_features,
+                          cell_lineage = res$cell_lineage,
+                          lineage_future_count = res$lineage_future_count)
+  coefficient_vec <- res$coefficient_vec
+  coefficient_vec[] <- -1000
+
+  expect_true(all(tmp$cell_lineage %in% names(tmp$lineage_future_count)))
+  expect_error(
+    .lineage_gradient(cell_features = tmp$cell_features,
+                      cell_lineage = tmp$cell_lineage,
+                      cell_lineage_idx_list = tmp$cell_lineage_idx_list,
+                      coefficient_vec = coefficient_vec,
+                      lambda = 0,
+                      lineage_future_count = tmp$lineage_future_count),
+    "overflow|underflow|non-finite"
+  )
+})

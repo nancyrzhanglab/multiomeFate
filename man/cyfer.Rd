@@ -24,7 +24,8 @@ Row names (cell IDs) and column names (feature names) are required.}
 
 \item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
-belongs to.}
+belongs to. Factors are coerced to character internally, so unused factor
+levels are harmless.}
 
 \item{lineage_future_count}{A named numeric vector (where the names are the
 lineage names that appeared in \code{cell_lineage}) that denotes the
@@ -35,12 +36,14 @@ number of cells at the future time point for each lineage.}
 \item{lambda_sequence_length}{The number of lambdas to perform cross-validation on.
 The search starts with \code{lambda_initial} and then decays exponentially to 0.}
 
-\item{num_folds}{Number of folds to do cross-validation on. Default is \code{10}.}
+\item{num_folds}{Number of folds to do cross-validation on. Default is \code{10}.
+Must be at least 2 and at most the number of distinct lineages.}
 
 \item{savefile_tmp}{Filepath to save files to. Default is \code{NULL} (no
 temporary save files).}
 
-\item{seed_number}{Seed value for reproducibility reasons. Default is \code{10}.}
+\item{seed_number}{Seed value for reproducibility reasons. Default is \code{10}.
+Governs both the fold assignment and the optimizer's random restarts.}
 
 \item{verbose}{A numeric, where numbers larger than 1 successively request more
 information to be printed out as the algorithm proceeds.}

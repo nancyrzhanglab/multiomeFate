@@ -34,8 +34,7 @@ lineage_imputation <- function(cell_features,
   coefficient_initial_list <- .append_intercept_term(coefficient_initial_list)
   p <- ncol(cell_features)
   
-  stopifnot(all(sort(unique(cell_lineage)) == 
-                  sort(unique(names(lineage_future_count)))),
+  stopifnot(setequal(unique(cell_lineage), names(lineage_future_count)),
             is.matrix(cell_features), nrow(cell_features) == length(cell_lineage),
             all(sapply(coefficient_initial_list, length) == ncol(cell_features)),
             sum(is.na(cell_features)) == 0,
@@ -180,9 +179,14 @@ evaluate_loglikelihood <- function(cell_features,
                              lineage_future_count,
                              verbose = 0){
   stopifnot(length(colnames(cell_features)) == ncol(cell_features))
-  
+
+  # `cell_lineage` is documented as character or factor. Coerce once, here, so
+  # that nothing downstream can index a named vector by a factor's integer codes
+  # (which silently returns the wrong element, or NA, rather than erroring).
+  cell_lineage <- as.character(cell_lineage)
+
   # some cleanup
-  if(all(sort(unique(names(lineage_future_count))) != sort(unique(cell_lineage)))){
+  if(!setequal(names(lineage_future_count), unique(cell_lineage))){
     if(verbose > 0) warning("Lineages in `lineage_future_count` are not the same as those in `cell_lineage`")
     
     uniq_lineages <- sort(intersect(unique(names(lineage_future_count)), unique(cell_lineage)))
@@ -258,10 +262,13 @@ evaluate_loglikelihood <- function(cell_features,
                               lambda,
                               lineage_future_count){
   stopifnot(colnames(cell_features) == names(coefficient_vec))
-  
+
   uniq_lineages <- names(cell_lineage_idx_list)
   num_lineages <- length(uniq_lineages)
   cell_names <- rownames(cell_features)
+  # as.character() is required: indexing a named vector by a factor uses the
+  # factor's integer codes, not its labels.
+  cell_lineage <- as.character(cell_lineage)
   lineage_future_count_full <- lineage_future_count[cell_lineage]
   
   # keep track of colnames(cell_features) that is not the intercept
@@ -278,6 +285,17 @@ evaluate_loglikelihood <- function(cell_features,
   names(denom_vec) <- uniq_lineages
   scalar2b <- denom_vec[cell_lineage]
   scalar_vec <- scalar1 - scalar2a/scalar2b
+
+  # An NA gradient is not recoverable by BFGS: optim() silently returns its
+  # starting value while still reporting convergence = 0. Fail loudly instead.
+  # Two distinct causes reach here, so name the right one.
+  if(anyNA(scalar_vec)){
+    if(!all(cell_lineage %in% names(lineage_future_count))){
+      stop("`.lineage_gradient()` produced NA: `cell_lineage` and `lineage_future_count` are misaligned")
+    }
+    stop("`.lineage_gradient()` produced a non-finite value: exp(cell_features %*% coefficient_vec) ",
+         "overflowed or underflowed. Scale `cell_features`, or use a larger lambda.")
+  }
   
   # gradient of the intercept
   res1 <- sum(scalar_vec)/num_lineages

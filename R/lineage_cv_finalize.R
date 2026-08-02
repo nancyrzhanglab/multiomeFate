@@ -20,6 +20,7 @@ cyfer_finalize <- function(cell_features,
                            cell_lineage,
                            fit_res,
                            lineage_future_count){
+  cell_lineage <- as.character(cell_lineage)
   test_vec <- sapply(fit_res, function(x){x$test_loglik})
   test_quantile <- apply(test_vec, 1, function(vec){stats::median(vec)})
   lambda_sequence <- fit_res[[1]]$train_fit$lambda_sequence

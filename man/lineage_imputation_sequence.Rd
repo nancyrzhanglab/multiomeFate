@@ -10,7 +10,7 @@ lineage_imputation_sequence(
   lineage_future_count,
   lambda_initial = NA,
   lambda_max = 101,
-  lambda_min = 101,
+  lambda_min = 0.01,
   lambda_sequence_length = 50,
   multipler = 10000,
   verbose = 1
@@ -24,7 +24,8 @@ Row names (cell IDs) and column names (feature names) are required.}
 
 \item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
-belongs to.}
+belongs to. Factors are coerced to character internally, so unused factor
+levels are harmless.}
 
 \item{lineage_future_count}{A named numeric vector (where the names are the
 lineage names that appeared in \code{cell_lineage}) that denotes the
@@ -32,7 +33,9 @@ number of cells at the future time point for each lineage.}
 
 \item{lambda_initial}{The initial value of lambda to perform cross-validation on.}
 
-\item{lambda_max, lambda_min}{Bounds used when computing an internal \code{lambda_initial}.}
+\item{lambda_min, lambda_max}{Floor and cap applied to the internal
+data-driven \code{lambda_initial} heuristic. Only used when
+\code{lambda_initial} is \code{NA}.}
 
 \item{lambda_sequence_length}{The number of lambdas to perform cross-validation on.
 The search starts with \code{lambda_initial} and then decays exponentially to 0.}
