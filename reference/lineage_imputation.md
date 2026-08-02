@@ -29,7 +29,8 @@ lineage_imputation(
 - cell_lineage:
 
   A character or factor vector of length `n` where element `i` of
-  `cell_lineage` denotes which lineage cell `i` belongs to.
+  `cell_lineage` denotes which lineage cell `i` belongs to. Factors are
+  coerced to character internally, so unused factor levels are harmless.
 
 - coefficient_initial_list:
 

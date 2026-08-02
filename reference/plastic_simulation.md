@@ -153,6 +153,6 @@ with(plastic_simulation, {
 #> [1] "Dropping fold #4 out of 5"
 #> [1] "Dropping fold #5 out of 5"
 #> lineage:13 lineage:14 lineage:16 lineage:17 lineage:18  lineage:2 
-#>  131.50902  188.91038  527.36352   88.56875  101.21394   77.38776 
+#>  134.54594  183.75544  525.19055   90.75140  104.06692   79.58526 
 # }
 ```

@@ -159,6 +159,6 @@ with(priming_simulation, {
 #> [1] "Dropping fold #4 out of 5"
 #> [1] "Dropping fold #5 out of 5"
 #>  lineage:1 lineage:12 lineage:14 lineage:15 lineage:21 lineage:29 
-#>  341.63669  136.87999  126.57522  143.76615  119.16308   89.64563 
+#>  339.74163  137.12651  125.83460  144.95379  121.54753   89.99249 
 # }
 ```

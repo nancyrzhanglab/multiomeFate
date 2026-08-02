@@ -13,7 +13,7 @@ lineage_imputation_sequence(
   lineage_future_count,
   lambda_initial = NA,
   lambda_max = 101,
-  lambda_min = 101,
+  lambda_min = 0.01,
   lambda_sequence_length = 50,
   multipler = 10000,
   verbose = 1
@@ -32,7 +32,8 @@ lineage_imputation_sequence(
 - cell_lineage:
 
   A character or factor vector of length `n` where element `i` of
-  `cell_lineage` denotes which lineage cell `i` belongs to.
+  `cell_lineage` denotes which lineage cell `i` belongs to. Factors are
+  coerced to character internally, so unused factor levels are harmless.
 
 - lineage_future_count:
 
@@ -44,9 +45,10 @@ lineage_imputation_sequence(
 
   The initial value of lambda to perform cross-validation on.
 
-- lambda_max, lambda_min:
+- lambda_min, lambda_max:
 
-  Bounds used when computing an internal `lambda_initial`.
+  Floor and cap applied to the internal data-driven `lambda_initial`
+  heuristic. Only used when `lambda_initial` is `NA`.
 
 - lambda_sequence_length:
 

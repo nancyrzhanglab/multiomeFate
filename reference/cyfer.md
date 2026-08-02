@@ -33,7 +33,8 @@ cyfer(
 - cell_lineage:
 
   A character or factor vector of length `n` where element `i` of
-  `cell_lineage` denotes which lineage cell `i` belongs to.
+  `cell_lineage` denotes which lineage cell `i` belongs to. Factors are
+  coerced to character internally, so unused factor levels are harmless.
 
 - lineage_future_count:
 
@@ -52,7 +53,8 @@ cyfer(
 
 - num_folds:
 
-  Number of folds to do cross-validation on. Default is `10`.
+  Number of folds to do cross-validation on. Default is `10`. Must be at
+  least 2 and at most the number of distinct lineages.
 
 - savefile_tmp:
 
@@ -61,7 +63,8 @@ cyfer(
 
 - seed_number:
 
-  Seed value for reproducibility reasons. Default is `10`.
+  Seed value for reproducibility reasons. Default is `10`. Governs both
+  the fold assignment and the optimizer's random restarts.
 
 - verbose:
 

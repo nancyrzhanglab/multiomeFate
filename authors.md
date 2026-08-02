@@ -9,13 +9,13 @@
 ## Citation
 
 Lin K, Chen X (2026). *multiomeFate: CYFER, for modeling the number of
-progenies of cancer cells*. R package version 1.0.1.001,
+progenies of cancer cells*. R package version 1.0.2.000,
 <https://nancyrzhanglab.github.io/multiomeFate/>.
 
     @Manual{,
       title = {multiomeFate: CYFER, for modeling the number of progenies of cancer cells},
       author = {Kevin Lin and Xinyi Chen},
       year = {2026},
-      note = {R package version 1.0.1.001},
+      note = {R package version 1.0.2.000},
       url = {https://nancyrzhanglab.github.io/multiomeFate/},
     }
