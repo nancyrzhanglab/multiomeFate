@@ -84,11 +84,13 @@ the data term.
 ## Priming simulation
 
 ``` r
+
 library(multiomeFate)
 data("priming_simulation", package = "multiomeFate")
 ```
 
 ``` r
+
 priming_simulation$cell_features[1:5,1:5]
 #>        fastTopicCOCL2_1 fastTopicCOCL2_2 fastTopicCOCL2_3 fastTopicCOCL2_4
 #> cell:1       -0.8179598       0.02240982       -0.1106094      -0.66861435
@@ -105,18 +107,21 @@ priming_simulation$cell_features[1:5,1:5]
 ```
 
 ``` r
+
 head(priming_simulation$cell_lineage)
 #> [1] "lineage:33" "lineage:1"  "lineage:15" "lineage:15" "lineage:37"
 #> [6] "lineage:37"
 ```
 
 ``` r
+
 head(priming_simulation$lineage_future_count)
 #>  lineage:1  lineage:4  lineage:7 lineage:15 lineage:12 lineage:14 
 #>        342        178        169        144        136        126
 ```
 
 ``` r
+
 head(priming_simulation$tab_mat)
 #>            now future
 #> lineage:1  221    342
@@ -128,6 +133,7 @@ head(priming_simulation$tab_mat)
 ```
 
 ``` r
+
 set.seed(10)
 fit_res <- multiomeFate::cyfer(
   cell_features = priming_simulation$cell_features,
@@ -143,6 +149,7 @@ fit_res <- multiomeFate::cyfer(
 ```
 
 ``` r
+
 final_fit <- multiomeFate::cyfer_finalize(
   cell_features = priming_simulation$cell_features,
   cell_lineage = priming_simulation$cell_lineage,
@@ -152,12 +159,14 @@ final_fit <- multiomeFate::cyfer_finalize(
 ```
 
 ``` r
+
 names(final_fit)
 #> [1] "cell_imputed_score"    "coefficient_vec"       "lambda"               
 #> [4] "lineage_imputed_count"
 ```
 
 ``` r
+
 cell_imputed_score <- as.numeric(priming_simulation$cell_features %*% final_fit$coefficient_vec[-1]) + final_fit$coefficient_vec[1]
 cell_imputed_score <- log10(exp(cell_imputed_score))
 names(cell_imputed_score) <- rownames(priming_simulation$cell_features)
@@ -197,10 +206,12 @@ plot1
 ## Plastic simulation
 
 ``` r
+
 data("plastic_simulation")
 ```
 
 ``` r
+
 set.seed(10)
 fit_res <- multiomeFate::cyfer(
   cell_features = plastic_simulation$cell_features,
@@ -223,6 +234,7 @@ final_fit <- multiomeFate::cyfer_finalize(
 ```
 
 ``` r
+
 cell_imputed_score <- as.numeric(plastic_simulation$cell_features %*% final_fit$coefficient_vec[-1]) + final_fit$coefficient_vec[1]
 cell_imputed_score <- log10(exp(cell_imputed_score))
 names(cell_imputed_score) <- rownames(plastic_simulation$cell_features)
