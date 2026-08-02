@@ -40,6 +40,14 @@ dist/
 .pytest_cache/
 .mypy_cache/
 
+# --- Local Claude / session state (kept out of the public repo) ---
+# READMEs stay tracked: README.md and .githooks/README.md are intentionally public.
+CLAUDE.md
+CLAUDE_*.md
+HISTORY_*.md
+brainstorming_*.md
+additional_context/
+
 # --- LaTeX build artifacts (keep the .tex source) ---
 *.aux
 *.log
