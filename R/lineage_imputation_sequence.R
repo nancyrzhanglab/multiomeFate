@@ -9,6 +9,11 @@
 #' @param multipler Scaling factor for the internal \code{lambda_initial} heuristic.
 #' 
 #' @return A list with \code{fit_list} (solution estimated by \code{lineage_imputation()} per lambda) and \code{lambda_sequence}.
+#' \code{lambda_sequence} starts at \code{lambda_initial} and decays
+#' exponentially to \code{0}, so it is strictly \emph{decreasing}; \code{fit_list[[i]]}
+#' is the fit at \code{lambda_sequence[i]}, warm-started from \code{fit_list[[i-1]]}.
+#' Each \code{coefficient_vec} is on the \bold{natural-log} scale --- see the
+#' "Scales" section of \code{\link{cyfer_finalize}}.
 #' @export
 lineage_imputation_sequence <- function(cell_features,
                                         cell_lineage,
@@ -69,7 +74,7 @@ lineage_imputation_sequence <- function(cell_features,
                                         lineage_future_count,
                                         lambda_max = 101,
                                         lambda_min = 0.01,
-                                        multipler = 10){
+                                        multipler = 1e4){
   
   tmp <- .lineage_cleanup(cell_features = cell_features,
                           cell_lineage = cell_lineage,
@@ -85,9 +90,13 @@ lineage_imputation_sequence <- function(cell_features,
   future_total <- sum(lineage_future_count)
   current_total <- sum(lineage_current_count)
   
-  term1 <- future_total*(1-log(future_total/current_total))
-  term2 <- sum(lineage_future_count * log(lineage_current_count))
-  
+  # +1 smoothing throughout: an all-zero `lineage_future_count` would otherwise
+  # give log(0) = -Inf here and 0*Inf = NaN in `lambda_initial`, both of which
+  # travel silently into `optim`
+  log_growth_ratio <- log((future_total+1)/(current_total+1))
+  term1 <- future_total*(1-log_growth_ratio)
+  term2 <- sum(lineage_future_count * log1p(lineage_current_count))
+
   lambda_initial <- -multipler*(term1 - term2)/num_lineages
   # floor at lambda_min, cap at lambda_max (these were swapped, and both
   # defaulted to 101, which collapsed the clamp to the constant 101)
@@ -97,7 +106,7 @@ lineage_imputation_sequence <- function(cell_features,
   coefficient_initial <- rep(0, ncol(cell_features))
   names(coefficient_initial) <- colnames(cell_features)
   stopifnot("Intercept" %in% names(coefficient_initial))
-  coefficient_initial["Intercept"] <- log(future_total/current_total)
+  coefficient_initial["Intercept"] <- log_growth_ratio
   
   list(coefficient_initial = coefficient_initial,
        lambda_initial = lambda_initial)

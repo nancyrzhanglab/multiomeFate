@@ -4,13 +4,29 @@
 \alias{cyfer_finalize}
 \title{Finalize CYFER after cross-validation}
 \usage{
-cyfer_finalize(cell_features, cell_lineage, fit_res, lineage_future_count)
+cyfer_finalize(
+  cell_features,
+  cell_lineage,
+  fit_res,
+  lineage_future_count,
+  seed_number = 10
+)
 }
 \arguments{
 \item{cell_features}{A numeric matrix where each row represents a cell, and each
 column represents a feature (for instance, the fastTopics scores).
 Let \code{n} denote the number of cells (rows).
-Row names (cell IDs) and column names (feature names) are required.}
+Row names (cell IDs) and column names (feature names) are required.
+Do \bold{not} supply an intercept column, and more generally no constant
+column: the intercept is added internally (by \code{.lineage_cleanup()} when
+fitting, and by \code{cyfer_finalize()} when scoring). A constant column you
+supply yourself is therefore duplicated, making the design collinear --- and a
+column already named \code{Intercept} produces two columns of that name.
+\code{cyfer_finalize()} errors on any constant column for this reason;
+\code{cyfer()} tolerates one, so the error may not appear until the finalize
+step. It is also conventional to \code{scale()} the features before fitting,
+both to keep \code{exp()} away from overflow and to make the ridge penalty
+comparable across features.}
 
 \item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
@@ -22,19 +38,66 @@ levels are harmless.}
 \item{lineage_future_count}{A named numeric vector (where the names are the
 lineage names that appeared in \code{cell_lineage}) that denotes the
 number of cells at the future time point for each lineage.}
+
+\item{seed_number}{Seed value for reproducibility reasons. Default is \code{10}.
+Governs the optimizer's random restarts in the final refit. Set to \code{NULL}
+to leave the random number stream untouched.}
 }
 \value{
 A list with the following elements: \code{cell_imputed_score} (a
-vector of length \code{nrow(cell_features)}) that denotes the predicted
+named vector of length \code{nrow(cell_features)}) that denotes the predicted
 progenies spawning from each particular cell, \code{coefficient_vec} (the
 coefficient vector of length \code{ncol(cell_features)+1}) that denotes
 the coefficients in the GLM, \code{lambda} (the chosen parameter after
 cross-validation), and \code{lineage_imputed_count} (the vector of length
 \code{lineage_future_count} that denotes the number of predicted cells
 at the future time point in each lineage).
+
+Every cell in \code{cell_features} is scored and named by its row name, even
+cells whose lineage is absent from \code{lineage_future_count}. Such cells are
+dropped from the refit (they carry no future count to fit against) but the
+fitted coefficients still apply to them, so the returned score covers every
+row that was passed in.
 }
 \description{
 This function is used after running \code{multiomeFate::cyfer()}.
 Chooses \code{lambda} by minimizing the median held-out objective across folds,
 then refits once on all cells at the chosen \code{lambda}.
 }
+\section{Scales --- exp() versus 10^()}{
+
+
+Three scales are in play here and they are easy to confuse. The GLM's linear
+predictor is on the \bold{natural-log} scale,
+
+\deqn{Z_i = \beta_0 + X_{i,\cdot}^\top \beta,}{Z_i = beta_0 + x_i' beta,}
+
+so \code{coefficient_vec} is on that scale, and cell \code{i}'s expected
+number of progeny at the future time point is \code{exp(Z_i)} --- with
+\code{exp()}, not \code{10^}.
+
+The two vectors this function returns then sit on \emph{different} scales,
+deliberately:
+
+\describe{
+  \item{\code{cell_imputed_score}}{\bold{log10} of the expected progeny count,
+    that is \code{log10(exp(Z_i))}. This is the per-cell fate potential the
+    paper reports, and what the plotting helpers and the downstream
+    selection/adaptation indices expect.}
+  \item{\code{lineage_imputed_count}}{a count on the \bold{natural} scale,
+    \code{sum(exp(Z_i))} over the cells of the lineage, directly comparable to
+    \code{lineage_future_count}.}
+}
+
+Because the cell scores have already been converted to base 10, the identity
+linking the two uses \code{10^} and not \code{exp()}:
+
+\preformatted{lineage_imputed_count[l] == sum(10^cell_imputed_score[cells in l])}
+
+Applying \code{exp()} to \code{cell_imputed_score} is the mistake this note
+exists to prevent: it computes \code{exp(log10(exp(Z_i)))}, which is a count on
+no scale at all and is silently plausible-looking. To go back:
+\code{10^cell_imputed_score} recovers the expected progeny count, and
+\code{log(10)*cell_imputed_score} recovers the linear predictor \code{Z_i}.
+}
+

@@ -20,7 +20,17 @@ cyfer(
 \item{cell_features}{A numeric matrix where each row represents a cell, and each
 column represents a feature (for instance, the fastTopics scores).
 Let \code{n} denote the number of cells (rows).
-Row names (cell IDs) and column names (feature names) are required.}
+Row names (cell IDs) and column names (feature names) are required.
+Do \bold{not} supply an intercept column, and more generally no constant
+column: the intercept is added internally (by \code{.lineage_cleanup()} when
+fitting, and by \code{cyfer_finalize()} when scoring). A constant column you
+supply yourself is therefore duplicated, making the design collinear --- and a
+column already named \code{Intercept} produces two columns of that name.
+\code{cyfer_finalize()} errors on any constant column for this reason;
+\code{cyfer()} tolerates one, so the error may not appear until the finalize
+step. It is also conventional to \code{scale()} the features before fitting,
+both to keep \code{exp()} away from overflow and to make the ridge penalty
+comparable across features.}
 
 \item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
@@ -53,6 +63,17 @@ A list with the number of elements corresponding to \code{num_folds}.
 Each element of this list contains: \code{test_loglik} (the negative log-likelihood
 on the held-out lineages), \code{train_loglik} (the negative log-likelihood on the trained
 lineages), and \code{train_fit} (the actual fit, after using the \code{lineage_imputation_sequence()}).
+
+\code{test_loglik} and \code{train_loglik} are the \emph{unpenalized} objective
+evaluated at each lambda along \code{train_fit$lambda_sequence} (lower is
+better), not literal log-likelihoods. Pass the result to
+\code{\link{cyfer_finalize}} to select lambda and score the cells; note that
+the per-cell scores it returns are on the log10 scale while the coefficients
+here are on the natural-log scale.
+
+Lineages named in \code{lineage_future_count} that have no cells in
+\code{cell_lineage} are dropped before the folds are built, so they neither
+occupy a fold nor count towards \code{num_folds}.
 }
 \description{
 Runs K-fold CV over a decreasing sequence of \code{lambda} values produced by

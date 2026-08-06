@@ -20,7 +20,17 @@ lineage_imputation_sequence(
 \item{cell_features}{A numeric matrix where each row represents a cell, and each
 column represents a feature (for instance, the fastTopics scores).
 Let \code{n} denote the number of cells (rows).
-Row names (cell IDs) and column names (feature names) are required.}
+Row names (cell IDs) and column names (feature names) are required.
+Do \bold{not} supply an intercept column, and more generally no constant
+column: the intercept is added internally (by \code{.lineage_cleanup()} when
+fitting, and by \code{cyfer_finalize()} when scoring). A constant column you
+supply yourself is therefore duplicated, making the design collinear --- and a
+column already named \code{Intercept} produces two columns of that name.
+\code{cyfer_finalize()} errors on any constant column for this reason;
+\code{cyfer()} tolerates one, so the error may not appear until the finalize
+step. It is also conventional to \code{scale()} the features before fitting,
+both to keep \code{exp()} away from overflow and to make the ridge penalty
+comparable across features.}
 
 \item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
@@ -47,6 +57,11 @@ information to be printed out as the algorithm proceeds.}
 }
 \value{
 A list with \code{fit_list} (solution estimated by \code{lineage_imputation()} per lambda) and \code{lambda_sequence}.
+\code{lambda_sequence} starts at \code{lambda_initial} and decays
+exponentially to \code{0}, so it is strictly \emph{decreasing}; \code{fit_list[[i]]}
+is the fit at \code{lambda_sequence[i]}, warm-started from \code{fit_list[[i-1]]}.
+Each \code{coefficient_vec} is on the \bold{natural-log} scale --- see the
+"Scales" section of \code{\link{cyfer_finalize}}.
 }
 \description{
 This function calls \code{lineage_imputation()} for a sequence of lambdas.

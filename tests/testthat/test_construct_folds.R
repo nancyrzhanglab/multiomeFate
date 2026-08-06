@@ -58,20 +58,39 @@ test_that("construct_folds partitions lineages across a grid of sizes and fold c
 })
 
 ## Bug B3: `sample(x)` on a length-1 vector returns a permutation of `1:x`, not `x`.
-## This fires when the final block holds exactly one lineage, and corrupts the
-## ordering by recycling one lineage name across many slots.
+## This fires when the final *shuffle block* holds exactly one lineage, and
+## corrupts the ordering by recycling one lineage name across many slots.
+##
+## L = 7, num_folds = 3 -> num_per_fold = ceiling(7/3) = 3. Despite its name,
+## `num_per_fold` is the shuffle block width (and the max fold size), not the
+## fold size: the blocks are 1-3, 4-6, 7-7, while the round-robin deal gives
+## fold sizes (3, 2, 2) -- fold 1 takes positions 1,4,7; fold 2 takes 2,5;
+## fold 3 takes 3,6. It is the width-1 trailing block that triggers B3.
+##
+## Seeds matter here. The buggy line silently assigns only the first element of
+## an over-long replacement, so it corrupts the ordering only when that first
+## element is not already the trailing lineage -- roughly 6 seeds in 7. Under
+## set.seed(1) the buggy code happens to reproduce the correct ordering and the
+## partition assertions pass, so pin the warning with expect_silent() and sweep
+## a range of seeds rather than trusting any single one.
 test_that("construct_folds is correct when a shuffle block holds a single lineage", {
-  # L = 7, num_folds = 3 -> num_per_fold = 3, blocks are 1-3, 4-6, 7-7
   fx <- .fold_fixture(L = 7)
 
-  set.seed(1)
-  res <- construct_folds(cell_lineage = fx$cell_lineage,
-                         lineage_future_count = fx$lineage_future_count,
-                         num_folds = 3)
-  assigned <- unlist(res$fold_lineage_list, use.names = FALSE)
+  for (s in 1:20) {
+    label <- paste("seed", s)
+    set.seed(s)
+    expect_silent(
+      res <- construct_folds(cell_lineage = fx$cell_lineage,
+                             lineage_future_count = fx$lineage_future_count,
+                             num_folds = 3)
+    )
+    assigned <- unlist(res$fold_lineage_list, use.names = FALSE)
 
-  expect_equal(sort(assigned), sort(fx$lineage_names))
-  expect_equal(anyDuplicated(assigned), 0L)
+    expect_equal(sort(assigned), sort(fx$lineage_names), info = label)
+    expect_equal(anyDuplicated(assigned), 0L, info = label)
+    expect_equal(sort(unname(lengths(res$fold_lineage_list))),
+                 c(2L, 2L, 3L), info = label)
+  }
 })
 
 test_that("construct_folds keeps the smallest-count lineage in a fold", {

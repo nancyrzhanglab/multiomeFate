@@ -23,6 +23,10 @@ construct_folds <- function(cell_lineage,
   }
 
   lineages_ordered <- lineage_names[order(lineage_future_count, decreasing = TRUE)]
+  # Misnomer kept for continuity: this is the *maximum* fold size, and below it
+  # doubles as the shuffle block width. Because the deal is round-robin, actual
+  # fold sizes are floor() or ceiling() of num_lineages/num_folds -- e.g. 7
+  # lineages into 3 folds gives sizes (3, 2, 2), not (3, 3, 1).
   num_per_fold <- ceiling(num_lineages/num_folds)
 
   # Shuffle within each contiguous block of `num_per_fold` lineages, so the

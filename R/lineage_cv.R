@@ -8,6 +8,16 @@
 #' column represents a feature (for instance, the fastTopics scores).
 #' Let \code{n} denote the number of cells (rows).
 #' Row names (cell IDs) and column names (feature names) are required.
+#' Do \bold{not} supply an intercept column, and more generally no constant
+#' column: the intercept is added internally (by \code{.lineage_cleanup()} when
+#' fitting, and by \code{cyfer_finalize()} when scoring). A constant column you
+#' supply yourself is therefore duplicated, making the design collinear --- and a
+#' column already named \code{Intercept} produces two columns of that name.
+#' \code{cyfer_finalize()} errors on any constant column for this reason;
+#' \code{cyfer()} tolerates one, so the error may not appear until the finalize
+#' step. It is also conventional to \code{scale()} the features before fitting,
+#' both to keep \code{exp()} away from overflow and to make the ridge penalty
+#' comparable across features.
 #' @param cell_lineage A character or factor vector of length \code{n} where
 #' element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
 #' belongs to. Factors are coerced to character internally, so unused factor
@@ -31,6 +41,17 @@
 #' Each element of this list contains: \code{test_loglik} (the negative log-likelihood
 #' on the held-out lineages), \code{train_loglik} (the negative log-likelihood on the trained
 #' lineages), and \code{train_fit} (the actual fit, after using the \code{lineage_imputation_sequence()}).
+#'
+#' \code{test_loglik} and \code{train_loglik} are the \emph{unpenalized} objective
+#' evaluated at each lambda along \code{train_fit$lambda_sequence} (lower is
+#' better), not literal log-likelihoods. Pass the result to
+#' \code{\link{cyfer_finalize}} to select lambda and score the cells; note that
+#' the per-cell scores it returns are on the log10 scale while the coefficients
+#' here are on the natural-log scale.
+#'
+#' Lineages named in \code{lineage_future_count} that have no cells in
+#' \code{cell_lineage} are dropped before the folds are built, so they neither
+#' occupy a fold nor count towards \code{num_folds}.
 #' @export
 cyfer <- function(cell_features,
                   cell_lineage,
@@ -48,6 +69,13 @@ cyfer <- function(cell_features,
   # Subsetting a factor retains its unused levels, which would misalign it with
   # the per-fold `lineage_future_count`. Work in character throughout.
   cell_lineage <- as.character(cell_lineage)
+
+  # Drop lineages with no cells at the first time point before the folds are
+  # built. `construct_folds()` would otherwise deal such a lineage into a fold
+  # where it contributes nothing, and a fold made up entirely of them yields
+  # `cv_cell_list[[fold]] == NULL` -- so `cell_features[-NULL,,drop=F]` trains
+  # on zero rows.
+  lineage_future_count <- lineage_future_count[names(lineage_future_count) %in% unique(cell_lineage)]
 
   # `construct_folds()` calls sample(), so the seed must be set before it runs
   # for `seed_number` to make the fold assignment reproducible.

@@ -8,6 +8,15 @@
 #' @param upper_randomness Upper cap for random initial coefficients.
 #' 
 #' @return An object of class \code{"lineage_imputation"} with \code{fit} and \code{res_list}.
+#' \code{fit} is the element of \code{res_list} with the smallest
+#' \code{objective_val}; \code{res_list} holds one entry per initialization
+#' (supplied first, then random).
+#'
+#' \code{fit$coefficient_vec} is on the \bold{natural-log} scale, so
+#' \code{exp(cbind(Intercept = 1, cell_features) \%*\% coefficient_vec)} is the
+#' expected number of progeny per cell. Note that \code{cyfer_finalize()} returns
+#' its \code{cell_imputed_score} on the \bold{log10} scale instead --- see the
+#' "Scales" section of \code{\link{cyfer_finalize}}.
 #' @export
 lineage_imputation <- function(cell_features,
                                cell_lineage,
@@ -55,12 +64,19 @@ lineage_imputation <- function(cell_features,
                        cell_lineage_idx_list,
                        lambda,
                        lineage_future_count){
-    .lineage_objective(cell_features = cell_features,
-                       cell_lineage = cell_lineage,
-                       cell_lineage_idx_list = cell_lineage_idx_list,
-                       coefficient_vec = coefficient_vec,
-                       lambda = lambda,
-                       lineage_future_count = lineage_future_count)
+    # Inside the line search an overflowing trial point is routine: hand `optim`
+    # a non-finite value and let it back off, as it did before
+    # `.lineage_objective()` grew its guard. A non-finite *start* is a different
+    # matter and is reported below, before `optim` is ever called.
+    tryCatch(
+      .lineage_objective(cell_features = cell_features,
+                         cell_lineage = cell_lineage,
+                         cell_lineage_idx_list = cell_lineage_idx_list,
+                         coefficient_vec = coefficient_vec,
+                         lambda = lambda,
+                         lineage_future_count = lineage_future_count),
+      error = function(e){Inf}
+    )
   }
   
   optim_gr <- function(coefficient_vec,
@@ -81,6 +97,15 @@ lineage_imputation <- function(cell_features,
   
   for(i in 1:list_len){
     if(verbose > 0) print(paste0("On provided initialization ", i))
+    # let `.lineage_objective()`'s diagnostic reach the caller when the supplied
+    # start already overflows -- `optim` would otherwise only report
+    # "initial value in 'vmmin' is not finite"
+    .lineage_objective(cell_features = cell_features,
+                       cell_lineage = cell_lineage,
+                       cell_lineage_idx_list = cell_lineage_idx_list,
+                       coefficient_vec = coefficient_initial_list[[i]],
+                       lambda = lambda,
+                       lineage_future_count = lineage_future_count)
     res <- stats::optim(
       par = coefficient_initial_list[[i]],
       fn = optim_fn,
@@ -108,8 +133,18 @@ lineage_imputation <- function(cell_features,
     num_cells_per_lineage <- sapply(cell_lineage_idx_list, length)
     names(num_cells_per_lineage) <- uniq_lineages
     max_count_ratio <- max(lineage_future_count[uniq_lineages]/num_cells_per_lineage[uniq_lineages])
-    max_limit <- 2*log(max_count_ratio)/(p*max_feature)
-    min_value <- ifelse(max_limit < 0, 2*max_limit, 0)
+    if(max_count_ratio <= 0){
+      # log(0) = -Inf would make every draw NaN, and optim would then report
+      # "non-finite value supplied by optim" without naming the cause
+      max_limit <- 0
+      min_value <- -10
+    } else {
+      max_limit <- 2*log(max_count_ratio)/(p*max_feature)
+      # the threshold, not just the sign: at max_count_ratio == 1 the limit is
+      # exactly 0, and a `< 0` test would leave min_value == max_limit, so all
+      # the restarts would collapse onto the same zero vector
+      min_value <- ifelse(max_limit <= 1e-6, 2*(max_limit-1), 0)
+    }
     for(i in 1:random_initializations){
       if(verbose > 0) print(paste0("On random initialization ", i))
       coef_vec <- pmin(stats::runif(p, min = min_value, max = max_limit), upper_randomness)
@@ -251,8 +286,19 @@ evaluate_loglikelihood <- function(cell_features,
   
   idx_notintercept <- which(names(coefficient_vec) != "Intercept")
   scalar3 <- .l2norm(coefficient_vec[idx_notintercept])
-  
-  (sum(scalar1) - sum(lineage_future_count*scalar2))/num_lineages + lambda*scalar3^2
+
+  res <- (sum(scalar1) - sum(lineage_future_count*scalar2))/num_lineages + lambda*scalar3^2
+
+  # `optim` evaluates fn before gr, so without this guard the gradient's
+  # diagnostic below can never reach a caller whose features overflow: they see
+  # "initial value in 'vmmin' is not finite" instead. A non-finite value also
+  # travels silently into `test_loglik`, where `which.min()` skips it.
+  if(!is.finite(res)){
+    stop("`.lineage_objective()` produced a non-finite value: exp(cell_features %*% coefficient_vec) ",
+         "overflowed or underflowed. Scale `cell_features`, or use a larger lambda.")
+  }
+
+  res
 }
 
 .lineage_gradient <- function(cell_features,

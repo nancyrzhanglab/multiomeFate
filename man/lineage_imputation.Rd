@@ -19,7 +19,17 @@ lineage_imputation(
 \item{cell_features}{A numeric matrix where each row represents a cell, and each
 column represents a feature (for instance, the fastTopics scores).
 Let \code{n} denote the number of cells (rows).
-Row names (cell IDs) and column names (feature names) are required.}
+Row names (cell IDs) and column names (feature names) are required.
+Do \bold{not} supply an intercept column, and more generally no constant
+column: the intercept is added internally (by \code{.lineage_cleanup()} when
+fitting, and by \code{cyfer_finalize()} when scoring). A constant column you
+supply yourself is therefore duplicated, making the design collinear --- and a
+column already named \code{Intercept} produces two columns of that name.
+\code{cyfer_finalize()} errors on any constant column for this reason;
+\code{cyfer()} tolerates one, so the error may not appear until the finalize
+step. It is also conventional to \code{scale()} the features before fitting,
+both to keep \code{exp()} away from overflow and to make the ridge penalty
+comparable across features.}
 
 \item{cell_lineage}{A character or factor vector of length \code{n} where
 element \code{i} of \code{cell_lineage} denotes which lineage cell \code{i}
@@ -44,6 +54,15 @@ information to be printed out as the algorithm proceeds.}
 }
 \value{
 An object of class \code{"lineage_imputation"} with \code{fit} and \code{res_list}.
+\code{fit} is the element of \code{res_list} with the smallest
+\code{objective_val}; \code{res_list} holds one entry per initialization
+(supplied first, then random).
+
+\code{fit$coefficient_vec} is on the \bold{natural-log} scale, so
+\code{exp(cbind(Intercept = 1, cell_features) \%*\% coefficient_vec)} is the
+expected number of progeny per cell. Note that \code{cyfer_finalize()} returns
+its \code{cell_imputed_score} on the \bold{log10} scale instead --- see the
+"Scales" section of \code{\link{cyfer_finalize}}.
 }
 \description{
 Fit lineage imputation at a single lambda

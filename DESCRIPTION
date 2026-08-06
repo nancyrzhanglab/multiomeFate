@@ -1,6 +1,6 @@
 Package: multiomeFate
 Title: CYFER, for modeling the number of progenies of cancer cells
-Version: 1.0.2.000
+Version: 1.0.2.001
 Authors@R: c(person("Kevin", "Lin",  role = c("aut", "cre"), email = "kzlin@uw.edu"),
     person("Xinyi", "Chen", role = "aut"))
 Description: Tools for multiome fate prediction in cancer cells.

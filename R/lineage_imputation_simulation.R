@@ -30,7 +30,9 @@
   lineage_future_count <- sapply(uniq_lineages, function(lineage){
     idx <- which(cell_lineage == lineage)
     lambda <- sum(sapply(idx, function(i){
-      exp(coefficient_vec %*% cell_features[i,,drop=F])
+      # inner product: the other order conforms the bare length-p vector as p x 1
+      # against a 1 x p matrix and silently computes the p x p outer product
+      exp(cell_features[i,,drop=F] %*% coefficient_vec)
     }))
     stats::rpois(1, lambda = lambda)
   })
