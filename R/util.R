@@ -1,7 +1,25 @@
+#' Extract the non-zero entries of one column of a sparse matrix
+#'
+#' Reads the compressed-column slots (\code{@p}, \code{@i}, \code{@x}) directly
+#' rather than subsetting, which avoids materializing the column as a dense
+#' vector. Only the entries stored in the sparse representation are returned, so
+#' the length of the result is the number of structural non-zeros in that
+#' column, not \code{nrow(mat)}.
+#'
+#' @param mat A \code{dgCMatrix} or \code{lgCMatrix}.
+#' @param col_idx A single column index, between 1 and \code{ncol(mat)}.
+#' @param bool_value If \code{TRUE}, return the stored \emph{values}; if
+#'   \code{FALSE}, return the 1-based \emph{row indices} of those values.
+#'
+#' @returns A numeric vector, empty (\code{numeric(0)}) when the column stores
+#'   no non-zeros. The two modes return vectors of the same length, aligned
+#'   element-wise, so calling twice pairs each row index with its value.
+#'
+#' @noRd
 .nonzero_col <- function(mat, col_idx, bool_value){
   stopifnot(inherits(mat, c("dgCMatrix", "lgCMatrix")), col_idx %% 1 == 0,
             col_idx > 0, col_idx <= ncol(mat))
-  
+
   val1 <- mat@p[col_idx]
   val2 <- mat@p[col_idx+1]
   
@@ -13,53 +31,4 @@
     # return the row index
     mat@i[(val1+1):val2]+1
   }
-}
-
-# for diag(vec) %*% mat
-.mult_vec_mat <- function(vec, mat){
-  stopifnot(inherits(mat, c("matrix", "dgCMatrix")), 
-            !is.matrix(vec), length(vec) == nrow(mat))
-  
-  if(inherits(mat, "dgCMatrix")) {
-    Matrix::Diagonal(x = vec) %*% mat
-  } else {
-    vec * mat
-  }
-}
-
-# for mat %*% diag(vec)
-# see https://stackoverflow.com/questions/17080099/fastest-way-to-multiply-matrix-columns-with-vector-elements-in-r
-.mult_mat_vec <- function(mat, vec){
-  stopifnot(inherits(mat, c("matrix", "dgCMatrix")), 
-            !is.matrix(vec), length(vec) == ncol(mat))
-  
-  if(inherits(mat, "dgCMatrix")) {
-    mat %*% Matrix::Diagonal(x = vec)
-  } else {
-    mat * rep(vec, rep(nrow(mat), length(vec)))
-  }
-}
-
-##########################
-
-# computes log(exp(x_1) + exp(x_2) + exp(x_3) + ...)
-# via  log(exp(x_1+C) + exp(x_2+C) + exp(x_3+C) + ...) - C
-.log_sum_exp <- function(vec, max_val = 25){
-  vec <- vec[!is.na(vec)]
-  vec <- vec[!is.infinite(vec)]
-  if(length(vec) == 0) return(NA)
-  C <- max_val - max(vec)
-  log(sum(exp(vec+C))) - C
-}
-
-# computes exp(x_1)/(exp(x_1) + exp(x_2) + ...)
-# via exp(x_1+C)/(exp(x_1+C) + exp(x_2+C) + ...)
-.exp_ratio <- function(vec, max_val = 25){
-  res <- rep(NA, length(vec))
-  idx <- unique(intersect(which(!is.na(vec)), which(!is.infinite(vec))))
-  if(length(idx) == 0) return(res)
-  C <- max_val - max(vec[idx])
-  tmp <- exp(vec[idx]+C)
-  res[idx] <- tmp/sum(tmp)
-  res
 }

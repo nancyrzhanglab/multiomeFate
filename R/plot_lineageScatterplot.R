@@ -1,4 +1,40 @@
+#' Predicted versus observed lineage size
+#'
+#' The calibration check on a CYFER fit: each point is one lineage, its observed
+#' future count on the x axis against the count CYFER predicts on the y axis,
+#' both on a log10 scale with a fixed 1:1 aspect ratio so that departures from
+#' the diagonal are readable. The largest lineages on either axis are labelled.
+#' The title carries the Pearson correlation between the two log10 vectors.
+#'
+#' \bold{The x coordinate is jittered and the plot is stochastic.} Observed
+#' counts are small integers, so many lineages would otherwise stack on the same
+#' vertical line; \code{Uniform(0, 0.5)} is added \emph{before} the log10, which
+#' spreads the small counts more than the large ones. There is no
+#' \code{seed_number} argument, so set a seed beforehand for a reproducible
+#' figure. The reported correlation is computed on the \emph{unjittered} values,
+#' so it does not move between calls even though the points do.
+#'
+#' @param lineage_future_count Named numeric vector of observed future counts
+#'   per lineage.
+#' @param lineage_imputed_count Named numeric vector of predicted counts per
+#'   lineage --- the \code{lineage_imputed_count} element of
+#'   \code{\link{cyfer_finalize}}, which is on the natural count scale, not
+#'   log10. The two vectors must be \bold{in the same order with identical
+#'   names}; this is asserted by position, not matched by name.
+#' @param num_lineage Maximum number of lineages to label on each axis, taken in
+#'   decreasing order of that axis. Default \code{10}. Up to \code{2 *
+#'   num_lineage} labels can therefore appear.
+#' @param threshold_x,threshold_y Minimum log10 count for a lineage to be
+#'   eligible for labelling on the observed and predicted axis respectively.
+#'   Default \code{1.5} each, i.e. about 32 cells. \code{NA} disables labelling
+#'   from that axis.
+#' @param title Plot title; the correlation is appended on a second line.
+#'   Default \code{""}.
+#'
+#' @returns A \code{ggplot} object.
+#'
 #' @importFrom rlang .data
+#' @export
 plot_lineageScatterplot <- function(lineage_future_count,
                                     lineage_imputed_count,
                                     num_lineage = 10,
@@ -40,7 +76,7 @@ plot_lineageScatterplot <- function(lineage_future_count,
                                             y = .data$lineage_imputed_count))
   plot1 <- plot1 + ggplot2::geom_point(ggplot2::aes(color = .data$labeling))
   plot1 <- plot1 + ggplot2::scale_colour_manual(values=c("black", "red"))
-  plot1 <- plot1 + ggrepel::geom_text_repel(data = subset(df, .data$labeling == TRUE),
+  plot1 <- plot1 + ggrepel::geom_text_repel(data = subset(df, df$labeling == TRUE),
                                             ggplot2::aes(label = .data$name, 
                                                          color = .data$labeling),
                                             box.padding = ggplot2::unit(0.5, 'lines'),

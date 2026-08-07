@@ -420,3 +420,255 @@ test_that("generate_simulation_attachFuture works", {
   tmp <- apply(res$mapping_mat, 1, function(x){diff(range(x))})
   expect_true(any(tmp > 0))
 })
+
+##############################################################################
+## generate_simulation_attachFuture() -- top level (test-plan-full 2026-08-06)
+##############################################################################
+
+.attachFuture_fixture <- function(d = 5,
+                                  num_lineages = 5,
+                                  num_previous = 100,
+                                  seed_number = 10){
+  set.seed(seed_number)
+  previous_cell_embedding_mat <- matrix(stats::rnorm(num_previous * d),
+                                        nrow = num_previous,
+                                        ncol = d)
+  future_cell_embedding_mat <- matrix(stats::rnorm(2 * num_previous * d),
+                                      nrow = 2 * num_previous,
+                                      ncol = d)
+  rownames(previous_cell_embedding_mat) <- paste0("prev:",
+                                                  seq_len(num_previous))
+  rownames(future_cell_embedding_mat) <- paste0("fut:",
+                                                seq_len(2 * num_previous))
+  lineage_assignment <- factor(sample(paste0("lineage:",
+                                             seq_len(num_lineages)),
+                                      size = num_previous, replace = TRUE))
+  names(lineage_assignment) <- rownames(previous_cell_embedding_mat)
+
+  list(embedding_coefficient_vec = rep(1, d),
+       future_cell_embedding_mat = future_cell_embedding_mat,
+       lineage_assignment = lineage_assignment,
+       previous_cell_embedding_mat = previous_cell_embedding_mat)
+}
+
+.run_attachFuture <- function(fixture, ...){
+  generate_simulation_attachFuture(
+    coefficient_intercept = 0,
+    embedding_coefficient_vec = fixture$embedding_coefficient_vec,
+    future_cell_embedding_mat = fixture$future_cell_embedding_mat,
+    lineage_assignment = fixture$lineage_assignment,
+    previous_cell_embedding_mat = fixture$previous_cell_embedding_mat,
+    verbose = 0,
+    ...)
+}
+
+## AF1
+test_that("num_pushforward_training_iter changes the fit (AF1)", {
+  fixture <- .attachFuture_fixture()
+
+  set.seed(10)
+  res_one <- .run_attachFuture(fixture, num_pushforward_training_iter = 1)
+  set.seed(10)
+  res_many <- .run_attachFuture(fixture, num_pushforward_training_iter = 20)
+
+  expect_true(!identical(res_one$mapping_mat, res_many$mapping_mat))
+})
+## AF2: conservation. Every future cell is handed to exactly one parent, and
+## the per-parent tally must add back up to the number of future cells.
+test_that("every future cell is assigned to exactly one parent (AF2)", {
+  fixture <- .attachFuture_fixture()
+  set.seed(10)
+  res <- .run_attachFuture(fixture)
+
+  num_future <- nrow(fixture$future_cell_embedding_mat)
+  expect_true(length(res$future_cell_assignment) == num_future)
+  expect_true(!any(is.na(res$future_cell_assignment)))
+  # Named by future cell, but *not* in input order: the mapping matrix's
+  # columns are reordered by column sum inside
+  # `.compute_previous_to_future_mapping()`, and that order carries through.
+  expect_true(setequal(names(res$future_cell_assignment),
+                       rownames(fixture$future_cell_embedding_mat)))
+  expect_true(anyDuplicated(names(res$future_cell_assignment)) == 0)
+  expect_true(!identical(names(res$future_cell_assignment),
+                         rownames(fixture$future_cell_embedding_mat)))
+  expect_true(all(res$future_cell_assignment %in%
+                    rownames(fixture$previous_cell_embedding_mat)))
+  expect_true(sum(res$prev_cell_num_progenitor) == num_future)
+
+  # And the tally really is the tabulation of the assignment.
+  tally_vec <- table(res$future_cell_assignment)
+  expect_true(all(res$prev_cell_num_progenitor[names(tally_vec)] ==
+                    as.numeric(tally_vec)))
+})
+
+## AF3: the quota is what keeps the simulated expansion consistent with the fate
+## potentials that generated it -- a parent may not produce more progeny than
+## its rounded contribution allows.
+test_that("no parent exceeds its rounded contribution (AF3)", {
+  fixture <- .attachFuture_fixture()
+  set.seed(10)
+  res <- .run_attachFuture(fixture)
+
+  contribution_vec <- round(exp(
+    res$coefficient_intercept +
+      as.numeric(fixture$previous_cell_embedding_mat %*%
+                   fixture$embedding_coefficient_vec)))
+  names(contribution_vec) <- rownames(fixture$previous_cell_embedding_mat)
+
+  shared_names <- names(res$prev_cell_num_progenitor)
+  expect_true(all(res$prev_cell_num_progenitor <=
+                    contribution_vec[shared_names]))
+})
+
+## AF4
+test_that("future_lineage_size matches the recomputed assignment (AF4)", {
+  fixture <- .attachFuture_fixture()
+  set.seed(10)
+  res <- .run_attachFuture(fixture)
+
+  lineage_vec <- fixture$lineage_assignment[
+    names(res$prev_cell_num_progenitor)]
+  expected_vec <- sapply(levels(droplevels(lineage_vec)), function(lev){
+    sum(res$prev_cell_num_progenitor[which(lineage_vec == lev)])
+  })
+
+  expect_true(all(names(res$future_lineage_size) %in% names(expected_vec)) ||
+                all(names(expected_vec) %in% names(res$future_lineage_size)))
+  shared_names <- intersect(names(expected_vec), names(res$future_lineage_size))
+  expect_true(length(shared_names) > 0)
+  expect_true(all(res$future_lineage_size[shared_names] ==
+                    expected_vec[shared_names]))
+  expect_true(sum(res$future_lineage_size) ==
+                nrow(fixture$future_cell_embedding_mat))
+})
+
+## AF5: the loop exists because rounding can push the total below the target
+## even after the exact shift, so the guarantee is on the *rounded* sum.
+test_that(".adjust_coefficient_intercept guarantees the rounded total (AF5)", {
+  set.seed(10)
+  for(num_future_cells in c(50, 200, 1000)){
+    label <- paste0("num_future_cells = ", num_future_cells)
+    cell_contribution <- exp(stats::rnorm(100))
+
+    new_intercept <- .adjust_coefficient_intercept(
+      cell_contribution = cell_contribution,
+      coefficient_intercept = 0,
+      num_future_cells = num_future_cells)
+
+    adjusted_vec <- cell_contribution * exp(new_intercept)
+    expect_true(sum(round(adjusted_vec)) >= num_future_cells, info = label)
+  }
+
+  # An input that cannot converge inside max_iter must error rather than
+  # silently return an intercept that does not meet the guarantee.
+  expect_error(.adjust_coefficient_intercept(
+    cell_contribution = exp(stats::rnorm(100)),
+    coefficient_intercept = 0,
+    num_future_cells = 1e6,
+    interval_add = 1e-8,
+    max_iter = 5))
+})
+
+## AF6: `mapping_mat` comes back scaled by 1e3 and rounded, so a caller who
+## forgets that gets numbers that look like counts but are per-mille weights.
+test_that("mapping_mat is returned scaled by 1e3 and rounded (AF6)", {
+  fixture <- .attachFuture_fixture()
+  set.seed(10)
+  res <- .run_attachFuture(fixture)
+
+  expect_true(all(res$mapping_mat == round(res$mapping_mat)))
+  expect_true(max(res$mapping_mat) > 1)
+  # Columns were probability vectors before scaling, so they now sum to ~1e3.
+  column_sum_vec <- colSums(res$mapping_mat)
+  expect_true(max(abs(column_sum_vec - 1e3)) <= 5)
+})
+
+## AF7: two independent implementations of the same density live in one package
+## -- `.dmvnorm()` in R/simulation.R and `.dmvnorm_log_many_samples()` here.
+## That is exactly the situation where a cross-check earns its place.
+test_that(".dmvnorm_log_many_samples agrees with .dmvnorm (AF7)", {
+  set.seed(10)
+  for(d in c(2, 3, 5)){
+    label <- paste0("d = ", d)
+    x_mat <- matrix(stats::rnorm(40 * d), nrow = 40, ncol = d)
+    mean_vec <- stats::rnorm(d)
+    sigma_mat <- diag(stats::runif(d, min = 0.5, max = 2))
+
+    res_many <- .dmvnorm_log_many_samples(x_mat = x_mat,
+                                          mean = mean_vec,
+                                          sigma = sigma_mat)
+    res_single <- .dmvnorm(x = x_mat,
+                           mean = mean_vec,
+                           sigma = sigma_mat,
+                           log = TRUE)
+
+    expect_true(length(res_many) == nrow(x_mat), info = label)
+    expect_true(max(abs(res_many - res_single)) <= 1e-8, info = label)
+  }
+})
+
+## AF8: the kernel covariance must be built from *variances*
+## (`lineage_spread * diag(sd_vec^2)`), matching the convention
+## `.form_gaussian_distribution()` uses in R/simulation.R. It previously used
+## unsquared standard deviations, which made every parent-child kernel too tight
+## and gave `lineage_spread` a different meaning in the two files. Assert the
+## algebra directly against `.dmvnorm()` rather than the shape of the result,
+## since an unsquared diagonal also produces a perfectly plausible matrix.
+test_that(".compute_previous_to_future_mapping uses variances (AF8)", {
+  set.seed(10)
+  d <- 3
+  previous_mat <- matrix(stats::rnorm(6 * d), nrow = 6, ncol = d,
+                         dimnames = list(paste0("prev:", seq_len(6)), NULL))
+  future_mat <- matrix(stats::rnorm(8 * d), nrow = 8, ncol = d,
+                       dimnames = list(paste0("fut:", seq_len(8)), NULL))
+  # sd of 2 is the case that separates the two forms: 2 versus 4 on the
+  # diagonal.
+  sd_vec <- rep(2, d)
+  lineage_spread <- 1.5
+  pushforward_func <- .pushforward_func_constructor(a = 1, b = rep(0, d))
+
+  res <- .compute_previous_to_future_mapping(
+    future_cell_embedding_mat = future_mat,
+    lineage_spread = lineage_spread,
+    previous_cell_embedding_mat = previous_mat,
+    pushforward_func = pushforward_func,
+    sd_vec = sd_vec)
+
+  # Rebuild the same matrix by hand with the variance form.
+  expected_mat <- sapply(seq_len(nrow(previous_mat)), function(i){
+    .dmvnorm(x = future_mat,
+             mean = pushforward_func(previous_mat[i, ]),
+             sigma = lineage_spread * diag(sd_vec^2),
+             log = TRUE)
+  })
+  expected_mat <- t(expected_mat)
+  expected_mat <- exp(expected_mat - max(expected_mat))
+  expected_mat <- sweep(expected_mat, MARGIN = 2,
+                        STATS = colSums(expected_mat), FUN = "/")
+  expected_mat <- expected_mat[, order(colSums(expected_mat),
+                                       decreasing = TRUE), drop = FALSE]
+
+  expect_true(all(dim(res) == dim(expected_mat)))
+  expect_true(max(abs(sort(as.numeric(res)) -
+                        sort(as.numeric(expected_mat)))) <= 1e-8)
+
+  # And the unsquared form gives a materially different answer, so this is not
+  # a test that would pass either way.
+  wrong_mat <- sapply(seq_len(nrow(previous_mat)), function(i){
+    .dmvnorm(x = future_mat,
+             mean = pushforward_func(previous_mat[i, ]),
+             sigma = lineage_spread * diag(sd_vec),
+             log = TRUE)
+  })
+  wrong_mat <- exp(t(wrong_mat) - max(wrong_mat))
+  wrong_mat <- sweep(wrong_mat, MARGIN = 2, STATS = colSums(wrong_mat),
+                     FUN = "/")
+  expect_true(max(abs(sort(as.numeric(res)) -
+                        sort(as.numeric(wrong_mat)))) > 1e-4)
+})
+
+## AF9
+test_that(".compute_pushforward has no unused previous_cell_potential (AF9)", {
+  expect_true(!("previous_cell_potential" %in%
+                  names(formals(.compute_pushforward))))
+})

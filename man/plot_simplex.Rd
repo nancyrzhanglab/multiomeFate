@@ -48,3 +48,7 @@ A ggplot2 object.
 Creates a ternary plot for three-way compositional data using ggplot2,
 without requiring the ggtern package.
 }
+\details{
+Rows whose three values sum to zero have no composition to plot and are
+dropped, with a warning naming how many went.
+}

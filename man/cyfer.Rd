@@ -2,7 +2,7 @@
 % Please edit documentation in R/lineage_cv.R
 \name{cyfer}
 \alias{cyfer}
-\title{CYFER: Cell Fate via Exponential Regression (cross-validation)}
+\title{CYFER: Clonal Fate Estimation by Exponential Regression (cross-validation)}
 \usage{
 cyfer(
   cell_features,

@@ -68,6 +68,50 @@ lineage_imputation_sequence <- function(cell_features,
 }
 
 
+#' Data-driven starting point for the lambda path and the coefficients
+#'
+#' Produces the two things \code{lineage_imputation_sequence()} needs before it
+#' can start: where to begin the lambda path, and what coefficient vector to
+#' start the first fit from.
+#'
+#' The coefficient start is the interpretable half. Everything but the intercept
+#' starts at zero, and the intercept starts at
+#' \code{log((future_total + 1) / (current_total + 1))} --- the log of the
+#' overall growth ratio. That is the exact maximizer if no feature carried any
+#' information, so the path begins at the null model and the features have to
+#' earn their coefficients.
+#'
+#' \code{lambda_initial} is a heuristic, not an estimate: it scales the gap
+#' between the null-model objective and a per-lineage term by \code{multipler},
+#' then clamps to \code{[lambda_min, lambda_max]}. \bold{On typical data it
+#' saturates at the \code{lambda_max} cap}, so any test of its \emph{value} must
+#' widen the clamp first (\code{lambda_min = 0}, \code{lambda_max = 1e12},
+#' \code{multipler = 1}) or it will pass against any implementation whatsoever.
+#'
+#' The \code{+1} smoothing in both \code{log_growth_ratio} and
+#' \code{log1p(lineage_current_count)} guards the all-zero
+#' \code{lineage_future_count} case, which would otherwise give \code{log(0)}
+#' and carry \code{-Inf} / \code{NaN} silently into \code{optim()}. It shifts the
+#' result on \emph{every} input, not only the degenerate one.
+#'
+#' @inheritParams cyfer
+#' @param lambda_max Cap on the returned \code{lambda_initial}. Default
+#'   \code{101}.
+#' @param lambda_min Floor on the returned \code{lambda_initial}. Default
+#'   \code{0.01}. Must not exceed \code{lambda_max}; asserted.
+#' @param multipler Scaling factor applied before the clamp. Default
+#'   \code{1e4}, matching its only caller. (Spelling is the existing one.)
+#'
+#' @returns A list with:
+#'   \describe{
+#'     \item{\code{coefficient_initial}}{named numeric vector of length
+#'       \code{ncol(cell_features) + 1}, zero everywhere except
+#'       \code{Intercept}. On the natural-log scale.}
+#'     \item{\code{lambda_initial}}{a single numeric in
+#'       \code{[lambda_min, lambda_max]}.}
+#'   }
+#'
+#' @noRd
 # cell_features simply included for convenience
 .compute_initial_parameters <- function(cell_features,
                                         cell_lineage,

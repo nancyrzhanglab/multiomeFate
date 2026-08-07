@@ -1,4 +1,4 @@
-#' CYFER: Cell Fate via Exponential Regression (cross-validation)
+#' CYFER: Clonal Fate Estimation by Exponential Regression (cross-validation)
 #'
 #' Runs K-fold CV over a decreasing sequence of \code{lambda} values produced by
 #' \code{lineage_imputation_sequence()}, selecting \code{lambda} by held-out objective.
@@ -119,7 +119,7 @@ cyfer <- function(cell_features,
     lambda_sequence <- train_fit$lambda_sequence
 
     train_loglik <- sapply(1:length(lambda_sequence), function(kk){
-      evaluate_loglikelihood(cell_features = cell_features_train,
+      evaluate_nll(cell_features = cell_features_train,
                              cell_lineage = cell_lineage_train,
                              coefficient_vec = train_fit$fit_list[[kk]]$coefficient_vec,
                              lineage_future_count = lineage_future_count_train,
@@ -134,7 +134,7 @@ cyfer <- function(cell_features,
     lineage_future_count_test <- lineage_future_count[which(names(lineage_future_count) %in% fold_lineage_list[[fold]])]
 
     test_loglik <- sapply(1:length(lambda_sequence), function(kk){
-      evaluate_loglikelihood(cell_features = cell_features_test,
+      evaluate_nll(cell_features = cell_features_test,
                              cell_lineage = cell_lineage_test,
                              coefficient_vec = train_fit$fit_list[[kk]]$coefficient_vec,
                              lineage_future_count = lineage_future_count_test,

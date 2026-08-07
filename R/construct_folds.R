@@ -1,3 +1,53 @@
+#' Partition lineages into cross-validation folds
+#'
+#' Splits the \emph{lineages} --- not the cells --- into \code{num_folds}
+#' groups, and reports both the lineage membership and the corresponding cell
+#' row indices for each fold. Cross-validation in CYFER has to hold out whole
+#' lineages, because a lineage's future count is a single observation shared by
+#' all of its cells; splitting cells across folds would leak the held-out
+#' response into training.
+#'
+#' Lineages are sorted by descending \code{lineage_future_count}, shuffled
+#' within contiguous blocks, then dealt round-robin. Sorting first is what keeps
+#' the folds comparable: dealing at random would let one fold collect several of
+#' the largest clones and dominate the held-out objective. Because the deal is
+#' round-robin, fold sizes are \code{floor()} or \code{ceiling()} of
+#' \code{num_lineages / num_folds}, never a short final fold.
+#'
+#' \bold{This function calls \code{sample()} and takes no \code{seed_number}
+#' argument} --- the caller seeds the stream. \code{cyfer()} does so immediately
+#' before calling this.
+#'
+#' @param cell_lineage A character or factor vector, element \code{i} naming the
+#'   lineage of cell \code{i}. Coerced to character internally. Its
+#'   \emph{positions} are what \code{cv_cell_list} reports, so it must be
+#'   row-aligned with the \code{cell_features} the caller will subset.
+#' @param lineage_future_count A named numeric vector: names are lineage IDs,
+#'   values are cell counts at the future time point. Only the ordering induced
+#'   by the values is used here. Names must be unique and non-missing. Lineages
+#'   named here but absent from \code{cell_lineage} still occupy a fold slot ---
+#'   \code{cyfer()} drops them beforehand for exactly this reason.
+#' @param num_folds Number of folds. Must be at least 2 (one fold would leave no
+#'   training data) and at most the number of lineages (an empty fold would make
+#'   the training set the whole dataset). Default is \code{10}.
+#'
+#' @returns A list with two elements, both named \code{"fold:1"} ...
+#'   \code{"fold:num_folds"} and both of length \code{num_folds}:
+#'   \describe{
+#'     \item{\code{cv_cell_list}}{a list of integer vectors, each holding the
+#'       \emph{positions in \code{cell_lineage}} of the cells belonging to that
+#'       fold's lineages. These index rows of \code{cell_features}. An element
+#'       is \code{NULL} rather than \code{integer(0)} if none of the fold's
+#'       lineages has any cell --- which \code{cyfer()} prevents by dropping
+#'       cell-less lineages before calling.}
+#'     \item{\code{fold_lineage_list}}{a list of character vectors giving the
+#'       lineage names assigned to each fold.}
+#'   }
+#'   The folds partition the lineages exactly: every name in
+#'   \code{names(lineage_future_count)} appears in exactly one fold, and no fold
+#'   is empty. This is asserted before returning.
+#'
+#' @noRd
 construct_folds <- function(cell_lineage,
                             lineage_future_count,
                             num_folds = 10){

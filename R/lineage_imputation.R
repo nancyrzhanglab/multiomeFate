@@ -184,7 +184,34 @@ lineage_imputation <- function(cell_features,
             class = "lineage_imputation")
 }
 
-evaluate_loglikelihood <- function(cell_features,
+#' Evaluate the CYFER objective at a given coefficient vector
+#'
+#' Runs \code{.lineage_cleanup()} and then \code{.lineage_objective()}. This is
+#' how \code{cyfer()} scores a fold: fit on the training lineages, then call
+#' this on the held-out lineages with \code{lambda = 0} to get an unpenalized
+#' held-out value.
+#'
+#' What comes back is the \emph{negative} penalized log-likelihood, averaged
+#' over lineages --- so \bold{lower is better}, and it is not on the scale of any
+#' literal log-likelihood. It is the same quantity stored as \code{train_loglik}
+#' and \code{test_loglik} by \code{cyfer()}.
+#'
+#' @inheritParams cyfer
+#' @param coefficient_vec A named numeric vector of coefficients on the
+#'   \bold{natural-log} scale, including an \code{Intercept} entry, with names
+#'   matching \code{colnames(cell_features)} after the intercept is prepended.
+#'   Typically \code{fit$coefficient_vec} from a \code{lineage_imputation()}
+#'   fit.
+#' @param lambda Ridge penalty weight on the non-intercept coefficients. Default
+#'   \code{0}, which is what makes the value comparable across the lambda path;
+#'   pass a non-zero value only when the penalized objective is wanted.
+#'
+#' @returns A single numeric. Errors, rather than returning a non-finite value,
+#'   if \code{exp(cell_features \%*\% coefficient_vec)} overflows --- see
+#'   \code{.lineage_objective()}.
+#'
+#' @noRd
+evaluate_nll <- function(cell_features,
                                    cell_lineage,
                                    coefficient_vec,
                                    lineage_future_count,
@@ -209,6 +236,54 @@ evaluate_loglikelihood <- function(cell_features,
 
 #################################
 
+#' Align the three inputs and prepend the intercept
+#'
+#' The single entry point through which every estimation function normalizes its
+#' inputs, so that all of them agree on lineage ordering, on the intercept
+#' column, and on \code{cell_lineage} being character. Called by
+#' \code{lineage_imputation()}, \code{evaluate_nll()},
+#' \code{.compute_initial_parameters()}, and the test fixture
+#' \code{.construct_lineage_data()}.
+#'
+#' Three things happen, in this order:
+#' \enumerate{
+#'   \item \code{cell_lineage} is coerced to character. Indexing a named vector
+#'     by a factor uses the factor's integer \emph{codes} rather than its
+#'     labels, which is correct by accident on full data and wrong inside a CV
+#'     fold. This coercion is the fix for that bug.
+#'   \item If the lineages in \code{lineage_future_count} and in
+#'     \code{cell_lineage} disagree, both are cut down to the intersection ---
+#'     \bold{silently unless \code{verbose > 0}}. Cells whose lineage has no
+#'     future count are dropped along with their rows of \code{cell_features}.
+#'   \item An \code{Intercept} column of ones is prepended to
+#'     \code{cell_features}, unless a column of that name already exists. This
+#'     is why callers must not supply one.
+#' }
+#'
+#' Lineages come back in \code{sort()} order, and every returned object is
+#' ordered consistently with that.
+#'
+#' @inheritParams cyfer
+#' @param verbose A numeric. At \code{0} (the default here, note, unlike the
+#'   user-facing functions) the intersection in step 2 is taken without comment;
+#'   above \code{0} it raises a \code{warning()}.
+#'
+#' @returns A list with:
+#'   \describe{
+#'     \item{\code{cell_features}}{the matrix with \code{Intercept} as its first
+#'       column, and rows for dropped cells removed.}
+#'     \item{\code{cell_lineage}}{character vector, row-aligned with
+#'       \code{cell_features}.}
+#'     \item{\code{cell_lineage_idx_list}}{list named by lineage, each element
+#'       the integer row positions of that lineage's cells. Precomputed because
+#'       the objective and gradient both need it at every optimizer step.}
+#'     \item{\code{lineage_future_count}}{the named vector, subset and reordered
+#'       to \code{uniq_lineages}.}
+#'     \item{\code{uniq_lineages}}{sorted character vector of the surviving
+#'       lineage names.}
+#'   }
+#'
+#' @noRd
 .lineage_cleanup <- function(cell_features,
                              cell_lineage,
                              lineage_future_count,
@@ -255,6 +330,25 @@ evaluate_loglikelihood <- function(cell_features,
        uniq_lineages = uniq_lineages)
 }
 
+#' Prepend a zero intercept to each starting coefficient vector
+#'
+#' The counterpart of the intercept column \code{.lineage_cleanup()} adds to
+#' \code{cell_features}: a caller who supplies starting coefficients for the
+#' features alone would otherwise hand \code{optim()} a vector one shorter than
+#' the design matrix. The starting intercept is \code{0}, i.e. one expected
+#' progeny per cell before any feature contribution.
+#'
+#' A vector that already carries an \code{Intercept} name is left alone, so this
+#' is safe to apply to a warm start taken from a previous fit.
+#'
+#' @param coefficient_initial_list A list of named numeric vectors. Must already
+#'   be a list --- \code{lineage_imputation()} wraps a bare vector before
+#'   calling.
+#'
+#' @returns The same list, each element having \code{Intercept} as its first
+#'   entry.
+#'
+#' @noRd
 .append_intercept_term <- function(coefficient_initial_list){
   stopifnot(is.list(coefficient_initial_list))
   
@@ -268,6 +362,47 @@ evaluate_loglikelihood <- function(cell_features,
   coefficient_initial_list
 }
 
+#' The penalized CYFER objective
+#'
+#' Computes
+#' \deqn{\frac{1}{L}\sum_{\ell=1}^{L}\left[\Big(\sum_{i \in \ell} e^{X_{i,\cdot}^\top \beta}\Big) - y_\ell \log\Big(\sum_{i \in \ell} e^{X_{i,\cdot}^\top \beta}\Big)\right] + \lambda\|\beta_{-0}\|_2^2}{(1/L) * sum_l [ (sum_{i in l} exp(x_i'beta)) - y_l * log(sum_{i in l} exp(x_i'beta)) ] + lambda * ||beta_{-0}||^2}
+#' the negative Poisson log-likelihood of the per-lineage future counts, dropping
+#' terms free of \eqn{\beta}, averaged over lineages, plus a ridge penalty. The
+#' intercept is excluded from the penalty. \bold{Lower is better}; this is a
+#' minimization objective, and is non-convex in \eqn{\beta}, which is why
+#' \code{lineage_imputation()} uses random restarts.
+#'
+#' Dividing by the number of lineages is what makes values comparable between
+#' the training and held-out folds, which contain different numbers of lineages.
+#' It also means \code{lambda} is on a per-lineage scale.
+#'
+#' @param cell_features Numeric matrix with the \code{Intercept} column already
+#'   present, rows = cells.
+#' @param cell_lineage Character vector, row-aligned with \code{cell_features}.
+#'   Accepted for signature symmetry with \code{.lineage_gradient()}; not used.
+#' @param cell_lineage_idx_list List named by lineage, giving each lineage's row
+#'   positions, as built by \code{.lineage_cleanup()}.
+#' @param coefficient_vec Named numeric vector, aligned with
+#'   \code{colnames(cell_features)}, on the natural-log scale.
+#' @param lambda Ridge penalty weight.
+#' @param lineage_future_count Named numeric vector of future counts. Its
+#'   \emph{names determine the lineage ordering} used here.
+#'
+#' @returns A single numeric.
+#'
+#'   Errors on a non-finite result rather than returning it. That guard is
+#'   deliberate and load-bearing in two places: \code{optim()} evaluates
+#'   \code{fn} before \code{gr}, so without it a caller with unscaled features
+#'   sees \code{"initial value in 'vmmin' is not finite"} instead of an
+#'   actionable message; and a non-finite \code{test_loglik} is silently skipped
+#'   by \code{which.min()} at lambda-selection time. \code{lineage_imputation()}
+#'   wraps this in a \code{tryCatch} for the \emph{trial} points \code{optim()}
+#'   probes during its line search, where overflow is routine and backing off is
+#'   correct --- but evaluates supplied \emph{starting} points through this
+#'   function directly, so the diagnostic reaches the caller. Removing either
+#'   half breaks something.
+#'
+#' @noRd
 .lineage_objective <- function(cell_features,
                                cell_lineage,
                                cell_lineage_idx_list,
@@ -301,6 +436,47 @@ evaluate_loglikelihood <- function(cell_features,
   res
 }
 
+#' Analytical gradient of the penalized CYFER objective
+#'
+#' The exact gradient of \code{.lineage_objective()} with respect to
+#' \code{coefficient_vec}, handed to \code{optim()} as \code{gr}. Writing it out
+#' rather than letting BFGS difference the objective matters here: the objective
+#' is non-convex and evaluated at every one of the random restarts, so a
+#' finite-difference gradient would multiply the cost by \code{p + 1}.
+#'
+#' Each cell contributes
+#' \code{exp(x_i'beta) * (1 - y_{l(i)} / sum_{j in l(i)} exp(x_j'beta))} to a
+#' weight, which is then applied to its feature row. The intercept entry is the
+#' plain sum of those weights; the feature entries add \code{2*lambda*beta}.
+#'
+#' @param cell_features Numeric matrix with the \code{Intercept} column already
+#'   present, rows = cells.
+#' @param cell_lineage Character vector, row-aligned with \code{cell_features}.
+#'   Used --- unlike in \code{.lineage_objective()} --- to broadcast per-lineage
+#'   quantities back out to cells. \bold{Must be character}: indexing
+#'   \code{lineage_future_count} or \code{denom_vec} by a factor uses the
+#'   factor's integer codes, not its labels. Coerced defensively here as well as
+#'   in \code{.lineage_cleanup()}.
+#' @param cell_lineage_idx_list List named by lineage, giving each lineage's row
+#'   positions. Its \emph{names determine the lineage ordering} used here ---
+#'   note this differs from \code{.lineage_objective()}, which orders by
+#'   \code{names(lineage_future_count)}.
+#' @param coefficient_vec Named numeric vector, aligned with
+#'   \code{colnames(cell_features)}, on the natural-log scale.
+#' @param lambda Ridge penalty weight.
+#' @param lineage_future_count Named numeric vector of future counts.
+#'
+#' @returns A named numeric vector the same length as \code{coefficient_vec} and
+#'   in the same order, with \code{Intercept} first.
+#'
+#'   Errors rather than returning \code{NA}. An \code{NA} gradient is invisible
+#'   to \code{optim()}: BFGS returns its starting value and still reports
+#'   \code{convergence = 0}, so a fit that never moved looks like a fit that
+#'   converged immediately. The two causes are distinguished in the message ---
+#'   misaligned \code{cell_lineage} against \code{lineage_future_count}, versus
+#'   \code{exp()} overflow from unscaled features.
+#'
+#' @noRd
 .lineage_gradient <- function(cell_features,
                               cell_lineage,
                               cell_lineage_idx_list,
@@ -359,4 +535,14 @@ evaluate_loglikelihood <- function(cell_features,
   res
 }
 
+#' Euclidean norm
+#'
+#' Note this is the norm itself, not its square --- callers that want the ridge
+#' penalty square the result (\code{.l2norm(...)^2}).
+#'
+#' @param x A numeric vector.
+#'
+#' @returns A single numeric.
+#'
+#' @noRd
 .l2norm <- function(x){sqrt(sum(x^2))}

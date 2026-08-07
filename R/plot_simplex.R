@@ -3,6 +3,9 @@
 #' Creates a ternary plot for three-way compositional data using ggplot2,
 #' without requiring the ggtern package.
 #'
+#' Rows whose three values sum to zero have no composition to plot and are
+#' dropped, with a warning naming how many went.
+#'
 #' @param df A data frame where each row is a point to plot.
 #' @param x_col Character name of the column in \code{df} for the first axis (bottom-left corner).
 #' @param y_col Character name of the column in \code{df} for the second axis (bottom-right corner).
@@ -28,16 +31,21 @@ plot_simplex <- function(df,
                          ylab = "y",
                          zlab = "z",
                          title = "title") {
+  # A zero-sum row has no composition, and normalizing it would give NaN.
+  tot <- df[[x_col]] + df[[y_col]] + df[[z_col]]
+  drop_idx <- which(tot == 0 | is.na(tot))
+  if(length(drop_idx) > 0){
+    warning("Dropping ", length(drop_idx), " row(s) of `df` whose ", x_col,
+            " + ", y_col, " + ", z_col, " is zero or NA.")
+    df <- df[-drop_idx, , drop = FALSE]
+    tot <- tot[-drop_idx]
+  }
+
   # Normalize to sum to 1 and convert ternary to Cartesian coordinates.
   # Convention: x -> bottom-left vertex (0,0), y -> bottom-right vertex (1,0),
   # z -> top vertex (0.5, sqrt(3)/2).
-  x <- df[[x_col]]
-  y <- df[[y_col]]
-  z <- df[[z_col]]
-  tot <- x + y + z
-  x <- x / tot
-  y <- y / tot
-  z <- z / tot
+  y <- df[[y_col]] / tot
+  z <- df[[z_col]] / tot
 
   s3 <- sqrt(3) / 2
   plot_df <- df

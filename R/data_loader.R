@@ -1,6 +1,26 @@
-# If the DimReduc object references an assay not present in the Seurat object,
-# update assay.used to the first available non-Empty assay. This prevents
-# "Cannot find assay 'RNA'" errors when loading dimreductions without RNA.
+#' Repoint a DimReduc at an assay the object actually has
+#'
+#' If the DimReduc object references an assay not present in the Seurat object,
+#' update assay.used to the first available non-Empty assay. This prevents
+#' "Cannot find assay 'RNA'" errors when loading dimreductions without RNA.
+#'
+#' Seurat v5 validates \code{@assay.used} when a \code{DimReduc} is added to an
+#' object. The paper's fastTopics, peakVI, and other reductions were all
+#' computed with \code{assay.used = "RNA"}, so loading any of them without also
+#' loading the (large) RNA assay would error. Since none of these reductions is
+#' recomputed from the assay, the reference is cosmetic and can be repointed.
+#'
+#' @param dr The object to fix. Anything that is not a \code{DimReduc} is
+#'   returned untouched, so this is safe to wrap around every assignment.
+#' @param seurat_obj The Seurat object the reduction is about to be added to.
+#'   Must already hold the assays it will be checked against --- so the call
+#'   order in \code{data_loader()} matters: assays are loaded before reductions.
+#'
+#' @returns The \code{DimReduc}, with \code{@assay.used} left alone if valid,
+#'   otherwise set to the first non-\code{"Empty"} assay present, or to
+#'   \code{""} if there is none.
+#'
+#' @noRd
 .fix_dimreduc_assay <- function(dr, seurat_obj) {
   if (!inherits(dr, "DimReduc")) return(dr)
   available <- setdiff(Seurat::Assays(seurat_obj), "Empty")
@@ -37,7 +57,7 @@
 #' @param verbose positive integer
 #'
 #' @return a Seurat object
-#' @export
+#' @noRd
 data_loader <- function(
     which_files = c("rna", "atac", "lineage"),
     folder_path = "~/nzhanglab/project/Multiome_fate/out/kevin/Writeup10a/",

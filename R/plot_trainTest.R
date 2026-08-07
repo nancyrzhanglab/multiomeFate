@@ -1,3 +1,49 @@
+#' Cross-validation diagnostic: training and held-out curves over the lambda path
+#'
+#' The standard check on a \code{cyfer()} run. Two side-by-side panels, training
+#' on the left and held out on the right, each showing the median across folds
+#' of the unpenalized objective at every lambda, with a shaded band between the
+#' outer two quantiles. A dashed vertical line on the test panel marks the
+#' selected lambda.
+#'
+#' What a healthy curve looks like: the training objective falls monotonically
+#' as lambda shrinks, while the test curve turns up again at small lambda, and
+#' the dashed line sits in that interior minimum. Two failure modes are visible
+#' at a glance --- a flat test curve, and a dashed line pinned at the right-hand
+#' end. Both mean the fit did not move. Ties in the test curve resolve to the
+#' \emph{largest} lambda, because \code{which.min()} takes the first hit and
+#' \code{lambda_sequence} is decreasing, so "selected lambda equals the ceiling
+#' I set" is a symptom of a broken fit rather than of under-regularization.
+#'
+#' The x axis is \code{lambda + 1} on a log10 scale, since the path runs down to
+#' exactly 0.
+#'
+#' @param cv_fit_list An object of class \code{"cyfer"}, i.e. the return value of
+#'   \code{\link{cyfer}}. Asserted.
+#' @param axis_size Point size of the axis titles. Default \code{8}.
+#' @param bool_include_lambda_title Whether to append the selected lambda to the
+#'   test panel's title. Default \code{TRUE}.
+#' @param fill_col Fill colour of the inter-quantile band. Default
+#'   \code{"gray"}.
+#' @param quantile_vec Length-3 increasing vector of quantiles across folds:
+#'   band lower edge, centre line, band upper edge. Default
+#'   \code{c(0.1, 0.5, 0.9)}. The centre line is also what the displayed lambda
+#'   is chosen by, so \code{quantile_vec[2]} \bold{must} be \code{0.5} --- that
+#'   is what \code{\link{cyfer_finalize}} selects by, and a different centre
+#'   would draw a dashed line at a lambda the refit never uses. Only the two
+#'   outer entries are free.
+#' @param xlab X axis label, shared by both panels. Default
+#'   \code{"Lambda+1 (Log10-scale tickmarks)"}.
+#' @param ylab_test,ylab_train Y axis labels. Defaults name these curves
+#'   "negative loglikelihood"; they are the unpenalized objective, for which
+#'   lower is better, and not a literal log-likelihood.
+#' @param title_size Point size of the panel titles. Default \code{10}.
+#' @param title_test,title_train Panel titles. Default \code{""}.
+#'
+#' @returns A \code{ggplot} object: the two panels combined by
+#'   \code{cowplot::plot_grid()}.
+#'
+#' @export
 plot_trainTest <- function(cv_fit_list,
                            axis_size = 8,
                            bool_include_lambda_title = TRUE,
@@ -50,12 +96,44 @@ plot_trainTest <- function(cv_fit_list,
   plot1
 }
 
+#' Reduce the per-fold CV curves to quantiles and pick the displayed lambda
+#'
+#' Stacks one fold's objective curve per column, takes \code{quantile_vec}
+#' across folds at each lambda, and returns the result in the long form
+#' \code{ggplot2} wants.
+#'
+#' @param cv_fit_list An object of class \code{"cyfer"}.
+#' @param quantile_vec Length-3 strictly increasing vector of quantiles, whose
+#'   middle entry must be \code{0.5}; asserted.
+#' @param what Either \code{"train"} or \code{"test"}, selecting which curve to
+#'   summarize.
+#'
+#' @returns A list with:
+#'   \describe{
+#'     \item{\code{df}}{data frame with \code{3 * length(lambda_sequence)} rows
+#'       and columns \code{lambda} (already shifted by \code{+1} for the log
+#'       axis), \code{value}, and \code{quantile_str}, the last taking the
+#'       literal values \code{"lower"}, \code{"median"}, \code{"upper"}
+#'       regardless of which outer quantiles were requested.}
+#'     \item{\code{lambda}}{the unshifted lambda minimizing the median curve. At
+#'       \code{what == "test"} this is what \code{cyfer_finalize()} selects.}
+#'   }
+#'
+#' @noRd
 .prepare_trainTest_data <- function(cv_fit_list,
                                     quantile_vec,
                                     what){
   stopifnot(what %in% c("train", "test"),
             length(quantile_vec) == 3,
             all(diff(quantile_vec) > 0))
+  # The displayed lambda is chosen by the middle curve, and cyfer_finalize()
+  # always refits at the median, so anything else would mark a lambda the refit
+  # never uses.
+  if(quantile_vec[2] != 0.5){
+    stop("`quantile_vec[2]` must be 0.5 (got ", quantile_vec[2], "): the ",
+         "marked lambda is chosen by the middle curve, and `cyfer_finalize()` ",
+         "selects by the median.")
+  }
   
   if(what == "train"){
     loglik_obj <- "train_loglik"
@@ -85,7 +163,30 @@ plot_trainTest <- function(cv_fit_list,
        lambda = lambda)
 }
 
+#' Draw one panel of the cross-validation diagnostic
+#'
+#' The band is drawn with \code{geom_polygon()} on the lower quantile followed
+#' by the reversed upper quantile, rather than \code{geom_ribbon()}, which is
+#' why the data frame is reshaped rather than kept wide.
+#'
+#' Carries the \code{aes()} calls, and therefore the \code{@importFrom rlang
+#' .data}.
+#'
+#' @param axis_size Point size of the axis titles.
+#' @param df The \code{df} element of \code{.prepare_trainTest_data()}. Its
+#'   \code{lambda} column must already carry the \code{+1} shift, since the
+#'   panel uses a log10 x axis.
+#' @param fill_col Fill colour of the band.
+#' @param lambda_value Unshifted lambda at which to draw a dashed vertical
+#'   marker; \code{NULL} draws none. Shifted by \code{+1} internally to match
+#'   the axis.
+#' @param title,title_size,xlab,ylab Panel title, its point size, and the axis
+#'   labels.
+#'
+#' @returns A \code{ggplot} object.
+#'
 #' @importFrom rlang .data
+#' @noRd
 .plot_trainTest_helper <- function(axis_size,
                                    df,
                                    fill_col,
@@ -108,12 +209,12 @@ plot_trainTest <- function(cv_fit_list,
   plot1 <- plot1 + ggplot2::scale_fill_manual(values = c(tmp = fill_col))
   
   # add lines
-  plot1 <- plot1 + ggplot2::geom_point(data = subset(df, .data$quantile_str == 'median'), 
+  plot1 <- plot1 + ggplot2::geom_point(data = subset(df, df$quantile_str == 'median'), 
                                        ggplot2::aes(x = .data$lambda, y = .data$value), 
                                        shape = 16) 
-  plot1 <- plot1 + ggplot2::geom_line(data = subset(df, .data$quantile_str == 'median'), 
-                                      ggplot2::aes(x = .data$lambda, y = .data$value), 
-                                      size = 1) 
+  plot1 <- plot1 + ggplot2::geom_line(data = subset(df, df$quantile_str == 'median'),
+                                      ggplot2::aes(x = .data$lambda, y = .data$value),
+                                      linewidth = 1)
   
   plot1 <- plot1 + ggplot2::scale_x_log10() 
   plot1 <- plot1 + ggplot2::labs(

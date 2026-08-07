@@ -1,3 +1,156 @@
+# multiomeFate 1.0.2.002
+
+The API changes and defect fixes agreed in
+`additional_context/test-plan-full_2026-08-06_kevin.md`, which extended the test
+suite from the estimation core to the barcoding pipeline, the simulators, the
+plotting functions, `compute_entropy()` and the numerical utilities. Writing
+those tests is what surfaced most of the defects below.
+
+## API changes
+
+* **The public API grows from 6 functions to 17.** Newly exported: the four
+  plotting functions (`plot_anova()`, `plot_trainTest()`,
+  `plot_cellGrowthUmap()`, `plot_lineageScatterplot()`), all three simulators
+  (`generate_simulation()`, `generate_simulation_plastic()`,
+  `generate_simulation_attachFuture()`), `compute_entropy()`, and the four
+  barcoding functions (`barcoding_posterior()`, `barcode_clustering()`,
+  `barcode_combine()`, `barcoding_assignment()`). All were already user-facing in
+  practice, reached with `:::` from the analysis code, and now have help pages.
+
+* **`data_loader()` is no longer exported.** It reads `.RData` from a hardcoded
+  lab path and is a helper for the package authors rather than public API. Still
+  available as `multiomeFate:::data_loader()`.
+
+* **`evaluate_loglikelihood()` is renamed `evaluate_nll()`**, because it returns
+  the *negative* penalized log-likelihood -- lower is better -- and the old name
+  said the opposite. **There is deliberately no deprecated alias**: calls to the
+  old name error rather than silently return a value whose sign the caller may
+  have misread. It remains unexported. Analysis code calling
+  `multiomeFate:::evaluate_loglikelihood()` must be updated.
+
+* **Four unused helpers were removed from `R/util.R`**: `.mult_vec_mat()`,
+  `.mult_mat_vec()`, `.log_sum_exp()` and `.exp_ratio()`. None was called from
+  anywhere in `R/`. `.log_sum_exp()` in particular invited confusion with
+  `.log_sum_exp_normalization()` in `R/simulation.R`, which is a different
+  function (vector out, not scalar, and it propagates `NA` rather than dropping
+  it); that one is unaffected.
+
+* `stats`, `utils`, `graphics` and `methods` are now declared in `Imports:`.
+  They are used throughout `R/` and were previously undeclared, which `R CMD
+  check --as-cran` flags.
+
+## Bug fixes -- plotting
+
+* **`plot_trainTest()` and `plot_lineageScatterplot()` errored on every call.**
+  Three call sites passed the `rlang` `.data` pronoun to `base::subset()`, which
+  evaluates outside a data mask; current `rlang` aborts with `"Can't subset
+  .data outside of a data mask context"` rather than resolving it. Both
+  functions now use plain `df$column`. (`.data` is still used inside `aes()`,
+  where it is required.)
+
+* **`plot_anova()` errored whenever fewer than nine lineages qualified.** The
+  bottom slice `(length(x) - num_lineages_bottom + 1):length(x)` went negative
+  at the default `num_lineages_bottom = 10`, and R refuses to mix negative and
+  positive subscripts. Both ends of the selection are now clamped, so asking for
+  more lineages than exist falls back to all of them. The top end previously ran
+  off the other side and put a phantom `"NA (NA)"` category on the x axis.
+
+* **`plot_anova()` never forwarded `bool_add_future_size`** to
+  `.plot_anova_helper()`, so `FALSE` still drew the `"lineage (n)"` labels.
+
+* `.plot_trainTest_helper()` now passes `linewidth` rather than the `size`
+  aesthetic, which `ggplot2` deprecated for lines in 3.4.0.
+
+* `plot_simplex()` now drops rows whose three values sum to zero, with a warning
+  naming how many went, instead of mapping them to `NaN`.
+
+* `plot_trainTest()` now requires `quantile_vec[2] == 0.5` and errors otherwise.
+  The centre curve is what the marked lambda is chosen by, and
+  `cyfer_finalize()` always refits at the median, so any other centre drew a
+  dashed line at a lambda the refit never used. The two outer entries are still
+  free.
+
+## Bug fixes -- barcoding
+
+* **`barcode_combine(lin_mat, NULL)` errored** at
+  `stopifnot(is.list(lineage_clusters))`, because `is.list(NULL)` is `FALSE`.
+  The documented "nothing to do" contract was therefore unreachable -- and
+  `barcode_clustering()` returns exactly `NULL` when no pair clears
+  `cor_threshold`, so piping the two together crashed on any dataset with no
+  correlated barcodes. `NULL`, an empty list, and a list of nothing but `NA`
+  tombstones now all return `lin_mat` unchanged.
+
+* **`barcode_combine()` silently renamed a barcode** when exactly one was left
+  unclustered: the single row collapsed to a vector and `rbind()` named it after
+  the variable, so the output row was called `"lin_untouched"`. A cluster naming
+  a single barcode errored for the same reason. Both fixed with `drop = FALSE`.
+
+* **`barcoding_posterior()` returned `beta0` and `beta1` unnamed** -- the code
+  assigned `names(lin_mat)`, which is `NULL` for a matrix. They are now named by
+  barcode, as `gamma` already was, along with `lineage_num_winner`.
+
+* **`barcoding_posterior()` now accepts a `dgCMatrix`**, so the whole pipeline
+  works in sparse form and callers no longer need to bridge
+  `barcode_clustering()` and `barcoding_posterior()` with `as.matrix()`. Row
+  names are now required rather than assumed.
+
+* `barcode_clustering()`'s cluster-merge assertion is now an explicit `stop()`
+  naming the invariant, rather than a bare `stopifnot()`.
+
+## Bug fixes -- simulation
+
+* **`generate_simulation_attachFuture()` fitted its push-forward map from a
+  single restart**, never `num_pushforward_training_iter` of them: `lapply()`
+  iterated over the *scalar* rather than `seq_len()` of it, so the `which.min()`
+  selecting the best restart was a no-op.
+
+* **`.compute_previous_to_future_mapping()` built its covariance from unsquared
+  standard deviations**, `lineage_spread * diag(sd_vec)`, where
+  `.form_gaussian_distribution()` uses variances. The parent-child kernel was
+  therefore too tight, and `lineage_spread` did not mean the same thing in the
+  two files. Now `lineage_spread * diag(sd_vec^2)`.
+
+  Together with the restart fix above this changes every parent-child
+  assignment: `mapping_mat`, `future_cell_assignment`,
+  `prev_cell_num_progenitor` and `future_lineage_size` all move. The
+  `cell_fate_potential` and `coefficient_intercept` elements are computed before
+  the push-forward step and are unaffected.
+
+* `generate_simulation_plastic()` now **errors** when `lineage_mean_spread` and
+  `lineage_sd_spread` are both `NA`, rather than warning. That configuration
+  gives lineages large means *and* large variances together, which confounds the
+  two regimes the simulation exists to separate.
+
+* `.compute_pushforward()` no longer declares an unused
+  `previous_cell_potential` argument.
+
+## Bug fixes -- other
+
+* `compute_entropy()` now subsets with `drop = FALSE` near the end. With exactly
+  one surviving cell the matrix collapsed to a vector, `rownames()` became
+  `NULL`, and the metadata lookup that follows silently produced garbage.
+
+* `.nonzero_col()` was defined twice, byte-identically, in `R/util.R` and
+  `R/barcoding_assignment.R`. The duplicate is removed.
+
+## Testing
+
+* The suite grows from 637 to 1149 passing tests, covering the barcoding
+  pipeline, the three simulators, the plotting functions, `compute_entropy()`
+  and `data_loader()`'s pure helper -- all of which previously had little or no
+  coverage. Plotting had none at all, which is why the two defects that broke
+  `plot_trainTest()` and `plot_lineageScatterplot()` outright had gone
+  unnoticed.
+
+* New: a test that the two simulators produce the two regimes they are named
+  for (priming spreads lineage *means*, plastic spreads within-lineage
+  *variances*); an end-to-end test that `cyfer()` recovers the simulated fate
+  potential; and a test pinning the exported-name list, so an accidental
+  `@export` cannot slip in unnoticed.
+
+* The five `_claude`-suffixed test files are folded into their unsuffixed
+  counterparts.
+
 # multiomeFate 1.0.2.001
 
 Fixes for the defects pinned by the test suite added in

@@ -43,7 +43,7 @@ knitr::opts_chunk$set(
   - `fit`: best solution (minimal objective) with `coefficient_vec`, `objective_val`, etc.
   - `res_list`: all starts.
 
-- **`evaluate_loglikelihood(...)`**  
+- **`evaluate_nll(...)`**  
   Thin wrapper that runs `.lineage_objective(...)` **after cleanup**. Note: this returns the **objective** value (data term averaged over lineages, plus penalty if `lambda>0`), not a conventional log-likelihood.
 
 ---

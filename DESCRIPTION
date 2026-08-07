@@ -1,6 +1,6 @@
 Package: multiomeFate
 Title: CYFER, for modeling the number of progenies of cancer cells
-Version: 1.0.2.001
+Version: 1.0.2.002
 Authors@R: c(person("Kevin", "Lin",  role = c("aut", "cre"), email = "kzlin@uw.edu"),
     person("Xinyi", "Chen", role = "aut"))
 Description: Tools for multiome fate prediction in cancer cells.
@@ -16,14 +16,18 @@ Imports:
     cowplot,
     ggplot2,
     ggrepel,
-    scCustomize,
+    graphics,
+    methods,
     plyr,
-    rlang
+    rlang,
+    scCustomize,
+    stats,
+    utils
 Suggests:
     knitr,
     numDeriv,
     rmarkdown,
     testthat
 VignetteBuilder: knitr
-RoxygenNote: 7.3.3
 URL: https://nancyrzhanglab.github.io/multiomeFate/
+RoxygenNote: 7.3.3
