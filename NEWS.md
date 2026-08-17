@@ -1,3 +1,125 @@
+# multiomeFate (development version)
+
+Tentative, unreleased. Changes on branch `emilia_review` (emiliac), from the
+code review in `Reports/CYFER_code_review_2026-08-14.pdf`; each entry is recorded
+in full in `Reports/CYFER_fix_log_2026-08-17.pdf`.
+
+## Bug fixes
+
+* **`cyfer()` now resolves `lambda_initial` once, on the full data, when it is
+  passed as `NA`**. Previously the `NA` fallback was taken separately
+  inside each fold, by `.compute_initial_parameters()` acting on that fold's
+  *training* lineages — and every input to that heuristic (`future_total`,
+  `current_total`, `term2`, `num_lineages`) is a sum or count over the lineages it
+  is handed. Each fold therefore built a **different `lambda_sequence`**, while
+  `cyfer_finalize()` stacks the folds' `test_loglik` vectors by *position*,
+  medians down each row, and reads the winning lambda off `fit_res[[1]]`'s grid
+  alone. Row `k` was thus an average of held-out error measured at `k` different
+  penalties, and the reported lambda was fold 1's value for that position. Nothing
+  errored, because all the paths have the same *length*.
+
+  Note that the `NA` path now uses the response of every lineage, held-out ones
+  included, to set the top of the search grid. This is the same trade
+  `cv.glmnet()` makes for the same reason: a CV curve is comparable only if every
+  fold shares a grid. Lambda is still selected on strictly within-fold held-out
+  error. Pass a fixed numeric `lambda_initial` to avoid the leak entirely.
+
+* `cyfer()` now validates `lambda_initial`: it must be a single number,
+  or `NA`. `c(1, 2)`, `"3"` and `NULL` previously reached `is.na()` and behaved
+  unpredictably from there.
+
+* **`.lineage_cleanup()` now checks that `cell_lineage` is row-aligned with
+  `cell_features`.** The two are matched by *position* — `which(cell_lineage ==
+  lineage)` returns positions, and those integers index rows of `cell_features`
+  when the objective forms the per-lineage sum — so a permuted `cell_lineage`
+  fits the wrong cells to every clone. Every value stays well-formed, so nothing
+  errored and the result looked plausible. The check is in `.lineage_cleanup()`
+  because every estimation path funnels through it, and it covers each
+  cross-validation fold as well as the entry call.
+
+  Two checks. The **length** of `cell_lineage` against `nrow(cell_features)` is
+  always verified, now with both counts in the message rather than a bare
+  `stopifnot()` firing after cleanup has already run. And **when
+  `cell_lineage` carries names**, they must equal `rownames(cell_features)`
+  exactly; the error distinguishes the same cells in a different order (and
+  gives the `cell_lineage[rownames(cell_features)]` fix), a genuinely different
+  set of cells, and a named `cell_lineage` against a `cell_features` with no row
+  names.
+
+  **An unnamed `cell_lineage` passes**, exactly as before. Names are the only
+  independent record of which cell each label belongs to; without them a
+  permuted vector is indistinguishable from a correct one. Passing no names is
+  the caller asserting the vector is already row-aligned. To have the alignment
+  checked, name it — e.g. `setNames(meta$lineage_id, meta$cell_id)`.
+
+  `cyfer()` and `cyfer_finalize()` coerce with
+  `setNames(as.character(cell_lineage), names(cell_lineage))` rather than plain
+  `as.character()`, which drops names. Without that the check could never see
+  the names on the two public paths. Unnamed input is unaffected.
+
+* **`cyfer()` now refuses a fit whose unpenalized endpoint is not identified.**
+  CYFER's effective sample size is the number of *lineages*, not cells: the model
+  places one Poisson response per lineage, `N_l ~ Poisson(mu_l)` with
+  `mu_l = sum_{i in l} exp(x_i' beta)`, so each lineage contributes a single row
+  to the Jacobian and the Fisher information has rank at most `min(L, p+1)` —
+  however many cells were sequenced. Forty clones cannot identify sixty features
+  from four hundred cells or from four million.
+
+  This bites because the lambda path always terminates at exactly zero:
+  `exp(seq(log(lambda_initial+1), 0, length.out = n)) - 1` has last element `0`.
+  The final fit on every path is therefore unpenalized, hence underdetermined
+  whenever the training folds hold fewer than `p+1` lineages, and BFGS simply
+  drifts along the null space from its warm start. That fit is a legitimate
+  candidate for `which.min()` in `cyfer_finalize()`. Previously nothing
+  complained: `L = 3` with `num_folds = 3` (two training clones) ran silently.
+
+  `cyfer()` now checks the number of training lineages against `ncol(cell_features)
+  + 1` after the folds are built, comparing against the *largest* fold since that
+  leaves the smallest training set, and errors naming both counts. The
+  identifiability floor is `L(k-1)/k >= p+1`, which is much weaker than one clone
+  per feature — at `p = 60`, `k = 10` it needs only `L >= 68`.
+
+* **The random restarts in `lineage_imputation()` are drawn from a range that
+  scales as `1/sqrt(p)` rather than `1/p`.** The range is a per-coefficient
+  allowance carved out of a budget on the *total* linear predictor — keep
+  `|x_i' beta|` within about `2*log(max_count_ratio)` so `exp()` cannot overflow
+  — and converting the budget into a per-coefficient figure needs a model of how
+  `p` contributions add. The old `1/p` came from a triangle-inequality worst
+  case, `|x' beta| <= p * max|x| * max|beta|`, which requires every term to have
+  the same sign and the same magnitude. With mixed signs they partly cancel and
+  the sum grows like `sqrt(p)`, which is the reasoning behind Xavier/Glorot and
+  He initialization.
+
+  The practical effect was that the range collapsed as features were added. On
+  scaled features with a maximum growth ratio of order 250:
+
+  ```
+  p+1    old (1/p)   new (1/sqrt p)   ratio
+    3       1.8405           3.1878    1.7x
+   11       0.5020           1.6648    3.3x
+   31       0.1781           0.9917    5.6x
+   61       0.0905           0.7070    7.8x
+  ```
+
+  At `p+1 = 61` all ten restarts drew from a range about 0.09 wide, so they were
+  one search of a non-convex objective repeated ten times at ten times the cost.
+  The package's own fixtures use 2 features, where the range is wide and the
+  mechanism works as intended, which is why no test caught this.
+
+  **This changes fitted numbers**: the restarts start elsewhere, so `optim()`
+  follows different paths. On a synthetic `L = 100`, `p = 60`, 800-cell fit the
+  wider range did disperse the search — the spread of objective values across
+  restarts rose from 31.1 to 48.9 — but the best objective found was identical to
+  six decimal places at both `lambda = 1` and `lambda = 0`. The change buys
+  coverage of the parameter space; it is not yet demonstrated to find better
+  optima on real data.
+
+  The range is still floored at zero rather than centred on it, so restarts still
+  begin in the non-negative orthant. That is a separate decision and is
+  deliberately left unchanged. `upper_randomness` still does not bind at
+  realistic feature counts (0.71 against a cap of 5 at `p+1 = 61`), though it can
+  now bind at small `p` with a large growth ratio.
+
 # multiomeFate 1.0.2.002
 
 The API changes and defect fixes agreed in

@@ -78,7 +78,9 @@ cyfer_finalize <- function(cell_features,
          "). The intercept is added internally, so remove it.")
   }
 
-  cell_lineage <- as.character(cell_lineage)
+  # Names are kept because `as.character()` drops them and `.lineage_cleanup()`
+  # uses them to check row-alignment against `cell_features` in the final refit.
+  cell_lineage <- stats::setNames(as.character(cell_lineage), names(cell_lineage))
   # `sapply()` returns a vector rather than a matrix when the lambda path has
   # length 1, so name the fold margin explicitly.
   test_mat <- sapply(fit_res, function(x){x$test_loglik})

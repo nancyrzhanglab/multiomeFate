@@ -67,8 +67,11 @@ cyfer <- function(cell_features,
   if (is.null(colnames(cell_features))) stop("cell_features must have column names (feature names)")
 
   # Subsetting a factor retains its unused levels, which would misalign it with
-  # the per-fold `lineage_future_count`. Work in character throughout.
-  cell_lineage <- as.character(cell_lineage)
+  # the per-fold `lineage_future_count`. Work in character throughout. Names are
+  # kept because `as.character()` drops them and `.lineage_cleanup()` uses them to
+  # check row-alignment against `cell_features`; both are subset positionally per
+  # fold, so each fold is checked too. Unnamed input is unaffected.
+  cell_lineage <- stats::setNames(as.character(cell_lineage), names(cell_lineage))
 
   # Drop lineages with no cells at the first time point before the folds are
   # built. `construct_folds()` would otherwise deal such a lineage into a fold
@@ -76,6 +79,20 @@ cyfer <- function(cell_features,
   # `cv_cell_list[[fold]] == NULL` -- so `cell_features[-NULL,,drop=F]` trains
   # on zero rows.
   lineage_future_count <- lineage_future_count[names(lineage_future_count) %in% unique(cell_lineage)]
+
+  # If lambda_initial is passed in as \code{NA}, then derive it from the data, before 
+  # the folds are built, and the same value is used for every fold. 
+  if(length(lambda_initial) != 1 || (!is.na(lambda_initial) && !is.numeric(lambda_initial))){
+    stop("`lambda_initial` must be a single number, or NA to derive it from the data")
+  }
+  if(is.na(lambda_initial)){
+    lambda_initial <- .compute_initial_parameters(
+      cell_features = cell_features,
+      cell_lineage = cell_lineage,
+      lineage_future_count = lineage_future_count
+    )$lambda_initial
+    if(verbose > 0) print(paste0("Choosing lambda_initial on the full data: ", lambda_initial))
+  }
 
   # `construct_folds()` calls sample(), so the seed must be set before it runs
   # for `seed_number` to make the fold assignment reproducible.
@@ -88,6 +105,19 @@ cyfer <- function(cell_features,
   )
   cv_cell_list <- tmp$cv_cell_list
   fold_lineage_list <- tmp$fold_lineage_list
+
+  # CYFER's effective sample size is the number of LINEAGES, not cells: the model
+  # places one Poisson response per lineage, so the Fisher information has rank at
+  # most min(L, p+1) however many cells were sequenced. The lambda path always
+  # ends at exactly 0, so its final fit is unpenalized -- and therefore
+  # underdetermined whenever the training folds hold fewer than p+1 lineages, with
+  # BFGS free to drift along the null space. Check against the *largest* fold,
+  # which leaves the smallest training set.
+  n_train <- length(lineage_future_count) - max(lengths(fold_lineage_list))
+  if(n_train < ncol(cell_features) + 1){
+    stop("training folds have ", n_train, " lineages but ", ncol(cell_features) + 1,
+         " coefficients: the unpenalized end of the lambda path is not identified")
+  }
 
   cv_fit_list <- vector("list", length = num_folds)
   names(cv_fit_list) <- names(cv_cell_list)

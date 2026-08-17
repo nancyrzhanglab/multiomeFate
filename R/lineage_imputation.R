@@ -139,7 +139,17 @@ lineage_imputation <- function(cell_features,
       max_limit <- 0
       min_value <- -10
     } else {
-      max_limit <- 2*log(max_count_ratio)/(p*max_feature)
+      # The budget is on the *total* linear predictor: keep |x_i'beta| within
+      # about 2*log(max growth ratio) so exp() cannot overflow. Turning that into
+      # a per-coefficient allowance needs a model of how p contributions add.
+      # With mixed signs they partly cancel and the sum grows like sqrt(p), so
+      # the allowance scales as 1/sqrt(p) -- the same reasoning behind
+      # Xavier/Glorot and He initialization. The previous 1/p came from a
+      # triangle-inequality worst case that effectively never occurs, and it
+      # collapsed the range to roughly [0, 0.09] at p = 60: ten restarts inside
+      # one small box are one search repeated ten times, at ten times the cost,
+      # on a non-convex objective.
+      max_limit <- 2*log(max_count_ratio)/(sqrt(p)*max_feature)
       # the threshold, not just the sign: at max_count_ratio == 1 the limit is
       # exactly 0, and a `< 0` test would leave min_value == max_limit, so all
       # the restarts would collapse onto the same zero vector
@@ -290,9 +300,43 @@ evaluate_nll <- function(cell_features,
                              verbose = 0){
   stopifnot(length(colnames(cell_features)) == ncol(cell_features))
 
+  # `cell_lineage` is matched to `cell_features` by POSITION, never by name:
+  # `which(cell_lineage == lineage)` below returns positions, and those integers
+  # index rows of `cell_features` when the objective forms the per-lineage sum.
+  # A permuted `cell_lineage` therefore assembles every clone out of the wrong
+  # cells and still fits, silently. Check it here, the one place every estimation
+  # path funnels through. Names are only available to check if the caller kept
+  # them -- `as.character()` drops them, so the entry points coerce name-preserving.
+  if(length(cell_lineage) != nrow(cell_features)){
+    stop("`cell_lineage` has length ", length(cell_lineage),
+         " but `cell_features` has ", nrow(cell_features), " rows")
+  }
+  if(!is.null(names(cell_lineage))){
+    if(is.null(rownames(cell_features))){
+      stop("`cell_lineage` is named but `cell_features` has no row names, so the ",
+           "two cannot be checked for alignment. Supply row names, or drop the ",
+           "names from `cell_lineage` to assert that it is already row-aligned.")
+    }
+    if(!identical(names(cell_lineage), rownames(cell_features))){
+      if(setequal(names(cell_lineage), rownames(cell_features))){
+        stop("`cell_lineage` and `cell_features` name the same cells in a ",
+             "DIFFERENT ORDER. They are matched by position, so this would fit ",
+             "the wrong cells to every lineage. Reorder one to match the other, ",
+             "e.g. `cell_lineage <- cell_lineage[rownames(cell_features)]`.")
+      }
+      stop("`names(cell_lineage)` and `rownames(cell_features)` name different ",
+           "cells: ", length(setdiff(names(cell_lineage), rownames(cell_features))),
+           " only in `cell_lineage`, ",
+           length(setdiff(rownames(cell_features), names(cell_lineage))),
+           " only in `cell_features`.")
+    }
+  }
+
   # `cell_lineage` is documented as character or factor. Coerce once, here, so
   # that nothing downstream can index a named vector by a factor's integer codes
   # (which silently returns the wrong element, or NA, rather than erroring).
+  # This drops the names, which have served their purpose above; everything
+  # downstream is positional.
   cell_lineage <- as.character(cell_lineage)
 
   # some cleanup
