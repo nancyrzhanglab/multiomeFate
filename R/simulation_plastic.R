@@ -18,7 +18,7 @@
 #' rather than lineages first and potentials from position:
 #' \enumerate{
 #'   \item Each cell's expected progeny count is
-#'     \code{exp(coefficient_intercept + x_i' beta)}, optionally Poisson-drawn.
+#'     \code{exp(coefficient_intercept + x_i^T beta)}, optionally Poisson-drawn.
 #'   \item Each lineage gets a Gaussian over \emph{log potential}, all with the
 #'     same mean and with standard deviations interpolating from
 #'     \code{sd * rho} down to \code{sd / rho}; cells are scored against those.

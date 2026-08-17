@@ -119,7 +119,7 @@ The construction, in the order the \code{verbose} messages report it:
     soft, overlapping clumps, and their realized sizes are random rather than
     equal to \code{n * lineage_prior}.
   \item Each cell's expected progeny count is
-    \code{exp(coefficient_intercept + x_i' beta)}, optionally Poisson-drawn,
+    \code{exp(coefficient_intercept + x_i^T beta)}, optionally Poisson-drawn,
     and summed within lineage to give the future size.
 }
 
