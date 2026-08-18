@@ -6,6 +6,12 @@
 #' @param lambda Ridge penalty weight on non-intercept coefficients.
 #' @param random_initializations Number of additional random starts.
 #' @param upper_randomness Upper cap for random initial coefficients.
+#' @param maxit Iteration cap passed to \code{optim()}. \code{NA} (the default)
+#'   sets it to \code{max(100, 10*p)}, where \code{p} counts the intercept:
+#'   BFGS searches a \code{p}-dimensional space, so the budget has to grow with
+#'   it. \code{optim()}'s own default of 100 was silently truncating fits at
+#'   realistic feature counts. This is a cap, not a target --- a fit that meets
+#'   \code{reltol} stops earlier and costs nothing extra.
 #' 
 #' @return An object of class \code{"lineage_imputation"} with \code{fit} and \code{res_list}.
 #' \code{fit} is the element of \code{res_list} with the smallest
@@ -25,6 +31,7 @@ lineage_imputation <- function(cell_features,
                                lambda = 0,
                                random_initializations = 10,
                                upper_randomness = 5,
+                               maxit = NA,
                                verbose = 1){
   # do some preliminary formatting
   if(!is.list(coefficient_initial_list)) coefficient_initial_list <- list(coefficient_initial_list)
@@ -42,7 +49,18 @@ lineage_imputation <- function(cell_features,
   uniq_lineages <- tmp$uniq_lineages
   coefficient_initial_list <- .append_intercept_term(coefficient_initial_list)
   p <- ncol(cell_features)
-  
+
+  # BFGS searches a p-dimensional space, so its iteration budget has to grow with
+  # p. optim()'s default of 100 truncated a fifth of the fits at p+1 = 61 with
+  # L = 100 -- and it truncated them unevenly: the small-lambda fits are the
+  # ill-conditioned ones that need the most iterations, so the low end of the CV
+  # curve was penalised by an optimizer artefact rather than by generalisation.
+  # This is a cap, not a target: a fit meeting `reltol` stops earlier regardless.
+  if(length(maxit) != 1 || (!is.na(maxit) && (!is.numeric(maxit) || maxit < 1))){
+    stop("`maxit` must be a single positive number, or NA to scale it with the feature count")
+  }
+  if(is.na(maxit)) maxit <- max(100, 10*p)
+
   stopifnot(setequal(unique(cell_lineage), names(lineage_future_count)),
             is.matrix(cell_features), nrow(cell_features) == length(cell_lineage),
             all(sapply(coefficient_initial_list, length) == ncol(cell_features)),
@@ -111,6 +129,7 @@ lineage_imputation <- function(cell_features,
       fn = optim_fn,
       gr = optim_gr,
       method = "BFGS",
+      control = list(maxit = maxit),
       cell_features = cell_features,
       cell_lineage = cell_lineage,
       cell_lineage_idx_list = cell_lineage_idx_list,
@@ -165,6 +184,7 @@ lineage_imputation <- function(cell_features,
         fn = optim_fn,
         gr = optim_gr,
         method = "BFGS",
+        control = list(maxit = maxit),
         cell_features = cell_features,
         cell_lineage = cell_lineage,
         cell_lineage_idx_list = cell_lineage_idx_list,
@@ -188,8 +208,26 @@ lineage_imputation <- function(cell_features,
     print("Quantile of all the objective scores")
     print(stats::quantile(obj_vec))
   }
-  
-  structure(list(fit =  res_list[[which.min(obj_vec)]],
+
+  # `optim`'s convergence code was stored on every fit and read nowhere, so a fit
+  # that ran out of iterations was indistinguishable from one that converged --
+  # and it is the returned coefficient vector, wherever BFGS happened to be when
+  # the budget ran out. Report it: the selected fit is the one that propagates,
+  # and the count across restarts says whether the budget is systematically tight.
+  best_idx <- which.min(obj_vec)
+  conv_vec <- sapply(res_list, function(lis){lis$convergence})
+  if(res_list[[best_idx]]$convergence != 0){
+    warning("the selected fit did not converge (optim code ",
+            res_list[[best_idx]]$convergence,
+            if(res_list[[best_idx]]$convergence == 1) paste0("; hit maxit = ", maxit) else "",
+            "; lambda = ", signif(lambda, 4), "). Its coefficients are where the ",
+            "optimizer stopped, not an optimum.")
+  } else if(verbose > 0 && any(conv_vec != 0)){
+    print(paste0(sum(conv_vec != 0), " of ", length(conv_vec),
+                 " initializations did not converge (the selected one did)"))
+  }
+
+  structure(list(fit =  res_list[[best_idx]],
                  res_list = res_list),
             class = "lineage_imputation")
 }
@@ -338,6 +376,42 @@ evaluate_nll <- function(cell_features,
   # This drops the names, which have served their purpose above; everything
   # downstream is positional.
   cell_lineage <- as.character(cell_lineage)
+
+  # `lineage_future_count` is the response. Nothing downstream validates it: the
+  # objective just sums `mu - N*log(mu)`, so a negative or non-finite N produces a
+  # finite-looking or NaN objective rather than an error, and a duplicated name
+  # silently resolves to whichever entry comes first. Check it here, where every
+  # estimation path passes, and where each fold's subset is checked as well.
+  # These are all element-wise properties, so a subset of a valid vector is valid.
+  if(!is.numeric(lineage_future_count)){
+    stop("`lineage_future_count` must be numeric, not ", class(lineage_future_count)[1])
+  }
+  if(is.null(names(lineage_future_count))){
+    stop("`lineage_future_count` must be named, with the lineage IDs as names")
+  }
+  if(anyNA(names(lineage_future_count)) || any(names(lineage_future_count) == "")){
+    stop("`lineage_future_count` has missing or empty lineage names")
+  }
+  if(anyDuplicated(names(lineage_future_count)) != 0){
+    dup <- unique(names(lineage_future_count)[duplicated(names(lineage_future_count))])
+    stop("`lineage_future_count` has duplicated lineage names (",
+         paste0(utils::head(dup, 5), collapse = ", "),
+         if(length(dup) > 5) ", ..." else "",
+         "). Indexing by name would silently take the first of each.")
+  }
+  bad <- which(!is.finite(lineage_future_count))
+  if(length(bad) > 0){
+    stop("`lineage_future_count` has ", length(bad), " non-finite value(s) (NA/NaN/Inf), ",
+         "e.g. lineage ", names(lineage_future_count)[bad[1]], ". ",
+         "An Inf here surfaces later as an overflow blamed on `cell_features`.")
+  }
+  bad <- which(lineage_future_count < 0)
+  if(length(bad) > 0){
+    stop("`lineage_future_count` has ", length(bad), " negative value(s), ",
+         "e.g. lineage ", names(lineage_future_count)[bad[1]], " = ",
+         lineage_future_count[bad[1]], ". These are counts of cells at the ",
+         "future time point.")
+  }
 
   # some cleanup
   if(!setequal(names(lineage_future_count), unique(cell_lineage))){

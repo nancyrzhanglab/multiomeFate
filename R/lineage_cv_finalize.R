@@ -81,6 +81,29 @@ cyfer_finalize <- function(cell_features,
   # Names are kept because `as.character()` drops them and `.lineage_cleanup()`
   # uses them to check row-alignment against `cell_features` in the final refit.
   cell_lineage <- stats::setNames(as.character(cell_lineage), names(cell_lineage))
+  if(!is.list(fit_res) || length(fit_res) == 0){
+    stop("`fit_res` must be a non-empty list, the output of `cyfer()`")
+  }
+
+  # The held-out curves are medianed position-wise and the winning position is
+  # read off fold 1's path, so position kk has to mean the same lambda in every
+  # fold. 
+  path_list <- lapply(fit_res, function(x){x$train_fit$lambda_sequence})
+  missing_vec <- which(sapply(path_list, is.null))
+  if(length(missing_vec) > 0){
+    stop("fold(s) ", paste0(missing_vec, collapse = ", "),
+         " carry no `train_fit$lambda_sequence`: `fit_res` is not the output of `cyfer()`")
+  }
+  mismatch_vec <- which(!sapply(path_list, function(path){
+    isTRUE(all.equal(path, path_list[[1]]))
+  }))
+  if(length(mismatch_vec) > 0){
+    stop("fold(s) ", paste0(mismatch_vec, collapse = ", "),
+         " were fit on a different lambda sequence than fold 1, so the held-out ",
+         "curves are not comparable and their median is meaningless. Refit with a ",
+         "single numeric `lambda_initial` passed to `cyfer()`.")
+  }
+  
   # `sapply()` returns a vector rather than a matrix when the lambda path has
   # length 1, so name the fold margin explicitly.
   test_mat <- sapply(fit_res, function(x){x$test_loglik})
