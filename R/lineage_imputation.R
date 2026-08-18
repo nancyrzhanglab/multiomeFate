@@ -370,6 +370,27 @@ evaluate_nll <- function(cell_features,
     }
   }
 
+  # `lineage_imputation()` checks the same condition with
+  # `stopifnot(sum(is.na(cell_lineage)) == 0)`, but that runs *after* this
+  # function, on the vector this function returns -- by which point the intersect
+  # below has already deleted the NA cells. It therefore passed on every input,
+  # including the one it was written for: 20 NA cells in 200 fitted silently on
+  # the remaining 180. This check is the same condition asked early enough to
+  # fire, and before the coercion so the offending cells can still be named. The
+  # later `stopifnot` is left in place as a backstop for the returned vector.
+  na_idx <- which(is.na(cell_lineage))
+  if(length(na_idx) > 0){
+    stop(length(na_idx), " of ", length(cell_lineage), " cells have an `NA` lineage",
+         if(!is.null(names(cell_lineage))){
+           paste0(" (e.g. ", paste0(utils::head(names(cell_lineage)[na_idx], 3),
+                                    collapse = ", "),
+                  if(length(na_idx) > 3) ", ..." else "", ")")
+         } else "",
+         ". A cell with no lineage has no response to fit against and was ",
+         "previously discarded without a message. Drop them deliberately before ",
+         "calling, e.g. `keep <- !is.na(cell_lineage)`.")
+  }
+
   # `cell_lineage` is documented as character or factor. Coerce once, here, so
   # that nothing downstream can index a named vector by a factor's integer codes
   # (which silently returns the wrong element, or NA, rather than erroring).

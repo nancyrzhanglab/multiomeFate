@@ -63,6 +63,14 @@ cyfer <- function(cell_features,
                   seed_number = 10,
                   verbose = 0
 ){
+  # Checked here rather than in `lineage_imputation()`, where the only guard was
+  # `stopifnot(is.matrix(cell_features))` -- that fires after `construct_folds()`
+  # has already run, and reports "is.matrix(cell_features) is not TRUE".
+  if (!is.matrix(cell_features)) {
+    stop("`cell_features` must be a matrix, but is a ",
+         paste0(class(cell_features), collapse = "/"),
+         ". Convert it with `as.matrix(cell_features)`.")
+  }
   if (is.null(rownames(cell_features))) stop("cell_features must have row names (cell IDs)")
   if (is.null(colnames(cell_features))) stop("cell_features must have column names (feature names)")
 

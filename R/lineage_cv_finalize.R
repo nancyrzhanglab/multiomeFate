@@ -65,6 +65,11 @@ cyfer_finalize <- function(cell_features,
                            fit_res,
                            lineage_future_count,
                            seed_number = 10){
+  if (!is.matrix(cell_features)) {
+    stop("`cell_features` must be a matrix, but is a ",
+         paste0(class(cell_features), collapse = "/"),
+         ". Convert it with `as.matrix(cell_features)`.")
+  }
   if (is.null(rownames(cell_features))) stop("cell_features must have row names (cell IDs)")
   if (is.null(colnames(cell_features))) stop("cell_features must have column names (feature names)")
 
