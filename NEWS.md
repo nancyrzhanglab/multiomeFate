@@ -18,9 +18,25 @@ in full in `Reports/CYFER_fix_log_2026-08-17.pdf`.
   penalties, and the reported lambda was fold 1's value for that position. Nothing
   errored, because all the paths have the same *length*.
 
+* **`cyfer_finalize()` now asserts that every fold was fit on the same
+  `lambda_sequence`**, instead of assuming it and reading the path off fold 1.
+  This cannot fire on a fresh run — the fix above guarantees the shared grid —
+  but `fit_res` objects saved *before* it, including `savefile_tmp`
+  checkpoints, do carry a different grid per fold and are still on disk.
+  A `fit_res` that is not `cyfer()` output at all is also rejected rather than
+  reaching `fit_res[[1]]`.
+
 * `cyfer()` now validates `lambda_initial`: it must be a single number,
   or `NA`. `c(1, 2)`, `"3"` and `NULL` previously reached `is.na()` and behaved
   unpredictably from there.
+
+* **A broken `\link{data_loader}` cross-reference is fixed** in
+  `barcoding_assignment`'s help page. `data_loader()` was unexported in
+  1.0.2.001, which left the link with no target, so `R CMD check` reported
+  `Missing link or links in Rd file`.
+
+* **`man/lineage_imputation.Rd` regenerated** to document `maxit`, which was
+  added to the roxygen but never propagated.
 
 * **`.lineage_cleanup()` now checks that `cell_lineage` is row-aligned with
   `cell_features`.
@@ -113,6 +129,30 @@ in full in `Reports/CYFER_fix_log_2026-08-17.pdf`.
   `verbose > 0`. Warning on every non-converged restart was rejected deliberately:
   a `cyfer()` run makes roughly 500 `lineage_imputation()` calls, and only the
   selected fit propagates into the result.
+
+## Continuous integration
+
+* **`R CMD check` now runs on every push and pull request**
+  (`.github/workflows/R-CMD-check.yaml`). Previously `.github/workflows/` held
+  only `pkgdown.yaml`, so nothing ran the test suite or `R CMD check`. The
+  malformed `.Rd` that made 1.0.2.002 uninstallable would have been caught on
+  the commit that introduced it, since `tools::parse_Rd()` runs inside the check.
+
+  The matrix is ubuntu-latest `release` and `oldrel-1`. macOS and Windows are
+  left out because `Seurat` and `scCustomize` resolve quickly only from Linux
+  binaries; a comment in the workflow marks where to add them.
+
+  Running the check before adding the workflow turned up three problems that
+  would have failed the first CI run — the undocumented `maxit`, the broken
+  `data_loader` link, and the test below. All three are fixed, and the check is
+  clean apart from one pre-existing NOTE (`graphics` and `methods` are declared
+  in `Imports` but never imported from).
+
+* **`test_data_loader.R` no longer assumes the lab data is absent.** It called
+  the real `data_loader()` and asserted the error was `cannot open|No such file`,
+  which is true on CI but false on the lab machines, where the calls instead
+  load multi-gigabyte `.RData` files one after another — enough to be killed by
+  a 24 GB cgroup limit. It now skips when the data directory is present.
 
 # multiomeFate 1.0.2.002
 

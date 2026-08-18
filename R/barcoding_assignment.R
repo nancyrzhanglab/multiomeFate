@@ -407,7 +407,7 @@ barcode_combine <- function(lin_mat,
 #' The criterion is a \emph{margin}, not a level: the gap between the largest
 #' and second-largest posterior must be at least \code{difference_val}. A cell
 #' whose top posterior is 0.95 is still left unassigned if the runner-up is
-#' 0.90. This is what the note on \code{\link{data_loader}} refers to --- an
+#' 0.90. This is what the note on \code{data_loader()} refers to --- an
 #' unassigned cell is generally not a cell with weak evidence, it is a cell with
 #' two competing barcodes, typically a doublet or a cell carrying two
 #' integrations.

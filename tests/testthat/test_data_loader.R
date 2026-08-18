@@ -61,6 +61,16 @@ test_that("data_loader rejects an unknown which_files entry (DL2)", {
   # Every documented name must be accepted by the check itself. The call then
   # fails on the missing lab path rather than on validation, so assert the
   # error is not the validation one.
+  #
+  # That reasoning only holds where the lab path is absent -- CI, a laptop, a
+  # collaborator's machine. On the lab machines the files are there, so these
+  # calls succeed and load multi-gigabyte .RData objects one after another.
+  # Running the suite on the cluster is how this was found: the job was killed
+  # by the cgroup at 24G. Skip rather than assert something false.
+  skip_if(dir.exists(path.expand(
+            "~/nzhanglab/project/Multiome_fate/out/kevin/Writeup10a/")),
+          "lab data path is present, so data_loader() would read the real files")
+
   for(file_name in valid_vec){
     label <- paste0("which_files = ", file_name)
     error_message <- tryCatch({
