@@ -102,6 +102,10 @@
 #' # Minimal end-to-end example:
 #' with(priming_simulation, {
 #'   set.seed(10)
+#'   # CYFER's effective sample size is the LINEAGE count, so the unpenalized end
+#'   # of the lambda path needs at least p+1 lineages in every training fold.
+#'   # These simulations carry 15 lineages, which cannot support all 30 features.
+#'   cell_features <- cell_features[, 1:5]
 #'   cv <- cyfer(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
@@ -225,6 +229,10 @@
 #' # Minimal end-to-end example:
 #' with(plastic_simulation, {
 #'   set.seed(10)
+#'   # CYFER's effective sample size is the LINEAGE count, so the unpenalized end
+#'   # of the lambda path needs at least p+1 lineages in every training fold.
+#'   # These simulations carry 15 lineages, which cannot support all 30 features.
+#'   cell_features <- cell_features[, 1:5]
 #'   cv <- cyfer(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
