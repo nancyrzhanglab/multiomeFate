@@ -107,8 +107,8 @@ in full in `Reports/CYFER_fix_log_2026-08-17.pdf`.
   and no unnamed or character.
 
 * **`lineage_imputation()` gains a `maxit` argument, defaulting to
-  `max(100, 10*p)`, and `optim()`'s convergence code is now read.** BFGS searches
-  a `p`-dimensional space, so its iteration budget has to grow with `p`.
+  `min(500, max(100, 10*p))`, and `optim()`'s convergence code is now read.** BFGS
+  searches a `p`-dimensional space, so its iteration budget has to grow with `p`.
   `optim()`'s own default of 100 was left in place, and the `convergence` code it
   returns was stored on every fit and read nowhere in `R/` — so a fit that ran out
   of iterations was indistinguishable from one that converged, and its

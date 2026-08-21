@@ -6,12 +6,7 @@
 #' @param lambda Ridge penalty weight on non-intercept coefficients.
 #' @param random_initializations Number of additional random starts.
 #' @param upper_randomness Upper cap for random initial coefficients.
-#' @param maxit Iteration cap passed to \code{optim()}. \code{NA} (the default)
-#'   sets it to \code{max(100, 10*p)}, where \code{p} counts the intercept:
-#'   BFGS searches a \code{p}-dimensional space, so the budget has to grow with
-#'   it. \code{optim()}'s own default of 100 was silently truncating fits at
-#'   realistic feature counts. This is a cap, not a target --- a fit that meets
-#'   \code{reltol} stops earlier and costs nothing extra.
+#' @param maxit Iteration cap passed to \code{optim()}. 
 #' 
 #' @return An object of class \code{"lineage_imputation"} with \code{fit} and \code{res_list}.
 #' \code{fit} is the element of \code{res_list} with the smallest
@@ -50,16 +45,16 @@ lineage_imputation <- function(cell_features,
   coefficient_initial_list <- .append_intercept_term(coefficient_initial_list)
   p <- ncol(cell_features)
 
-  # BFGS searches a p-dimensional space, so its iteration budget has to grow with
-  # p. optim()'s default of 100 truncated a fifth of the fits at p+1 = 61 with
-  # L = 100 -- and it truncated them unevenly: the small-lambda fits are the
-  # ill-conditioned ones that need the most iterations, so the low end of the CV
-  # curve was penalised by an optimizer artefact rather than by generalisation.
-  # This is a cap, not a target: a fit meeting `reltol` stops earlier regardless.
+  # BFGS searches a p-dimensional space, so its iteration budget grows with
+  # p. For the bounds:
+  #   floor 100  -- at small p the count is set by conditioning, not dimension,
+  #                 so 10*p alone (50 at p = 5) is too tight.
+  #   ceiling 500 -- at large p, 10*p is too large, set upper bound to be 500.
+
   if(length(maxit) != 1 || (!is.na(maxit) && (!is.numeric(maxit) || maxit < 1))){
     stop("`maxit` must be a single positive number, or NA to scale it with the feature count")
   }
-  if(is.na(maxit)) maxit <- max(100, 10*p)
+  if(is.na(maxit)) maxit <- min(500, max(100, 10*p))
 
   stopifnot(setequal(unique(cell_lineage), names(lineage_future_count)),
             is.matrix(cell_features), nrow(cell_features) == length(cell_lineage),
@@ -162,12 +157,7 @@ lineage_imputation <- function(cell_features,
       # about 2*log(max growth ratio) so exp() cannot overflow. Turning that into
       # a per-coefficient allowance needs a model of how p contributions add.
       # With mixed signs they partly cancel and the sum grows like sqrt(p), so
-      # the allowance scales as 1/sqrt(p) -- the same reasoning behind
-      # Xavier/Glorot and He initialization. The previous 1/p came from a
-      # triangle-inequality worst case that effectively never occurs, and it
-      # collapsed the range to roughly [0, 0.09] at p = 60: ten restarts inside
-      # one small box are one search repeated ten times, at ten times the cost,
-      # on a non-convex objective.
+      # the allowance scales as 1/sqrt(p). 
       max_limit <- 2*log(max_count_ratio)/(sqrt(p)*max_feature)
       # the threshold, not just the sign: at max_count_ratio == 1 the limit is
       # exactly 0, and a `< 0` test would leave min_value == max_limit, so all

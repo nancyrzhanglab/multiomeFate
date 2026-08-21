@@ -50,12 +50,7 @@ number of cells at the future time point for each lineage.}
 
 \item{upper_randomness}{Upper cap for random initial coefficients.}
 
-\item{maxit}{Iteration cap passed to \code{optim()}. \code{NA} (the default)
-sets it to \code{max(100, 10*p)}, where \code{p} counts the intercept:
-BFGS searches a \code{p}-dimensional space, so the budget has to grow with
-it. \code{optim()}'s own default of 100 was silently truncating fits at
-realistic feature counts. This is a cap, not a target --- a fit that meets
-\code{reltol} stops earlier and costs nothing extra.}
+\item{maxit}{Iteration cap passed to \code{optim()}.}
 
 \item{verbose}{A numeric, where numbers larger than 1 successively request more
 information to be printed out as the algorithm proceeds.}
