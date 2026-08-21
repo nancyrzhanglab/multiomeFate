@@ -768,3 +768,206 @@ test_that("cyfer is invariant to relabelling the lineages", {
                                     res$lineage_future_count)))
 })
 
+
+test_that("cyfer resolves lambda_initial = NA once, so every fold shares one lambda_sequence", {
+  # `lineage_imputation_sequence()` used to re-derive `lambda_initial` inside
+  # each fold, from that fold's TRAINING lineages. Every input to
+  # `.compute_initial_parameters()` (`future_total`, `current_total`, `term2`,
+  # `num_lineages`) is a sum or count over the lineages it is handed, so each fold
+  # built a different grid -- while `cyfer_finalize()` medians the folds'
+  # `test_loglik` vectors by POSITION and reads the winning lambda off fold 1's
+  # grid alone. Row k was then an average of held-out error measured at k
+  # different penalties. Nothing errored, because the paths share a LENGTH.
+  #
+  # The fix resolves `lambda_initial` once, on the full data, before the folds
+  # are built (R/lineage_cv.R).
+  #
+  # This test needs the BOTTLENECK regime -- one lineage carrying nearly all the
+  # future mass. On benign data the per-fold heuristic lands in the same place
+  # whichever lineages are held out, so the buggy and fixed trees agree and a
+  # test built on the default fixture would pass against both. Here, whether the
+  # dominant lineage is in the training set moves `future_total` by two orders of
+  # magnitude, which is what makes the grids diverge.
+  set.seed(10)
+  res <- .construct_lineage_data()
+  cell_features <- .raw_features(res)
+
+  # One clone carries nearly all the mass, but the rest stay non-zero on purpose.
+  # Zeroing them makes some fold's TRAINING response almost entirely zero, which
+  # is a degenerate fit -- BFGS wanders and trips the `maxit` warning, adding
+  # noise unrelated to what is being tested here.
+  lineage_future_count <- res$lineage_future_count
+  lineage_future_count[] <- c(80, 3, 2, 2, 1, 2, 1, 3, 2, 1)
+
+  # The fixture has teeth only if the heuristic actually MOVES when the dominant
+  # lineage is withheld -- otherwise "all folds agree" is vacuous. Assert that
+  # first, so this test cannot silently degrade into a tautology.
+  lambda_full <- .compute_initial_parameters(
+    cell_features = cell_features,
+    cell_lineage = res$cell_lineage,
+    lineage_future_count = lineage_future_count
+  )$lambda_initial
+
+  keep <- res$cell_lineage != names(lineage_future_count)[1]
+  lambda_without_dominant <- .compute_initial_parameters(
+    cell_features = cell_features[keep, , drop = FALSE],
+    cell_lineage = res$cell_lineage[keep],
+    lineage_future_count = lineage_future_count[-1]
+  )$lambda_initial
+
+  expect_false(isTRUE(all.equal(lambda_full, lambda_without_dominant)))
+
+  cv <- cyfer(
+    cell_features = cell_features,
+    cell_lineage = res$cell_lineage,
+    lineage_future_count = lineage_future_count,
+    lambda_initial = NA,
+    lambda_sequence_length = 6,
+    num_folds = 5,
+    seed_number = 1,
+    verbose = 0
+  )
+
+  path_list <- lapply(cv, function(x) x$train_fit$lambda_sequence)
+
+  # every fold fit on the SAME grid, elementwise -- not merely the same length
+  for (kk in seq_along(path_list)[-1]) {
+    expect_equal(path_list[[kk]], path_list[[1]])
+  }
+
+  # and that shared grid is the one derived from the FULL data, which is what
+  # distinguishes "resolved once up front" from "every fold happened to agree"
+  expect_equal(path_list[[1]][1], lambda_full)
+})
+
+test_that("cyfer refuses a fit whose unpenalized endpoint is not identified", {
+  # H5. CYFER's effective sample size is the LINEAGE count, not the cell count:
+  # the Fisher information has rank at most min(L, p+1) however many cells were
+  # sequenced. The lambda path always ends at exactly 0, so the last fit on every
+  # path is unpenalized -- and underdetermined whenever the training folds hold
+  # fewer than p+1 lineages. Nothing errored before the guard; `optim()` returned
+  # whatever point it reached on a flat ridge.
+  #
+  # The guard is in cyfer(), after the folds are built, and compares p+1 against
+  # the SMALLEST training set, i.e. L minus the largest fold.
+  make_data <- function(L, p, n_per = 8, seed = 1) {
+    set.seed(seed)
+    cell_features <- matrix(stats::rnorm(L * n_per * p), ncol = p)
+    rownames(cell_features) <- paste0("cell", seq_len(nrow(cell_features)))
+    colnames(cell_features) <- paste0("f", seq_len(p))
+    cell_lineage <- rep(paste0("clone", seq_len(L)), each = n_per)
+    names(cell_lineage) <- rownames(cell_features)
+    list(cell_features = cell_features,
+         cell_lineage = cell_lineage,
+         lineage_future_count = stats::setNames(stats::rpois(L, 5) + 1,
+                                                paste0("clone", seq_len(L))))
+  }
+
+  run <- function(L, p, num_folds, n_per = 8) {
+    d <- make_data(L, p, n_per)
+    cyfer(cell_features = d$cell_features,
+          cell_lineage = d$cell_lineage,
+          lineage_future_count = d$lineage_future_count,
+          lambda_initial = 3,
+          lambda_sequence_length = 2,
+          num_folds = num_folds,
+          seed_number = 10,
+          verbose = 0)
+  }
+
+  # L = 6 over 3 folds leaves 4 training lineages, against 9 coefficients
+  expect_error(run(L = 6, p = 8, num_folds = 3),
+               "training folds have 4 lineages but 9 coefficients")
+  expect_error(run(L = 6, p = 8, num_folds = 3), "not identified")
+
+  # The boundary is exact. Same L and same folds, so the training set is 4
+  # lineages either way and only the coefficient count moves: p+1 = 4 is
+  # admissible, p+1 = 5 is not. n_per = 200 here only to keep the output clean --
+  # at the floor the unpenalized fit is marginally determined and warns about
+  # convergence with few cells. That is conditioning, not identifiability, and it
+  # does not move the guard either way.
+  expect_s3_class(run(L = 6, p = 3, num_folds = 3, n_per = 200), "cyfer")
+  expect_error(run(L = 6, p = 4, num_folds = 3),
+               "training folds have 4 lineages but 5 coefficients")
+
+  # It is the LINEAGE count that binds. Sequencing 25x the cells
+  # adds no rank to the Fisher information, so the verdict must not move.
+  expect_error(run(L = 6, p = 4, num_folds = 3, n_per = 8),
+               "training folds have 4 lineages but 5 coefficients")
+  expect_error(run(L = 6, p = 4, num_folds = 3, n_per = 200),
+               "training folds have 4 lineages but 5 coefficients")
+
+  # More lineages lift the same feature count over the floor
+  expect_s3_class(run(L = 8, p = 5, num_folds = 4, n_per = 200), "cyfer")
+})
+
+test_that("cyfer catches a cell_lineage that is not row-aligned with cell_features", {
+  # `cell_lineage` is matched to `cell_features` by POSITION --
+  # `.lineage_cleanup()` builds `cell_lineage_idx_list` with
+  # `which(cell_lineage == lineage)`, and those integers index ROWS of
+  # `cell_features`. A permuted `cell_lineage` therefore fits the wrong cells to
+  # every lineage, and does it silently: nothing is missing, nothing is NA, and
+  # the fit runs to completion on a scrambled design.
+  #
+  # The guard is at the top of `.lineage_cleanup()`: a length check always, plus
+  # a names-vs-rownames check WHEN THE CALLER KEPT THE NAMES. It reaches the
+  # cyfer() path only because `cyfer()` coerces with
+  # `setNames(as.character(x), names(x))`; a plain `as.character()` drops the
+  # names and leaves nothing to check against.
+  set.seed(10)
+  res <- .construct_lineage_data()
+  cell_features <- .raw_features(res)
+  cell_lineage <- stats::setNames(res$cell_lineage, rownames(cell_features))
+
+  run <- function(cell_features, cell_lineage, lambda_initial = NA) {
+    cyfer(cell_features = cell_features,
+          cell_lineage = cell_lineage,
+          lineage_future_count = res$lineage_future_count,
+          lambda_initial = lambda_initial,
+          lambda_sequence_length = 3,
+          num_folds = 3,
+          seed_number = 10,
+          verbose = 0)
+  }
+
+  # correctly aligned and named: must still run, or the guard is useless
+  expect_s3_class(run(cell_features, cell_lineage), "cyfer")
+
+  # Same cells, permuted. Names travel with the values, so the
+  # vector is self-consistent and only the comparison against rownames sees it.
+  set.seed(2)
+  permuted <- cell_lineage[sample(length(cell_lineage))]
+  expect_error(run(cell_features, permuted), "DIFFERENT ORDER")
+
+  # The same misalignment is caught on the numeric-lambda path too. 
+  # With `lambda_initial = NA` the guard first sees the FULL data, 
+  # where the two name the same cells and the mismatch is a permutation. 
+  # With a numeric lambda that full-data call is skipped, so the first 
+  # check happens inside a fold -- and subsetting the same POSITIONS 
+  # out of a permuted vector and its matrix yields two genuinely
+  # different cell sets.
+  expect_error(run(cell_features, permuted, lambda_initial = 3),
+               "name different cells")
+
+  # A permutation is detectable only while the names survive. This is the
+  # documented escape hatch: an UNNAMED cell_lineage asserts "already aligned",
+  # and the same scrambled vector then fits silently. Pinned deliberately, so
+  # that dropping the name-preserving coercion shows up as a failure here.
+  expect_s3_class(run(cell_features, unname(permuted)), "cyfer")
+
+  # names that refer to different cells entirely
+  relabelled <- stats::setNames(cell_lineage, paste0("other", seq_along(cell_lineage)))
+  expect_error(run(cell_features, relabelled), "name different cells")
+
+  # named lineage against a feature matrix with no row names: nothing to check
+  # against, so refuse rather than assume
+  unnamed_rows <- cell_features
+  rownames(unnamed_rows) <- NULL
+  expect_error(run(unnamed_rows, cell_lineage), "row names")
+
+  # length mismatch fires whether or not the names survive
+  expect_error(run(cell_features, cell_lineage[-1]),
+               "but `cell_features` has")
+  expect_error(run(cell_features, unname(cell_lineage)[-1]),
+               "but `cell_features` has")
+})

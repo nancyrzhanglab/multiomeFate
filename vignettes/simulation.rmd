@@ -76,7 +76,16 @@ library(multiomeFate)
 data("priming_simulation", package = "multiomeFate")
 ```
 
+CYFER's effective sample size is the number of **lineages**, not the number of
+cells: the Fisher information has rank at most `min(L, p+1)` however many cells
+were sequenced. The `lambda` path always ends at exactly 0, so its last fit is
+unpenalized and needs at least `p+1` lineages in every training fold to be
+identified. These simulations carry `r length(priming_simulation$lineage_future_count)`
+lineages against 30 features, which two-fold CV cannot support, so the examples
+below use the first five features.
+
 ```{r}
+priming_simulation$cell_features <- priming_simulation$cell_features[, 1:5]
 priming_simulation$cell_features[1:5,1:5]
 ```
 ```{r}
@@ -158,6 +167,8 @@ plot1
 
 ```{r}
 data("plastic_simulation")
+# as above -- five features, so the unpenalized end of the path stays identified
+plastic_simulation$cell_features <- plastic_simulation$cell_features[, 1:5]
 ```
 
 ```{r}
