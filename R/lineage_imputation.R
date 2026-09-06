@@ -18,6 +18,23 @@
 #' expected number of progeny per cell. Note that \code{cyfer_finalize()} returns
 #' its \code{cell_imputed_score} on the \bold{log10} scale instead --- see the
 #' "Scales" section of \code{\link{cyfer_finalize}}.
+#' @examples
+#' data(priming_simulation)
+#' # start from the null model: zero on every feature (the intercept is added)
+#' coefficient_initial <- rep(0, ncol(priming_simulation$cell_features))
+#' names(coefficient_initial) <- colnames(priming_simulation$cell_features)
+#' set.seed(10)
+#' fit <- lineage_imputation(cell_features = priming_simulation$cell_features,
+#'                           cell_lineage = priming_simulation$cell_lineage,
+#'                           coefficient_initial_list = coefficient_initial,
+#'                           lineage_future_count = priming_simulation$lineage_future_count,
+#'                           lambda = 1,
+#'                           random_initializations = 2,
+#'                           verbose = 0)
+#' fit$fit$objective_val
+#' head(fit$fit$coefficient_vec)
+#' # one entry per initialization: the supplied start, then the random ones
+#' length(fit$res_list)
 #' @export
 lineage_imputation <- function(cell_features,
                                cell_lineage,
@@ -360,25 +377,18 @@ evaluate_nll <- function(cell_features,
     }
   }
 
-  # `lineage_imputation()` checks the same condition with
-  # `stopifnot(sum(is.na(cell_lineage)) == 0)`, but that runs *after* this
-  # function, on the vector this function returns -- by which point the intersect
-  # below has already deleted the NA cells. It therefore passed on every input,
-  # including the one it was written for: 20 NA cells in 200 fitted silently on
-  # the remaining 180. This check is the same condition asked early enough to
-  # fire, and before the coercion so the offending cells can still be named. The
-  # later `stopifnot` is left in place as a backstop for the returned vector.
+  # A cell with an `NA` lineage has no response to fit against. It is dropped
+  # from the fit by the intersect below, exactly like a cell whose lineage name
+  # is absent from `lineage_future_count` -- the documented contract is that such
+  # cells survive to be scored by `cyfer_finalize()`, since the fitted
+  # coefficients still apply to them. The paper's own pipeline passes
+  # `assigned_lineage` with `NA` for every unassigned cell and relies on this.
+  # `cyfer()` and `cyfer_finalize()` report the count once at entry; here it is
+  # a `verbose > 0` warning, because this runs once per optimizer call.
   na_idx <- which(is.na(cell_lineage))
-  if(length(na_idx) > 0){
-    stop(length(na_idx), " of ", length(cell_lineage), " cells have an `NA` lineage",
-         if(!is.null(names(cell_lineage))){
-           paste0(" (e.g. ", paste0(utils::head(names(cell_lineage)[na_idx], 3),
-                                    collapse = ", "),
-                  if(length(na_idx) > 3) ", ..." else "", ")")
-         } else "",
-         ". A cell with no lineage has no response to fit against and was ",
-         "previously discarded without a message. Drop them deliberately before ",
-         "calling, e.g. `keep <- !is.na(cell_lineage)`.")
+  if(length(na_idx) > 0 && verbose > 0){
+    warning(length(na_idx), " of ", length(cell_lineage),
+            " cells have an `NA` lineage and are excluded from the fit")
   }
 
   # `cell_lineage` is documented as character or factor. Coerce once, here, so

@@ -80,3 +80,19 @@ Runs K-fold CV over a decreasing sequence of \code{lambda} values produced by
 \code{lineage_imputation_sequence()}, selecting \code{lambda} by held-out objective.
 This implements the CYFER method described in Chen, Lin et al.
 }
+\examples{
+\donttest{
+data(priming_simulation)
+cv <- cyfer(cell_features = priming_simulation$cell_features,
+            cell_lineage = priming_simulation$cell_lineage,
+            lineage_future_count = priming_simulation$lineage_future_count,
+            lambda_initial = 3,
+            lambda_sequence_length = 5,
+            num_folds = 5,
+            verbose = 0)
+class(cv)
+names(cv)
+# held-out objective along the lambda path, one row per fold
+sapply(cv, function(fold){fold$test_loglik})
+}
+}

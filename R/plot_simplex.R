@@ -19,6 +19,13 @@
 #' @param title Plot title. Default \code{"title"}.
 #'
 #' @return A ggplot2 object.
+#' @examples
+#' df <- data.frame(a = c(1, 0, 0, 1, 2),
+#'                  b = c(0, 1, 0, 1, 1),
+#'                  c = c(0, 0, 1, 1, 1),
+#'                  group = c("x", "y", "z", "mixed", "mixed"))
+#' plot_simplex(df = df, x_col = "a", y_col = "b", z_col = "c",
+#'              color_col = "group", title = "")
 #' @export
 plot_simplex <- function(df,
                          x_col,

@@ -37,3 +37,13 @@ Row order is not preserved: untouched barcodes come first, followed by one
 row per cluster. Anything downstream must therefore index by row name rather
 than position.
 }
+\examples{
+set.seed(10)
+lin_mat <- matrix(stats::rpois(6 * 50, lambda = 5), nrow = 6, ncol = 50)
+rownames(lin_mat) <- paste0("bc", 1:6)
+colnames(lin_mat) <- paste0("cell", 1:50)
+cluster_list <- list(c("bc1", "bc2"), c("bc4", "bc5", "bc6"))
+combined <- barcode_combine(lin_mat = lin_mat, lineage_clusters = cluster_list)
+rownames(combined)                          # one row per cluster survives
+all(colSums(combined) == colSums(lin_mat))  # counts are conserved
+}

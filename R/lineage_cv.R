@@ -52,6 +52,21 @@
 #' Lineages named in \code{lineage_future_count} that have no cells in
 #' \code{cell_lineage} are dropped before the folds are built, so they neither
 #' occupy a fold nor count towards \code{num_folds}.
+#' @examples
+#' \donttest{
+#' data(priming_simulation)
+#' cv <- cyfer(cell_features = priming_simulation$cell_features,
+#'             cell_lineage = priming_simulation$cell_lineage,
+#'             lineage_future_count = priming_simulation$lineage_future_count,
+#'             lambda_initial = 3,
+#'             lambda_sequence_length = 5,
+#'             num_folds = 5,
+#'             verbose = 0)
+#' class(cv)
+#' names(cv)
+#' # held-out objective along the lambda path, one row per fold
+#' sapply(cv, function(fold){fold$test_loglik})
+#' }
 #' @export
 cyfer <- function(cell_features,
                   cell_lineage,
@@ -88,10 +103,18 @@ cyfer <- function(cell_features,
   # on zero rows.
   lineage_future_count <- lineage_future_count[names(lineage_future_count) %in% unique(cell_lineage)]
 
+  # Cells with an `NA` lineage are excluded from every fit but kept in
+  # `cell_features`, so `cyfer_finalize()` still scores them. Say so once.
+  num_na <- sum(is.na(cell_lineage))
+  if(num_na > 0){
+    message(num_na, " of ", length(cell_lineage), " cells have an `NA` lineage; ",
+            "they are excluded from fitting and will still be scored by `cyfer_finalize()`.")
+  }
+
   # If lambda_initial is passed in as \code{NA}, then derive it from the data, before 
   # the folds are built, and the same value is used for every fold. 
-  if(length(lambda_initial) != 1 || (!is.na(lambda_initial) && !is.numeric(lambda_initial))){
-    stop("`lambda_initial` must be a single number, or NA to derive it from the data")
+  if(length(lambda_initial) != 1 || (!is.na(lambda_initial) && (!is.numeric(lambda_initial) || lambda_initial <= 0))){
+    stop("`lambda_initial` must be a single positive number, or NA to derive it from the data")
   }
   if(is.na(lambda_initial)){
     lambda_initial <- .compute_initial_parameters(

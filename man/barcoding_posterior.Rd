@@ -75,3 +75,19 @@ carried by the background rate. This is deliberate --- \code{beta1[b]} is
 estimated from however many cells happened to maximize at \code{b}, which for
 a rare barcode can be one cell or none (\code{NA}).
 }
+\examples{
+# Ten barcodes read across 300 cells: each cell's true barcode at a high
+# rate, every other barcode at a low ambient rate.
+set.seed(10)
+truth_idx <- rep(1:10, length.out = 300)
+lin_mat <- matrix(stats::rpois(10 * 300, lambda = 2), nrow = 10, ncol = 300)
+for(i in seq_len(300)){
+  lin_mat[truth_idx[i], i] <- stats::rpois(1, lambda = 200)
+}
+rownames(lin_mat) <- paste0("bc", 1:10)
+colnames(lin_mat) <- paste0("cell", seq_len(300))
+res <- barcoding_posterior(lin_mat = lin_mat)
+dim(res$posterior_mat)                     # barcodes x cells, columns sum to 1
+called <- rownames(res$posterior_mat)[apply(res$posterior_mat, 2, which.max)]
+mean(called == paste0("bc", truth_idx))
+}

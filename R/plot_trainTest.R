@@ -43,6 +43,18 @@
 #' @returns A \code{ggplot} object: the two panels combined by
 #'   \code{cowplot::plot_grid()}.
 #'
+#' @examples
+#' \donttest{
+#' data(priming_simulation)
+#' cv <- cyfer(cell_features = priming_simulation$cell_features,
+#'             cell_lineage = priming_simulation$cell_lineage,
+#'             lineage_future_count = priming_simulation$lineage_future_count,
+#'             lambda_initial = 3,
+#'             lambda_sequence_length = 5,
+#'             num_folds = 5,
+#'             verbose = 0)
+#' plot_trainTest(cv)
+#' }
 #' @export
 plot_trainTest <- function(cv_fit_list,
                            axis_size = 8,

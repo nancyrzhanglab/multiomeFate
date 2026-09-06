@@ -1,4 +1,4 @@
-#' Priming simulation dataset (15 lineages)
+#' Priming simulation dataset (50 lineages)
 #'
 #' @title Priming simulation dataset
 #'
@@ -8,7 +8,7 @@
 #' possess heterogeneous growth potential (fate propensity) and downstream
 #' lineage sizes scale with \eqn{\exp(\alpha + X\beta)}.
 #'
-#' The dataset was reduced to **15 lineages** for a fast example.
+#' All **50 lineages** of the simulation are included (7,940 cells).
 #'
 #' @usage
 #' data(priming_simulation)
@@ -24,12 +24,12 @@
 #'   \item{cell_lineage}{Character vector of length \eqn{n} giving each cell's
 #'     lineage label used for training/evaluation.}
 #'
-#'   \item{lineage_future_count}{Named numeric vector (length = 15). Names are
+#'   \item{lineage_future_count}{Named numeric vector (length = 50). Names are
 #'     lineage IDs matching \code{unique(cell_lineage)}. Each value is an integer
 #'     equal to the rounded sum of per-cell expected progenies
 #'     (i.e., \eqn{\sum_{i \in \ell} \exp(\alpha + x_i^\top \beta)}).}
 #'
-#'   \item{tab_mat}{Integer matrix with 15 rows and 2 columns \code{c("now","future")};
+#'   \item{tab_mat}{Integer matrix with 50 rows and 2 columns \code{c("now","future")};
 #'     rownames are lineage IDs. Column \code{"now"} is the number of current
 #'     cells observed in that lineage (in this subset); column \code{"future"}
 #'     equals \code{lineage_future_count}.}
@@ -42,7 +42,7 @@
 #' \item Loaded example embeddings via \code{multiomeFate:::data_loader("fasttopics")};
 #'   used the \code{"fasttopic.COCL2"} cell embeddings as an early-timepoint RNA
 #'   feature space and preprocessed them with an internal helper
-#'   \code{.preprocess_rna(…, "day10_COCL2")}.
+#'   \code{.preprocess_rna(..., "day10_COCL2")}.
 #'
 #' \item Estimated a priming direction and intercept using internal helpers:
 #'   \code{.search_for_priming_parameters()} returned \code{coefficient_vec}
@@ -58,9 +58,9 @@
 #'   lineage future sizes were the rounded sums of \eqn{\exp(\alpha + x^\top \beta)}
 #'   within each lineage.
 #'
-#' \item For packaging, lineages were ranked by future size; 15 lineages were
-#'   retained by taking equally spaced ranks along this ordering. Cells not
-#'   belonging to the retained lineages were dropped. Cell rownames were reset to
+#' \item For packaging, lineages were ordered by decreasing future size and all
+#'   50 retained (an earlier release shipped 15, too few to identify a 30-feature
+#'   fit; see \code{\link{cyfer}}). Cell rownames were reset to
 #'   \code{"cell:1..n"} for clarity. The four objects in \code{priming_simulation}
 #'   were then assembled as below and saved with \code{usethis::use_data()}:
 #'
@@ -102,18 +102,14 @@
 #' # Minimal end-to-end example:
 #' with(priming_simulation, {
 #'   set.seed(10)
-#'   # CYFER's effective sample size is the LINEAGE count, so the unpenalized end
-#'   # of the lambda path needs at least p+1 lineages in every training fold.
-#'   # These simulations carry 15 lineages, which cannot support all 30 features.
-#'   cell_features <- cell_features[, 1:5]
 #'   cv <- cyfer(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
 #'     lineage_future_count = lineage_future_count,
 #'     lambda_initial = NA,
-#'     lambda_sequence_length = 20,
+#'     lambda_sequence_length = 10,
 #'     num_folds = 5,
-#'     verbose = 1
+#'     verbose = 0
 #'   )
 #'   fit <- cyfer_finalize(
 #'     cell_features = cell_features,
@@ -131,7 +127,7 @@
 #' @keywords datasets
 "priming_simulation"
 
-#' Plastic simulation dataset (15 lineages)
+#' Plastic simulation dataset (50 lineages)
 #'
 #' @title Plastic simulation dataset
 #'
@@ -142,7 +138,7 @@
 #' extremely high growth potential (fate propensity). Downstream
 #' lineage sizes scale with \eqn{\exp(\alpha + X\beta)}.
 #'
-#' The dataset was reduced to **15 lineages** for a fast example.
+#' All **50 lineages** of the simulation are included (7,940 cells).
 #'
 #' @usage
 #' data(plastic_simulation)
@@ -158,12 +154,12 @@
 #'   \item{cell_lineage}{Character vector of length \eqn{n} giving each cell's
 #'     lineage label used for training/evaluation.}
 #'
-#'   \item{lineage_future_count}{Named numeric vector (length = 15). Names are
+#'   \item{lineage_future_count}{Named numeric vector (length = 50). Names are
 #'     lineage IDs matching \code{unique(cell_lineage)}. Each value is an integer
 #'     equal to the rounded sum of per-cell expected progenies
 #'     (i.e., \eqn{\sum_{i \in \ell} \exp(\alpha + x_i^\top \beta)}).}
 #'
-#'   \item{tab_mat}{Integer matrix with 15 rows and 2 columns \code{c("now","future")};
+#'   \item{tab_mat}{Integer matrix with 50 rows and 2 columns \code{c("now","future")};
 #'     rownames are lineage IDs. Column \code{"now"} is the number of current
 #'     cells observed in that lineage (in this subset); column \code{"future"}
 #'     equals \code{lineage_future_count}.}
@@ -176,7 +172,7 @@
 #' \item Loaded example embeddings via \code{multiomeFate:::data_loader("fasttopics")};
 #'   used the \code{"fasttopic.COCL2"} cell embeddings as an early-timepoint RNA
 #'   feature space and preprocessed them with an internal helper
-#'   \code{.preprocess_rna(…, "day10_COCL2")}.
+#'   \code{.preprocess_rna(..., "day10_COCL2")}.
 #'
 #' \item Estimated a plastic direction and intercept using internal helpers:
 #'   \code{.generate_simulation_plastic()} returned \code{coefficient_vec}
@@ -185,9 +181,9 @@
 #'   Cells were probabilistically assigned to lineages via the internal functions
 #'   \code{.compute_plastic_probabilities()} and \code{.assign_plastic_lineages()}.
 #'
-#' \item For packaging, lineages were ranked by future size; 15 lineages were
-#'   retained by taking equally spaced ranks along this ordering. Cells not
-#'   belonging to the retained lineages were dropped. Cell rownames were reset to
+#' \item For packaging, lineages were ordered by decreasing future size and all
+#'   50 retained (an earlier release shipped 15, too few to identify a 30-feature
+#'   fit; see \code{\link{cyfer}}). Cell rownames were reset to
 #'   \code{"cell:1..n"} for clarity. The four objects in \code{plastic_simulation}
 #'   were then assembled as below and saved with \code{usethis::use_data()}:
 #'
@@ -229,18 +225,14 @@
 #' # Minimal end-to-end example:
 #' with(plastic_simulation, {
 #'   set.seed(10)
-#'   # CYFER's effective sample size is the LINEAGE count, so the unpenalized end
-#'   # of the lambda path needs at least p+1 lineages in every training fold.
-#'   # These simulations carry 15 lineages, which cannot support all 30 features.
-#'   cell_features <- cell_features[, 1:5]
 #'   cv <- cyfer(
 #'     cell_features = cell_features,
 #'     cell_lineage  = cell_lineage,
 #'     lineage_future_count = lineage_future_count,
 #'     lambda_initial = NA,
-#'     lambda_sequence_length = 20,
+#'     lambda_sequence_length = 10,
 #'     num_folds = 5,
-#'     verbose = 1
+#'     verbose = 0
 #'   )
 #'   fit <- cyfer_finalize(
 #'     cell_features = cell_features,

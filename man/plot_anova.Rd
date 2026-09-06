@@ -95,3 +95,21 @@ across lineages. The "lineage effect" percentage is the ordinary between-group
 share of the total sum of squares, computed by \code{.anova_percentage()};
 both are computed on the plotted lineages only, not on all cells.
 }
+\examples{
+set.seed(10)
+count_mat <- matrix(stats::rpois(50 * 120, lambda = 3), nrow = 50,
+                    dimnames = list(paste0("gene", 1:50), paste0("cell", 1:120)))
+seurat_object <- suppressWarnings(Seurat::CreateSeuratObject(counts = count_mat))
+seurat_object$assigned_lineage <- rep(paste0("L", 1:12), length.out = 120)
+seurat_object$time_celltype <- rep(c("day0", "day7"), each = 60)
+# scores for the day0 cells only, as cyfer_finalize() would return them
+score_vec <- stats::rnorm(60)
+names(score_vec) <- colnames(seurat_object)[1:60]
+plot_anova(seurat_object = seurat_object,
+           cell_imputed_score = score_vec,
+           assigned_lineage_variable = "assigned_lineage",
+           time_celltype_variable = "time_celltype",
+           day_later = "day7",
+           num_lineages_top = 3,
+           num_lineages_bottom = 3)
+}

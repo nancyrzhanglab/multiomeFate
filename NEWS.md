@@ -1,8 +1,47 @@
-# multiomeFate (development version)
+# multiomeFate 1.0.3.000
 
-Tentative, unreleased. Changes on branch `emilia_review` (emiliac), from the
-code review in `Reports/CYFER_code_review_2026-08-14.pdf`; each entry is recorded
-in full in `Reports/CYFER_fix_log_2026-08-17.pdf`.
+Two rounds of changes. The first is Emilia Chen's code review of 1.0.2.002
+(branch `emilia_review`, August 2026; her review and fix log are filed in
+`additional_context/` of the development tree, which does not ship). The second
+is the CRAN-preparation pass that followed (branch `cran_prep`, September 2026),
+recorded under "CRAN preparation" below.
+
+## CRAN preparation (September 2026)
+
+* **Cells with an `NA` lineage are excluded from fitting and still scored, with a
+  message.** The review below had made them a hard error. The paper's own
+  pipeline passes `assigned_lineage` with `NA` for every cell the barcode
+  assignment left unassigned, and relies on `cyfer_finalize()` scoring those
+  cells from the fitted coefficients, which is the documented contract for a
+  cell whose lineage name is absent from `lineage_future_count`. The two cases
+  now behave identically. `cyfer()` and `cyfer_finalize()` report the count once;
+  `.lineage_cleanup()` warns at `verbose > 0`.
+
+* **`priming_simulation` and `plastic_simulation` now carry all 50 lineages
+  (7,940 cells) of the original simulations**, rebuilt from the saved
+  `Writeup14` objects, instead of 15. Fifteen lineages cannot identify a
+  30-feature fit under the check introduced below, which had forced the vignette
+  and the examples onto 5 of the 30 features. With 50 lineages, five-fold CV
+  leaves 40 training lineages against 31 coefficients. The vignette and the
+  dataset examples use every feature again. Each `.rda` is 1.6 MB. Note that the
+  priming dataset's future counts are the rounded, noiseless sums of the
+  generating model, so CV legitimately selects `lambda = 0` there and the refit
+  reproduces the observed counts exactly.
+
+* **Every exported function has a runnable example.** The estimation examples
+  that fit on the bundled data are wrapped in `\donttest{}`.
+
+* `cyfer()` rejects `lambda_initial <= 0` (a zero start makes the whole path
+  zero).
+
+* `DESCRIPTION`: Title and Description rewritten for CRAN, `BugReports` added,
+  `graphics` and `methods` dropped from `Imports` (nothing used them), roxygen2
+  8.1.0 adopted. LICENSE holder corrected. A Unicode ellipsis in the dataset
+  documentation replaced with ASCII.
+
+* The CI workflow runs on `master` (and `main`) only.
+
+## Emilia Chen's code review (August 2026)
 
 ## Bug fixes
 

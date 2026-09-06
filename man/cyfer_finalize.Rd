@@ -54,10 +54,11 @@ cross-validation), and \code{lineage_imputed_count} (the vector of length
 at the future time point in each lineage).
 
 Every cell in \code{cell_features} is scored and named by its row name, even
-cells whose lineage is absent from \code{lineage_future_count}. Such cells are
-dropped from the refit (they carry no future count to fit against) but the
-fitted coefficients still apply to them, so the returned score covers every
-row that was passed in.
+cells whose lineage is absent from \code{lineage_future_count} or is
+\code{NA} (an unassigned cell). Such cells are dropped from the refit (they
+carry no future count to fit against) but the fitted coefficients still apply
+to them, so the returned score covers every row that was passed in. A message
+reports how many \code{NA}-lineage cells were excluded.
 }
 \description{
 This function is used after running \code{multiomeFate::cyfer()}.
@@ -101,3 +102,27 @@ no scale at all and is silently plausible-looking. To go back:
 \code{log(10)*cell_imputed_score} recovers the linear predictor \code{Z_i}.
 }
 
+\examples{
+\donttest{
+data(priming_simulation)
+cv <- cyfer(cell_features = priming_simulation$cell_features,
+            cell_lineage = priming_simulation$cell_lineage,
+            lineage_future_count = priming_simulation$lineage_future_count,
+            lambda_initial = 3,
+            lambda_sequence_length = 5,
+            num_folds = 5,
+            verbose = 0)
+fit <- cyfer_finalize(cell_features = priming_simulation$cell_features,
+                      cell_lineage = priming_simulation$cell_lineage,
+                      fit_res = cv,
+                      lineage_future_count = priming_simulation$lineage_future_count)
+fit$lambda
+head(fit$cell_imputed_score)                 # log10 scale
+head(fit$lineage_imputed_count)              # natural-scale counts
+# the identity linking the two scales
+lineage <- names(fit$lineage_imputed_count)[1]
+idx <- which(priming_simulation$cell_lineage == lineage)
+all.equal(sum(10^fit$cell_imputed_score[idx]),
+          unname(fit$lineage_imputed_count[lineage]))
+}
+}

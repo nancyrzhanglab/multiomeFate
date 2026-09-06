@@ -971,3 +971,66 @@ test_that("cyfer catches a cell_lineage that is not row-aligned with cell_featur
   expect_error(run(cell_features, unname(cell_lineage)[-1]),
                "but `cell_features` has")
 })
+
+## CRAN-prep 2026-09-06 (D1). The paper's real-data scripts pass
+## `assigned_lineage` straight from the Seurat object, where every cell the
+## barcode assignment left unassigned is `NA`, and they rely on those cells
+## being excluded from the fit but still scored by `cyfer_finalize()` -- the
+## same contract as a cell whose lineage NAME is absent from
+## `lineage_future_count` (plan item E5). A guard that errors on `NA` while
+## passing an absent name is a trap, so the two cases are pinned together.
+test_that("cyfer excludes NA-lineage cells from the fit, scores them, and says so", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+  cell_features <- .raw_features(res)
+
+  cell_lineage_na <- res$cell_lineage
+  na_idx <- c(1, 5, 9)
+  cell_lineage_na[na_idx] <- NA
+  cell_lineage_absent <- res$cell_lineage
+  cell_lineage_absent[na_idx] <- "unassigned"
+
+  run <- function(cell_lineage){
+    cv <- cyfer(cell_features = cell_features,
+                cell_lineage = cell_lineage,
+                lineage_future_count = res$lineage_future_count,
+                lambda_initial = 3,
+                lambda_sequence_length = 3,
+                num_folds = 3,
+                seed_number = 10,
+                verbose = 0)
+    cyfer_finalize(cell_features = cell_features,
+                   cell_lineage = cell_lineage,
+                   fit_res = cv,
+                   lineage_future_count = res$lineage_future_count)
+  }
+
+  expect_message(fit_na <- run(cell_lineage_na), "3 of .* cells have an `NA` lineage")
+  fit_absent <- run(cell_lineage_absent)
+
+  # every cell is scored and named, the NA ones included
+  expect_equal(names(fit_na$cell_imputed_score), rownames(cell_features))
+  expect_true(all(is.finite(fit_na$cell_imputed_score[na_idx])))
+
+  # NA and an absent name are the same case: identical fits
+  expect_equal(fit_na$coefficient_vec, fit_absent$coefficient_vec)
+  expect_equal(fit_na$cell_imputed_score, fit_absent$cell_imputed_score)
+  expect_equal(fit_na$lambda, fit_absent$lambda)
+})
+
+test_that("cyfer rejects a non-positive lambda_initial", {
+  set.seed(10)
+  res <- .construct_lineage_data()
+  cell_features <- .raw_features(res)
+  for(lambda_initial in c(0, -1)){
+    expect_error(cyfer(cell_features = cell_features,
+                       cell_lineage = res$cell_lineage,
+                       lineage_future_count = res$lineage_future_count,
+                       lambda_initial = lambda_initial,
+                       lambda_sequence_length = 3,
+                       num_folds = 3,
+                       verbose = 0),
+                 "single positive number",
+                 info = paste0("lambda_initial = ", lambda_initial))
+  }
+})

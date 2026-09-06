@@ -75,3 +75,22 @@ reports, and it is worth watching, because transitive merging can chain
 barcodes together that were never directly correlated. Inspect
 \code{minimum_correlation} to see how far each cluster was stretched.
 }
+\examples{
+# Six barcodes over two disjoint blocks of cells; barcodes 1-3 share one
+# per-cell rate profile and 4-6 another, so they cluster into two groups.
+set.seed(10)
+rate_a <- stats::runif(100, min = 5, max = 50)
+rate_b <- stats::runif(100, min = 5, max = 50)
+zero_vec <- rep(0, 100)
+lin_mat <- rbind(c(stats::rpois(100, rate_a), zero_vec),
+                 c(stats::rpois(100, rate_a), zero_vec),
+                 c(stats::rpois(100, rate_a), zero_vec),
+                 c(zero_vec, stats::rpois(100, rate_b)),
+                 c(zero_vec, stats::rpois(100, rate_b)),
+                 c(zero_vec, stats::rpois(100, rate_b)))
+rownames(lin_mat) <- paste0("bc", 1:6)
+colnames(lin_mat) <- paste0("cell", 1:200)
+lin_mat <- Matrix::Matrix(lin_mat, sparse = TRUE)
+res <- barcode_clustering(lin_mat = lin_mat, cell_lower_limit = 50)
+res$lineage_clusters
+}

@@ -70,3 +70,21 @@ its \code{cell_imputed_score} on the \bold{log10} scale instead --- see the
 \description{
 Fit lineage imputation at a single lambda
 }
+\examples{
+data(priming_simulation)
+# start from the null model: zero on every feature (the intercept is added)
+coefficient_initial <- rep(0, ncol(priming_simulation$cell_features))
+names(coefficient_initial) <- colnames(priming_simulation$cell_features)
+set.seed(10)
+fit <- lineage_imputation(cell_features = priming_simulation$cell_features,
+                          cell_lineage = priming_simulation$cell_lineage,
+                          coefficient_initial_list = coefficient_initial,
+                          lineage_future_count = priming_simulation$lineage_future_count,
+                          lambda = 1,
+                          random_initializations = 2,
+                          verbose = 0)
+fit$fit$objective_val
+head(fit$fit$coefficient_vec)
+# one entry per initialization: the supplied start, then the random ones
+length(fit$res_list)
+}

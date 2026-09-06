@@ -107,3 +107,29 @@ Note the asymmetry the name does not convey: \code{entropy} and
 observed cell types at \code{later_timepoint}, so every cell of a lineage
 carries the same value. The composition columns are per-cell predictions.
 }
+\examples{
+# One cyfer_finalize() score per candidate fate, column-bound, plus a Seurat
+# object carrying cell type, lineage, and time point in its metadata.
+set.seed(10)
+cell_names <- paste0("cell", 1:60)
+fate_names <- c("Monocyte", "Neutrophil", "Undifferentiated")
+cell_imputation_mat <- matrix(stats::runif(60 * 3, min = -0.5, max = 1.5),
+                              nrow = 60, ncol = 3,
+                              dimnames = list(cell_names, fate_names))
+count_mat <- matrix(stats::rpois(30 * 60, lambda = 3), nrow = 30,
+                    dimnames = list(paste0("gene", 1:30), cell_names))
+seurat_object <- suppressWarnings(Seurat::CreateSeuratObject(counts = count_mat))
+seurat_object$celltype <- rep(fate_names, length.out = 60)
+seurat_object$lineage <- rep(paste0("L", 1:6), length.out = 60)
+seurat_object$timepoint <- rep(c("day0", "day7"), each = 30)
+res <- compute_entropy(cell_imputation_mat = cell_imputation_mat,
+                       later_timepoint = "day7",
+                       seurat_object = seurat_object,
+                       variable_celltype = "celltype",
+                       variable_lineage = "lineage",
+                       variable_timepoint = "timepoint")
+head(res)
+# the composition columns feed plot_simplex()
+plot_simplex(df = res, x_col = "Monocyte", y_col = "Neutrophil",
+             z_col = "Undifferentiated", color_col = "dominant_fate")
+}

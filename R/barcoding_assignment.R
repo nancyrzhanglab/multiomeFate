@@ -57,6 +57,21 @@
 #'       diagnostic: zeros mark the barcodes whose \code{beta1} is \code{NA}.}
 #'   }
 #'
+#' @examples
+#' # Ten barcodes read across 300 cells: each cell's true barcode at a high
+#' # rate, every other barcode at a low ambient rate.
+#' set.seed(10)
+#' truth_idx <- rep(1:10, length.out = 300)
+#' lin_mat <- matrix(stats::rpois(10 * 300, lambda = 2), nrow = 10, ncol = 300)
+#' for(i in seq_len(300)){
+#'   lin_mat[truth_idx[i], i] <- stats::rpois(1, lambda = 200)
+#' }
+#' rownames(lin_mat) <- paste0("bc", 1:10)
+#' colnames(lin_mat) <- paste0("cell", seq_len(300))
+#' res <- barcoding_posterior(lin_mat = lin_mat)
+#' dim(res$posterior_mat)                     # barcodes x cells, columns sum to 1
+#' called <- rownames(res$posterior_mat)[apply(res$posterior_mat, 2, which.max)]
+#' mean(called == paste0("bc", truth_idx))
 #' @export
 # cells as columns, lineage as rows
 barcoding_posterior <- function(lin_mat, # barcode-by-cell matrix
@@ -179,6 +194,24 @@ barcoding_posterior <- function(lin_mat, # barcode-by-cell matrix
 #'   \code{NULL}; \code{barcode_combine()} handles that case by returning
 #'   \code{lin_mat} unchanged.
 #'
+#' @examples
+#' # Six barcodes over two disjoint blocks of cells; barcodes 1-3 share one
+#' # per-cell rate profile and 4-6 another, so they cluster into two groups.
+#' set.seed(10)
+#' rate_a <- stats::runif(100, min = 5, max = 50)
+#' rate_b <- stats::runif(100, min = 5, max = 50)
+#' zero_vec <- rep(0, 100)
+#' lin_mat <- rbind(c(stats::rpois(100, rate_a), zero_vec),
+#'                  c(stats::rpois(100, rate_a), zero_vec),
+#'                  c(stats::rpois(100, rate_a), zero_vec),
+#'                  c(zero_vec, stats::rpois(100, rate_b)),
+#'                  c(zero_vec, stats::rpois(100, rate_b)),
+#'                  c(zero_vec, stats::rpois(100, rate_b)))
+#' rownames(lin_mat) <- paste0("bc", 1:6)
+#' colnames(lin_mat) <- paste0("cell", 1:200)
+#' lin_mat <- Matrix::Matrix(lin_mat, sparse = TRUE)
+#' res <- barcode_clustering(lin_mat = lin_mat, cell_lower_limit = 50)
+#' res$lineage_clusters
 #' @export
 barcode_clustering <- function(lin_mat,
                                cell_lower_limit = 100,
@@ -345,6 +378,15 @@ barcode_clustering <- function(lin_mat,
 #'   fewer rows --- one per unclustered barcode plus one per cluster. Returned
 #'   unchanged when \code{lineage_clusters} is \code{NULL}.
 #'
+#' @examples
+#' set.seed(10)
+#' lin_mat <- matrix(stats::rpois(6 * 50, lambda = 5), nrow = 6, ncol = 50)
+#' rownames(lin_mat) <- paste0("bc", 1:6)
+#' colnames(lin_mat) <- paste0("cell", 1:50)
+#' cluster_list <- list(c("bc1", "bc2"), c("bc4", "bc5", "bc6"))
+#' combined <- barcode_combine(lin_mat = lin_mat, lineage_clusters = cluster_list)
+#' rownames(combined)                          # one row per cluster survives
+#' all(colSums(combined) == colSums(lin_mat))  # counts are conserved
 #' @export
 barcode_combine <- function(lin_mat,
                             lineage_clusters,
@@ -427,6 +469,22 @@ barcode_combine <- function(lin_mat,
 #'   \code{seurat_object$assigned_lineage}, which is the form the estimation
 #'   functions expect as \code{cell_lineage}.
 #'
+#' @examples
+#' # Ten barcodes read across 300 cells: each cell's true barcode at a high
+#' # rate, every other barcode at a low ambient rate.
+#' set.seed(10)
+#' truth_idx <- rep(1:10, length.out = 300)
+#' lin_mat <- matrix(stats::rpois(10 * 300, lambda = 2), nrow = 10, ncol = 300)
+#' for(i in seq_len(300)){
+#'   lin_mat[truth_idx[i], i] <- stats::rpois(1, lambda = 200)
+#' }
+#' rownames(lin_mat) <- paste0("bc", 1:10)
+#' colnames(lin_mat) <- paste0("cell", seq_len(300))
+#' res <- barcoding_posterior(lin_mat = lin_mat)
+#' assignment <- barcoding_assignment(posterior_mat = res$posterior_mat)
+#' head(assignment)
+#' # NA marks a cell whose top two posteriors were within `difference_val`
+#' sum(is.na(assignment))
 #' @export
 barcoding_assignment <- function(posterior_mat,
                                  difference_val = 0.2,

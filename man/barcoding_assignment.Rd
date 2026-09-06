@@ -39,3 +39,20 @@ unassigned cell is generally not a cell with weak evidence, it is a cell with
 two competing barcodes, typically a doublet or a cell carrying two
 integrations.
 }
+\examples{
+# Ten barcodes read across 300 cells: each cell's true barcode at a high
+# rate, every other barcode at a low ambient rate.
+set.seed(10)
+truth_idx <- rep(1:10, length.out = 300)
+lin_mat <- matrix(stats::rpois(10 * 300, lambda = 2), nrow = 10, ncol = 300)
+for(i in seq_len(300)){
+  lin_mat[truth_idx[i], i] <- stats::rpois(1, lambda = 200)
+}
+rownames(lin_mat) <- paste0("bc", 1:10)
+colnames(lin_mat) <- paste0("cell", seq_len(300))
+res <- barcoding_posterior(lin_mat = lin_mat)
+assignment <- barcoding_assignment(posterior_mat = res$posterior_mat)
+head(assignment)
+# NA marks a cell whose top two posteriors were within `difference_val`
+sum(is.na(assignment))
+}

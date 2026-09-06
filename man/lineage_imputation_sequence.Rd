@@ -66,3 +66,18 @@ Each \code{coefficient_vec} is on the \bold{natural-log} scale --- see the
 \description{
 This function calls \code{lineage_imputation()} for a sequence of lambdas.
 }
+\examples{
+\donttest{
+data(priming_simulation)
+set.seed(10)
+path <- lineage_imputation_sequence(
+  cell_features = priming_simulation$cell_features,
+  cell_lineage = priming_simulation$cell_lineage,
+  lineage_future_count = priming_simulation$lineage_future_count,
+  lambda_initial = 3,
+  lambda_sequence_length = 4,
+  verbose = 0)
+path$lambda_sequence                       # decreasing, ends at 0
+sapply(path$fit_list, function(fit){fit$objective_val})
+}
+}

@@ -10,7 +10,7 @@ output: github_document
 
 This repository contains all the functions to perform CYFER (Clonal Fate Estimation by Exponential Regression) and the downstream analysis, for the paper "Resolution of Selection Versus Adaptation in Cellular Evolution". See the companion GitHub package https://github.com/nancyrzhanglab/multiomeFate_analysis for all the analyses performed in the paper.
 
-This code was developed and tested primarily on R 4.3.2. on a Macbook (macOS Sonoma 14.2.1) equipped with an i7 processor.
+This code was developed and tested primarily on R 4.3.2 on a Macbook (macOS Sonoma 14.2.1) equipped with an i7 processor, and is checked on every push with `R CMD check` under the current and previous R releases on Linux (see `.github/workflows/R-CMD-check.yaml`). The session dump at the end of this README is a record of one tested environment, not the current dependency list; `DESCRIPTION` is authoritative for that.
 
 # Installation
 
@@ -20,7 +20,7 @@ This package can be installed through `devtools` in R.
 library("devtools")
 devtools::install_github("nancyrzhanglab/multiomeFate")
 ```
-The package itself depends on several packages: `MASS`, `Matrix`, `Seurat`, `cowplot`, `ggplot2`, `ggrepel`, `scCustomize`, `plyr`, and `rlang`. All of these are available on CRAN, and `devtools::install_github` installs them automatically. The session dump at the end of this README records a full environment in which the package was tested.
+The package itself depends on several packages: `MASS`, `Matrix`, `Seurat`, `cowplot`, `ggplot2`, `ggrepel`, `scCustomize`, `plyr`, and `rlang`. All of these are available on CRAN, and `devtools::install_github` installs them automatically.
 
 After installation of all the dependencies, the installation of the `multiomeFate` package itself is fast (less than 2 minutes).
 

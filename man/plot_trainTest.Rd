@@ -73,3 +73,16 @@ I set" is a symptom of a broken fit rather than of under-regularization.
 The x axis is \code{lambda + 1} on a log10 scale, since the path runs down to
 exactly 0.
 }
+\examples{
+\donttest{
+data(priming_simulation)
+cv <- cyfer(cell_features = priming_simulation$cell_features,
+            cell_lineage = priming_simulation$cell_lineage,
+            lineage_future_count = priming_simulation$lineage_future_count,
+            lambda_initial = 3,
+            lambda_sequence_length = 5,
+            num_folds = 5,
+            verbose = 0)
+plot_trainTest(cv)
+}
+}

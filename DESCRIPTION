@@ -1,9 +1,18 @@
 Package: multiomeFate
-Title: CYFER, for modeling the number of progenies of cancer cells
-Version: 1.0.2.002
+Title: Clonal Fate Estimation by Exponential Regression ('CYFER')
+Version: 1.0.3.000
 Authors@R: c(person("Kevin", "Lin",  role = c("aut", "cre"), email = "kzlin@uw.edu"),
     person("Xinyi", "Chen", role = "aut"))
-Description: Tools for multiome fate prediction in cancer cells.
+Description: Estimates a per-cell fate potential, the expected number of
+    progeny a cell contributes to a designated future population, from
+    lineage-barcoded single-cell data. A Poisson generalized linear model with a
+    log-linear mean is fit to per-clone counts at the later time point using
+    features measured only at the earlier time point, so that clonal expansion
+    and intra-clonal heterogeneity are modelled explicitly and the estimate
+    survives a selection bottleneck. Also provides the lineage-barcode assignment
+    pipeline, simulation generators, and plotting helpers used in Chen, Lin,
+    Schaff et al., "Resolution of Selection Versus Adaptation in Cellular
+    Evolution".
 Depends:
     R (>= 3.5.0)
 License: MIT + file LICENSE
@@ -16,8 +25,6 @@ Imports:
     cowplot,
     ggplot2,
     ggrepel,
-    graphics,
-    methods,
     plyr,
     rlang,
     scCustomize,
@@ -29,5 +36,6 @@ Suggests:
     rmarkdown,
     testthat
 VignetteBuilder: knitr
-URL: https://nancyrzhanglab.github.io/multiomeFate/
-RoxygenNote: 7.3.3
+URL: https://nancyrzhanglab.github.io/multiomeFate/, https://github.com/nancyrzhanglab/multiomeFate
+BugReports: https://github.com/nancyrzhanglab/multiomeFate/issues
+Config/roxygen2/version: 8.1.0

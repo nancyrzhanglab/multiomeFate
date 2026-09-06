@@ -94,6 +94,18 @@
 #'       distinguish this regime from the plastic one.}
 #'   }
 #'
+#' @examples
+#' set.seed(10)
+#' embedding_mat <- matrix(stats::rnorm(300 * 5), nrow = 300, ncol = 5)
+#' rownames(embedding_mat) <- paste0("cell:", seq_len(300))
+#' sim <- generate_simulation(embedding_mat = embedding_mat,
+#'                            coefficient_intercept = -1,
+#'                            embedding_coefficient_vec = c(1, 0.5, 0, 0, 0),
+#'                            lineage_prior = rep(0.2, 5),
+#'                            num_lineages = 5)
+#' table(sim$lineage_assignment)
+#' sim$lineage_future_size
+#' head(sim$cell_fate_potential)
 #' @export
 generate_simulation <- function(embedding_mat,
                                 bool_add_randomness = TRUE, 

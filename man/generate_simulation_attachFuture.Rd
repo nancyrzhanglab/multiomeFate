@@ -113,3 +113,24 @@ The construction:
 
 \bold{Stochastic with no \code{seed_number} argument}; steps 2 to 4 all draw.
 }
+\examples{
+set.seed(10)
+d <- 5
+previous_cell_embedding_mat <- matrix(stats::rnorm(100 * d), nrow = 100, ncol = d)
+rownames(previous_cell_embedding_mat) <- paste0("prev:", seq_len(100))
+future_cell_embedding_mat <- matrix(stats::rnorm(200 * d), nrow = 200, ncol = d)
+rownames(future_cell_embedding_mat) <- paste0("fut:", seq_len(200))
+lineage_assignment <- factor(sample(paste0("lineage:", 1:5), size = 100,
+                                    replace = TRUE))
+names(lineage_assignment) <- rownames(previous_cell_embedding_mat)
+res <- generate_simulation_attachFuture(
+  coefficient_intercept = 0,
+  embedding_coefficient_vec = rep(1, d),
+  future_cell_embedding_mat = future_cell_embedding_mat,
+  lineage_assignment = lineage_assignment,
+  previous_cell_embedding_mat = previous_cell_embedding_mat,
+  verbose = 0)
+names(res)
+# each future cell is attached to one previous cell, hence one lineage
+table(res$future_lineage_assignment)
+}

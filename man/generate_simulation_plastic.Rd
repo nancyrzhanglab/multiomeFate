@@ -124,3 +124,16 @@ rather than lineages first and potentials from position:
 \bold{Stochastic with no \code{seed_number} argument}; set a seed before
 calling.
 }
+\examples{
+set.seed(10)
+embedding_mat <- matrix(stats::rnorm(300 * 5), nrow = 300, ncol = 5)
+rownames(embedding_mat) <- paste0("cell:", seq_len(300))
+sim <- generate_simulation_plastic(embedding_mat = embedding_mat,
+                                   coefficient_intercept = -1,
+                                   embedding_coefficient_vec = c(1, 0.5, 0, 0, 0),
+                                   num_lineages = 5)
+table(sim$lineage_assignment)
+sim$lineage_future_size
+# per-lineage spread of the log potential, which is what "plastic" means here
+sim$summary_mat
+}

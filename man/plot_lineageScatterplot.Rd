@@ -54,3 +54,11 @@ spreads the small counts more than the large ones. There is no
 figure. The reported correlation is computed on the \emph{unjittered} values,
 so it does not move between calls even though the points do.
 }
+\examples{
+lineage_future_count <- c(L1 = 5, L2 = 40, L3 = 100, L4 = 3, L5 = 60)
+lineage_imputed_count <- c(L1 = 4, L2 = 52, L3 = 88, L4 = 6, L5 = 45)
+set.seed(10)
+plot_lineageScatterplot(lineage_future_count = lineage_future_count,
+                        lineage_imputed_count = lineage_imputed_count,
+                        num_lineage = 3)
+}

@@ -64,3 +64,23 @@ The scores are written into the object as the metadata columns
 \code{cell_imputed_score} (unwinsorized) and \code{tmp} (winsorized, the one
 actually plotted). The object is modified only locally.
 }
+\examples{
+set.seed(10)
+count_mat <- matrix(stats::rpois(50 * 120, lambda = 3), nrow = 50,
+                    dimnames = list(paste0("gene", 1:50), paste0("cell", 1:120)))
+seurat_object <- suppressWarnings(Seurat::CreateSeuratObject(counts = count_mat))
+seurat_object$assigned_lineage <- rep(paste0("L", 1:12), length.out = 120)
+seurat_object$time_celltype <- rep(c("day0", "day7"), each = 60)
+# scores for the day0 cells only, as cyfer_finalize() would return them
+score_vec <- stats::rnorm(60)
+names(score_vec) <- colnames(seurat_object)[1:60]
+# any 2-D embedding stored under the name passed as `reduction`
+umap_mat <- matrix(stats::rnorm(120 * 2), nrow = 120, ncol = 2,
+                   dimnames = list(colnames(seurat_object), c("UMAP_1", "UMAP_2")))
+seurat_object[["umap"]] <- Seurat::CreateDimReducObject(embeddings = umap_mat,
+                                                         key = "UMAP_",
+                                                         assay = "RNA")
+plot_cellGrowthUmap(seurat_object = seurat_object,
+                    cell_imputed_score = score_vec,
+                    reduction = "umap")
+}
