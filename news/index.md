@@ -3,10 +3,8 @@
 ## multiomeFate 1.0.3.000
 
 Two rounds of changes. The first is Emilia Chen’s code review of
-1.0.2.002 (branch `emilia_review`, August 2026; her review and fix log
-are filed in `additional_context/` of the development tree, which does
-not ship). The second is the CRAN-preparation pass that followed (branch
-`cran_prep`, September 2026), recorded under “CRAN preparation” below.
+1.0.2.002 (August 2026). The second is the CRAN-preparation pass that
+followed (September 2026), recorded under “CRAN preparation” below.
 
 ### CRAN preparation (September 2026)
 
@@ -25,7 +23,7 @@ not ship). The second is the CRAN-preparation pass that followed (branch
 
 - **`priming_simulation` and `plastic_simulation` now carry all 50
   lineages (7,940 cells) of the original simulations**, rebuilt from the
-  saved `Writeup14` objects, instead of 15. Fifteen lineages cannot
+  original simulation runs, instead of 15. Fifteen lineages cannot
   identify a 30-feature fit under the check introduced below, which had
   forced the vignette and the examples onto 5 of the 30 features. With
   50 lineages, five-fold CV leaves 40 training lineages against 31
@@ -46,8 +44,6 @@ not ship). The second is the CRAN-preparation pass that followed (branch
   added, `graphics` and `methods` dropped from `Imports` (nothing used
   them), roxygen2 8.1.0 adopted. LICENSE holder corrected. A Unicode
   ellipsis in the dataset documentation replaced with ASCII.
-
-- The CI workflow runs on `master` (and `main`) only.
 
 ### Emilia Chen’s code review (August 2026)
 
@@ -203,27 +199,17 @@ not ship). The second is the CRAN-preparation pass that followed (branch
   [`lineage_imputation()`](https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation.md)
   calls, and only the selected fit propagates into the result.
 
-### Continuous integration
+### Testing
 
-- **`R CMD check` now runs on every push and pull request**
-  (`.github/workflows/R-CMD-check.yaml`). Previously
-  `.github/workflows/` held only `pkgdown.yaml`, so nothing ran the test
-  suite or `R CMD check`. The malformed `.Rd` that made 1.0.2.002
-  uninstallable would have been caught on the commit that introduced it,
-  since [`tools::parse_Rd()`](https://rdrr.io/r/tools/parse_Rd.html)
-  runs inside the check.
-
-  The matrix is ubuntu-latest `release` and `oldrel-1`. macOS and
-  Windows are left out because `Seurat` and `scCustomize` resolve
-  quickly only from Linux binaries; a comment in the workflow marks
-  where to add them.
-
-  Running the check before adding the workflow turned up three problems
-  that would have failed the first CI run — the undocumented `maxit`,
-  the broken `data_loader` link, and the test below. All three are
-  fixed, and the check is clean apart from one pre-existing NOTE
-  (`graphics` and `methods` are declared in `Imports` but never imported
-  from).
+- **`R CMD check` now runs on every push and pull request**, on
+  ubuntu-latest `release` and `oldrel-1`. Nothing had run the test suite
+  or the check automatically before, so the malformed `.Rd` that made
+  1.0.2.002 uninstallable went unnoticed;
+  [`tools::parse_Rd()`](https://rdrr.io/r/tools/parse_Rd.html) runs
+  inside the check and would have caught it on the commit that
+  introduced it. Turning the check on surfaced three problems — the
+  undocumented `maxit`, the broken `data_loader` link, and the test
+  below — all of which are fixed above.
 
 - **`test_data_loader.R` no longer assumes the lab data is absent.** It
   called the real `data_loader()` and asserted the error was
@@ -234,10 +220,9 @@ not ship). The second is the CRAN-preparation pass that followed (branch
 
 ## multiomeFate 1.0.2.002
 
-The API changes and defect fixes agreed in
-`additional_context/test-plan-full_2026-08-06_kevin.md`, which extended
-the test suite from the estimation core to the barcoding pipeline, the
-simulators, the plotting functions,
+The API changes and defect fixes agreed in the full test plan, which
+extended the test suite from the estimation core to the barcoding
+pipeline, the simulators, the plotting functions,
 [`compute_entropy()`](https://nancyrzhanglab.github.io/multiomeFate/reference/compute_entropy.md)
 and the numerical utilities. Writing those tests is what surfaced most
 of the defects below.
@@ -429,13 +414,9 @@ of the defects below.
   exported-name list, so an accidental `@export` cannot slip in
   unnoticed.
 
-- The five `_claude`-suffixed test files are folded into their
-  unsuffixed counterparts.
-
 ## multiomeFate 1.0.2.001
 
-Fixes for the defects pinned by the test suite added in
-`additional_context/test-plan_2026-08-06_kevin.md`.
+Fixes for the defects pinned by the newly added test suite.
 
 ### Bug fixes
 
