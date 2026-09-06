@@ -6,7 +6,7 @@ early time point possess heterogeneous growth potential (fate
 propensity) and downstream lineage sizes scale with \\\exp(\alpha +
 X\beta)\\.
 
-The dataset was reduced to \*\*15 lineages\*\* for a fast example.
+All \*\*50 lineages\*\* of the simulation are included (7,940 cells).
 
 ## Usage
 
@@ -32,21 +32,21 @@ A named list with four elements:
 
 - lineage_future_count:
 
-  Named numeric vector (length = 15). Names are lineage IDs matching
+  Named numeric vector (length = 50). Names are lineage IDs matching
   `unique(cell_lineage)`. Each value is an integer equal to the rounded
   sum of per-cell expected progenies (i.e., \\\sum\_{i \in \ell}
   \exp(\alpha + x_i^\top \beta)\\).
 
 - tab_mat:
 
-  Integer matrix with 15 rows and 2 columns `c("now","future")`;
+  Integer matrix with 50 rows and 2 columns `c("now","future")`;
   rownames are lineage IDs. Column `"now"` is the number of current
   cells observed in that lineage (in this subset); column `"future"`
   equals `lineage_future_count`.
 
 ## Details
 
-Priming simulation dataset (15 lineages)
+Priming simulation dataset (50 lineages)
 
 **How this dataset was generated (summary).**
 
@@ -54,7 +54,7 @@ Priming simulation dataset (15 lineages)
     `multiomeFate:::data_loader("fasttopics")`; used the
     `"fasttopic.COCL2"` cell embeddings as an early-timepoint RNA
     feature space and preprocessed them with an internal helper
-    `.preprocess_rna(…, "day10_COCL2")`.
+    `.preprocess_rna(..., "day10_COCL2")`.
 
 2.  Estimated a priming direction and intercept using internal helpers:
     `.search_for_priming_parameters()` returned `coefficient_vec` and
@@ -70,12 +70,13 @@ Priming simulation dataset (15 lineages)
     log10 potential; lineage future sizes were the rounded sums of
     \\\exp(\alpha + x^\top \beta)\\ within each lineage.
 
-4.  For packaging, lineages were ranked by future size; 15 lineages were
-    retained by taking equally spaced ranks along this ordering. Cells
-    not belonging to the retained lineages were dropped. Cell rownames
-    were reset to `"cell:1..n"` for clarity. The four objects in
-    `priming_simulation` were then assembled as below and saved with
-    `usethis::use_data()`:
+4.  For packaging, lineages were ordered by decreasing future size and
+    all 50 retained (an earlier release shipped 15, too few to identify
+    a 30-feature fit; see
+    [`cyfer`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md)).
+    Cell rownames were reset to `"cell:1..n"` for clarity. The four
+    objects in `priming_simulation` were then assembled as below and
+    saved with `usethis::use_data()`:
 
 
           priming_simulation <- list(
@@ -117,16 +118,16 @@ Priming simulation dataset (15 lineages)
 data(priming_simulation)
 str(priming_simulation)
 #> List of 4
-#>  $ cell_features       : num [1:2282, 1:30] -0.818 1.016 1.057 1.702 -0.177 ...
+#>  $ cell_features       : num [1:7940, 1:30] 0.066 0.798 -0.134 -0.818 1.016 ...
 #>   ..- attr(*, "dimnames")=List of 2
-#>   .. ..$ : chr [1:2282] "cell:1" "cell:2" "cell:3" "cell:4" ...
+#>   .. ..$ : chr [1:7940] "cell:1" "cell:2" "cell:3" "cell:4" ...
 #>   .. ..$ : chr [1:30] "fastTopicCOCL2_1" "fastTopicCOCL2_2" "fastTopicCOCL2_3" "fastTopicCOCL2_4" ...
-#>  $ cell_lineage        : chr [1:2282] "lineage:33" "lineage:1" "lineage:15" "lineage:15" ...
-#>  $ lineage_future_count: Named num [1:15] 342 178 169 144 136 126 118 107 95 90 ...
-#>   ..- attr(*, "names")= chr [1:15] "lineage:1" "lineage:4" "lineage:7" "lineage:15" ...
-#>  $ tab_mat             : num [1:15, 1:2] 221 154 162 169 149 144 159 184 173 147 ...
+#>  $ cell_lineage        : chr [1:7940] "lineage:32" "lineage:23" "lineage:20" "lineage:33" ...
+#>  $ lineage_future_count: Named num [1:50] 342 226 196 178 173 173 172 169 157 157 ...
+#>   ..- attr(*, "names")= chr [1:50] "lineage:1" "lineage:2" "lineage:3" "lineage:4" ...
+#>  $ tab_mat             : num [1:50, 1:2] 221 175 161 154 156 161 179 162 176 155 ...
 #>   ..- attr(*, "dimnames")=List of 2
-#>   .. ..$ : chr [1:15] "lineage:1" "lineage:4" "lineage:7" "lineage:15" ...
+#>   .. ..$ : chr [1:50] "lineage:1" "lineage:2" "lineage:3" "lineage:4" ...
 #>   .. ..$ : chr [1:2] "now" "future"
 
 # \donttest{
@@ -138,9 +139,9 @@ with(priming_simulation, {
     cell_lineage  = cell_lineage,
     lineage_future_count = lineage_future_count,
     lambda_initial = NA,
-    lambda_sequence_length = 20,
+    lambda_sequence_length = 10,
     num_folds = 5,
-    verbose = 1
+    verbose = 0
   )
   fit <- cyfer_finalize(
     cell_features = cell_features,
@@ -153,12 +154,7 @@ with(priming_simulation, {
   head(fit$cell_imputed_score)
   head(fit$lineage_imputed_count)
 })
-#> [1] "Dropping fold #1 out of 5"
-#> [1] "Dropping fold #2 out of 5"
-#> [1] "Dropping fold #3 out of 5"
-#> [1] "Dropping fold #4 out of 5"
-#> [1] "Dropping fold #5 out of 5"
-#>  lineage:1 lineage:12 lineage:14 lineage:15 lineage:21 lineage:29 
-#>  339.74163  137.12651  125.83460  144.95379  121.54753   89.99249 
+#>  lineage:1 lineage:10 lineage:11 lineage:12 lineage:13 lineage:14 
+#>   341.9535   171.9057   143.5195   135.6339   157.0583   126.2237 
 # }
 ```

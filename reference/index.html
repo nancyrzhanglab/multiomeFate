@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multiomeFate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2.000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,6 +29,7 @@
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/nancyrzhanglab/multiomeFate/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -52,10 +53,45 @@
 
       <dl><dt>
 
+          <code><a href="barcode_clustering.html">barcode_clustering()</a></code>
+
+        </dt>
+        <dd>Group barcodes that behave like one lineage</dd>
+
+        <dt>
+
+          <code><a href="barcode_combine.html">barcode_combine()</a></code>
+
+        </dt>
+        <dd>Collapse each barcode cluster into a single row</dd>
+
+        <dt>
+
+          <code><a href="barcoding_assignment.html">barcoding_assignment()</a></code>
+
+        </dt>
+        <dd>Assign each cell to a lineage, or to none</dd>
+
+        <dt>
+
+          <code><a href="barcoding_posterior.html">barcoding_posterior()</a></code>
+
+        </dt>
+        <dd>Posterior probability that each cell carries each lineage barcode</dd>
+
+        <dt>
+
+          <code><a href="compute_entropy.html">compute_entropy()</a></code>
+
+        </dt>
+        <dd>Assemble the per-cell fate-composition table used by the simplex plots</dd>
+
+        <dt>
+
           <code><a href="cyfer.html">cyfer()</a></code>
 
         </dt>
-        <dd>CYFER: Cell Fate via Exponential Regression (cross-validation)</dd>
+        <dd>CYFER: Clonal Fate Estimation by Exponential Regression (cross-validation)</dd>
 
         <dt>
 
@@ -66,10 +102,24 @@
 
         <dt>
 
-          <code><a href="data_loader.html">data_loader()</a></code>
+          <code><a href="generate_simulation.html">generate_simulation()</a></code>
 
         </dt>
-        <dd>Data loader designed for the paper</dd>
+        <dd>Simulate lineages under pure selection ("priming")</dd>
+
+        <dt>
+
+          <code><a href="generate_simulation_attachFuture.html">generate_simulation_attachFuture()</a></code>
+
+        </dt>
+        <dd>Attach a real future time point to a simulated current one</dd>
+
+        <dt>
+
+          <code><a href="generate_simulation_plastic.html">generate_simulation_plastic()</a></code>
+
+        </dt>
+        <dd>Simulate lineages that differ in heterogeneity, not in mean ("plastic")</dd>
 
         <dt>
 
@@ -94,10 +144,38 @@
 
         <dt>
 
+          <code><a href="plot_anova.html">plot_anova()</a></code>
+
+        </dt>
+        <dd>Violin plot of fate potential within lineages, with an ANOVA summary</dd>
+
+        <dt>
+
+          <code><a href="plot_cellGrowthUmap.html">plot_cellGrowthUmap()</a></code>
+
+        </dt>
+        <dd>UMAP coloured by per-cell fate potential</dd>
+
+        <dt>
+
+          <code><a href="plot_lineageScatterplot.html">plot_lineageScatterplot()</a></code>
+
+        </dt>
+        <dd>Predicted versus observed lineage size</dd>
+
+        <dt>
+
           <code><a href="plot_simplex.html">plot_simplex()</a></code>
 
         </dt>
         <dd>Plot a simplex (ternary) diagram</dd>
+
+        <dt>
+
+          <code><a href="plot_trainTest.html">plot_trainTest()</a></code>
+
+        </dt>
+        <dd>Cross-validation diagnostic: training and held-out curves over the lambda path</dd>
 
         <dt>
 

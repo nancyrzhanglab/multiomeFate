@@ -10,12 +10,12 @@ imputation in a **plastic** setting, where each lineage has roughly the
 same median growth potential, but certain lineages have a few cells with
 extremely high growth potential (fate propensity). Downstream
 lineage sizes scale with \(\exp(\alpha + X\beta)\).
-The dataset was reduced to **15 lineages** for a fast example."><meta property="og:description" content="A small, fully synthetic dataset used to demonstrate and test lineage-fate
+All **50 lineages** of the simulation are included (7,940 cells)."><meta property="og:description" content="A small, fully synthetic dataset used to demonstrate and test lineage-fate
 imputation in a **plastic** setting, where each lineage has roughly the
 same median growth potential, but certain lineages have a few cells with
 extremely high growth potential (fate propensity). Downstream
 lineage sizes scale with \(\exp(\alpha + X\beta)\).
-The dataset was reduced to **15 lineages** for a fast example."></head><body>
+All **50 lineages** of the simulation are included (7,940 cells)."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -23,7 +23,7 @@ The dataset was reduced to **15 lineages** for a fast example."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">multiomeFate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2.000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,7 @@ The dataset was reduced to **15 lineages** for a fast example."></head><body>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/nancyrzhanglab/multiomeFate/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -48,7 +49,7 @@ The dataset was reduced to **15 lineages** for a fast example."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Plastic simulation dataset</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/nancyrzhanglab/multiomeFate/blob/master/R/data.R" class="external-link"><code>R/data.R</code></a></small>
       <div class="d-none name"><code>plastic_simulation.Rd</code></div>
     </div>
 
@@ -58,7 +59,7 @@ imputation in a **plastic** setting, where each lineage has roughly the
 same median growth potential, but certain lineages have a few cells with
 extremely high growth potential (fate propensity). Downstream
 lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
-<p>The dataset was reduced to **15 lineages** for a fast example.</p>
+<p>All **50 lineages** of the simulation are included (7,940 cells).</p>
     </div>
 
     <div class="section level2">
@@ -81,14 +82,14 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
 
 
   <dt>lineage_future_count</dt>
-<dd><p>Named numeric vector (length = 15). Names are
+<dd><p>Named numeric vector (length = 50). Names are
     lineage IDs matching <code>unique(cell_lineage)</code>. Each value is an integer
     equal to the rounded sum of per-cell expected progenies
     (i.e., \(\sum_{i \in \ell} \exp(\alpha + x_i^\top \beta)\)).</p></dd>
 
 
   <dt>tab_mat</dt>
-<dd><p>Integer matrix with 15 rows and 2 columns <code>c("now","future")</code>;
+<dd><p>Integer matrix with 50 rows and 2 columns <code>c("now","future")</code>;
     rownames are lineage IDs. Column <code>"now"</code> is the number of current
     cells observed in that lineage (in this subset); column <code>"future"</code>
     equals <code>lineage_future_count</code>.</p></dd>
@@ -97,22 +98,22 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Plastic simulation dataset (15 lineages)</p>
+    <p>Plastic simulation dataset (50 lineages)</p>
 
 <p><strong>How this dataset was generated (summary).</strong></p>
 <ol><li><p>Loaded example embeddings via <code>multiomeFate:::data_loader("fasttopics")</code>;
   used the <code>"fasttopic.COCL2"</code> cell embeddings as an early-timepoint RNA
   feature space and preprocessed them with an internal helper
-  <code>.preprocess_rna(…, "day10_COCL2")</code>.</p></li>
+  <code>.preprocess_rna(..., "day10_COCL2")</code>.</p></li>
 <li><p>Estimated a plastic direction and intercept using internal helpers:
   <code>.generate_simulation_plastic()</code> returned <code>coefficient_vec</code>
   and <code>coefficient_intercept</code>. This function also assigns cells to lineages.
   The per-cell fate potential was \(\log_{10} \exp(\alpha + x^\top \beta)\).
   Cells were probabilistically assigned to lineages via the internal functions
   <code>.compute_plastic_probabilities()</code> and <code>.assign_plastic_lineages()</code>.</p></li>
-<li><p>For packaging, lineages were ranked by future size; 15 lineages were
-  retained by taking equally spaced ranks along this ordering. Cells not
-  belonging to the retained lineages were dropped. Cell rownames were reset to
+<li><p>For packaging, lineages were ordered by decreasing future size and all
+  50 retained (an earlier release shipped 15, too few to identify a 30-feature
+  fit; see <code><a href="cyfer.html">cyfer</a></code>). Cell rownames were reset to
   <code>"cell:1..n"</code> for clarity. The four objects in <code>plastic_simulation</code>
   were then assembled as below and saved with <code>usethis::use_data()</code>:</p>
 <p></p><div class="sourceCode"><pre><code><span></span>
@@ -143,16 +144,16 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">plastic_simulation</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">plastic_simulation</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> List of 4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ cell_features       : num [1:2384, 1:30] 1.016 1.057 1.702 -0.177 -0.66 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ cell_features       : num [1:7940, 1:30] 0.066 0.798 -0.134 -0.818 1.016 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..- attr(*, "dimnames")=List of 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr [1:2384] "cell:1" "cell:2" "cell:3" "cell:4" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr [1:7940] "cell:1" "cell:2" "cell:3" "cell:4" ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr [1:30] "fastTopicCOCL2_1" "fastTopicCOCL2_2" "fastTopicCOCL2_3" "fastTopicCOCL2_4" ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ cell_lineage        : chr [1:2384] "lineage:40" "lineage:41" "lineage:42" "lineage:25" ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ lineage_future_count: Named num [1:15] 532 191 156 128 119 99 95 90 87 77 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..- attr(*, "names")= chr [1:15] "lineage:16" "lineage:14" "lineage:3" "lineage:5" ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ tab_mat             : num [1:15, 1:2] 159 159 159 159 159 159 159 159 159 159 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ cell_lineage        : chr [1:7940] "lineage:26" "lineage:44" "lineage:49" "lineage:26" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ lineage_future_count: Named num [1:50] 532 256 232 191 187 173 160 156 143 139 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..- attr(*, "names")= chr [1:50] "lineage:16" "lineage:9" "lineage:10" "lineage:14" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ tab_mat             : num [1:50, 1:2] 159 159 159 159 159 150 159 159 159 159 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..- attr(*, "dimnames")=List of 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr [1:15] "lineage:16" "lineage:14" "lineage:3" "lineage:5" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr [1:50] "lineage:16" "lineage:9" "lineage:10" "lineage:14" ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr [1:2] "now" "future"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
@@ -164,9 +165,9 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
 <span class="r-in"><span>    cell_lineage  <span class="op">=</span> <span class="va">cell_lineage</span>,</span></span>
 <span class="r-in"><span>    lineage_future_count <span class="op">=</span> <span class="va">lineage_future_count</span>,</span></span>
 <span class="r-in"><span>    lambda_initial <span class="op">=</span> <span class="cn">NA</span>,</span></span>
-<span class="r-in"><span>    lambda_sequence_length <span class="op">=</span> <span class="fl">20</span>,</span></span>
+<span class="r-in"><span>    lambda_sequence_length <span class="op">=</span> <span class="fl">10</span>,</span></span>
 <span class="r-in"><span>    num_folds <span class="op">=</span> <span class="fl">5</span>,</span></span>
-<span class="r-in"><span>    verbose <span class="op">=</span> <span class="fl">1</span></span></span>
+<span class="r-in"><span>    verbose <span class="op">=</span> <span class="fl">0</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="cyfer_finalize.html">cyfer_finalize</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    cell_features <span class="op">=</span> <span class="va">cell_features</span>,</span></span>
@@ -179,13 +180,8 @@ lineage sizes scale with \(\exp(\alpha + X\beta)\).</p>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">cell_imputed_score</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">lineage_imputed_count</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Dropping fold #1 out of 5"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Dropping fold #2 out of 5"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Dropping fold #3 out of 5"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Dropping fold #4 out of 5"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Dropping fold #5 out of 5"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> lineage:13 lineage:14 lineage:16 lineage:17 lineage:18  lineage:2 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  134.54594  183.75544  525.19055   90.75140  104.06692   79.58526 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  lineage:1 lineage:10 lineage:11 lineage:12 lineage:13 lineage:14 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  135.92109  229.71790   93.84451  134.29372  128.30764  196.10378 </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

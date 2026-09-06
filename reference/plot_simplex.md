@@ -72,3 +72,19 @@ plot_simplex(
 ## Value
 
 A ggplot2 object.
+
+## Details
+
+Rows whose three values sum to zero have no composition to plot and are
+dropped, with a warning naming how many went.
+
+## Examples
+
+``` r
+df <- data.frame(a = c(1, 0, 0, 1, 2),
+                 b = c(0, 1, 0, 1, 1),
+                 c = c(0, 0, 1, 1, 1),
+                 group = c("x", "y", "z", "mixed", "mixed"))
+plot_simplex(df = df, x_col = "a", y_col = "b", z_col = "c",
+             color_col = "group", title = "")
+```

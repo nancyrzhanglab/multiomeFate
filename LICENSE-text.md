@@ -1,4 +1,4 @@
 # License
 
     YEAR: 2025
-    COPYRIGHT HOLDER: C. Kevin Lin
+    COPYRIGHT HOLDER: Kevin Z. Lin

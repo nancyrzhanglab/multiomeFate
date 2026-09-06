@@ -6,14 +6,25 @@
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/authors.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/index.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/news/index.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/barcode_clustering.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/barcode_combine.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/barcoding_assignment.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/barcoding_posterior.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/compute_entropy.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer_finalize.html</loc></url>
-<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/data_loader.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/generate_simulation.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/generate_simulation_attachFuture.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/generate_simulation_plastic.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/index.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/lineage_imputation_sequence.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/plastic_simulation.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/plot_anova.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/plot_cellGrowthUmap.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/plot_lineageScatterplot.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/plot_simplex.html</loc></url>
+<url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/plot_trainTest.html</loc></url>
 <url><loc>https://nancyrzhanglab.github.io/multiomeFate/reference/priming_simulation.html</loc></url>
 </urlset>
 

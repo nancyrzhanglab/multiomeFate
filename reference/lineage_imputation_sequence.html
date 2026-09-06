@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multiomeFate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2.000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,6 +29,7 @@
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/nancyrzhanglab/multiomeFate/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -38,7 +39,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Fit lineage imputation along a lambda path</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/nancyrzhanglab/multiomeFate/blob/master/R/lineage_imputation_sequence.R" class="external-link"><code>R/lineage_imputation_sequence.R</code></a></small>
       <div class="d-none name"><code>lineage_imputation_sequence.Rd</code></div>
     </div>
 
@@ -69,7 +70,17 @@
 <dd><p>A numeric matrix where each row represents a cell, and each
 column represents a feature (for instance, the fastTopics scores).
 Let <code>n</code> denote the number of cells (rows).
-Row names (cell IDs) and column names (feature names) are required.</p></dd>
+Row names (cell IDs) and column names (feature names) are required.
+Do <b>not</b> supply an intercept column, and more generally no constant
+column: the intercept is added internally (by <code>.lineage_cleanup()</code> when
+fitting, and by <code><a href="cyfer_finalize.html">cyfer_finalize()</a></code> when scoring). A constant column you
+supply yourself is therefore duplicated, making the design collinear — and a
+column already named <code>Intercept</code> produces two columns of that name.
+<code><a href="cyfer_finalize.html">cyfer_finalize()</a></code> errors on any constant column for this reason;
+<code><a href="cyfer.html">cyfer()</a></code> tolerates one, so the error may not appear until the finalize
+step. It is also conventional to <code><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale()</a></code> the features before fitting,
+both to keep <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp()</a></code> away from overflow and to make the ridge penalty
+comparable across features.</p></dd>
 
 
 <dt id="arg-cell-lineage">cell_lineage<a class="anchor" aria-label="anchor" href="#arg-cell-lineage"></a></dt>
@@ -111,9 +122,33 @@ information to be printed out as the algorithm proceeds.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with <code>fit_list</code> (solution estimated by <code><a href="lineage_imputation.html">lineage_imputation()</a></code> per lambda) and <code>lambda_sequence</code>.</p>
+    <p>A list with <code>fit_list</code> (solution estimated by <code><a href="lineage_imputation.html">lineage_imputation()</a></code> per lambda) and <code>lambda_sequence</code>.
+<code>lambda_sequence</code> starts at <code>lambda_initial</code> and decays
+exponentially to <code>0</code>, so it is strictly <em>decreasing</em>; <code>fit_list[[i]]</code>
+is the fit at <code>lambda_sequence[i]</code>, warm-started from <code>fit_list[[i-1]]</code>.
+Each <code>coefficient_vec</code> is on the <b>natural-log</b> scale — see the
+"Scales" section of <code><a href="cyfer_finalize.html">cyfer_finalize</a></code>.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">priming_simulation</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">lineage_imputation_sequence</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  cell_features <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">cell_features</span>,</span></span>
+<span class="r-in"><span>  cell_lineage <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">cell_lineage</span>,</span></span>
+<span class="r-in"><span>  lineage_future_count <span class="op">=</span> <span class="va">priming_simulation</span><span class="op">$</span><span class="va">lineage_future_count</span>,</span></span>
+<span class="r-in"><span>  lambda_initial <span class="op">=</span> <span class="fl">3</span>,</span></span>
+<span class="r-in"><span>  lambda_sequence_length <span class="op">=</span> <span class="fl">4</span>,</span></span>
+<span class="r-in"><span>  verbose <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">path</span><span class="op">$</span><span class="va">lambda_sequence</span>                       <span class="co"># decreasing, ends at 0</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 3.0000000 1.5198421 0.5874011 0.0000000</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">path</span><span class="op">$</span><span class="va">fit_list</span>, <span class="kw">function</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">{</span><span class="va">fit</span><span class="op">$</span><span class="va">objective_val</span><span class="op">}</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -430.2529 -430.4045 -430.5054 -430.5767</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

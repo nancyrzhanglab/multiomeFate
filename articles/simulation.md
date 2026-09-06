@@ -44,7 +44,7 @@
     `objective_val`, etc.
   - `res_list`: all starts.
 
-- **`evaluate_loglikelihood(...)`**  
+- **`evaluate_nll(...)`**  
   Thin wrapper that runs `.lineage_objective(...)` **after cleanup**.
   Note: this returns the **objective** value (data term averaged over
   lineages, plus penalty if `lambda>0`), not a conventional
@@ -60,9 +60,12 @@
 - `cell_lineage`: factor/character vector of length
   `nrow(cell_features)`, giving each cell’s lineage label.
 - `lineage_future_count`: **named** numeric vector — names are lineage
-  IDs, values are cell counts at the future time point. The code
-  intersects `names(lineage_future_count)` with observed lineages and
-  silently drops cells/lineages that aren’t shared.
+  IDs, values are cell counts at the future time point. Cells whose
+  lineage is absent from these names, or is `NA` (unassigned), are
+  excluded from fitting but still scored by
+  [`cyfer_finalize()`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer_finalize.md);
+  [`cyfer()`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md)
+  reports how many.
 
 ------------------------------------------------------------------------
 
@@ -89,47 +92,56 @@ library(multiomeFate)
 data("priming_simulation", package = "multiomeFate")
 ```
 
+One point to keep in mind when sizing an analysis: CYFER’s effective
+sample size is the number of **lineages**, not the number of cells,
+because the model places one Poisson response per lineage. The `lambda`
+path ends at exactly 0, so its last fit is unpenalized, and
+[`cyfer()`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md)
+refuses to run unless every training fold holds at least `p + 1`
+lineages (it errors otherwise). These datasets carry 50 lineages against
+30 features, so five-fold CV leaves 40 training lineages per fold.
+
 ``` r
 
 priming_simulation$cell_features[1:5,1:5]
 #>        fastTopicCOCL2_1 fastTopicCOCL2_2 fastTopicCOCL2_3 fastTopicCOCL2_4
-#> cell:1       -0.8179598       0.02240982       -0.1106094      -0.66861435
-#> cell:2        1.0155892      -0.31934930       -0.3443518      -0.58763318
-#> cell:3        1.0573658      -0.32589331       -0.3443518       0.27433725
-#> cell:4        1.7019937      -0.27025714       -0.1094102      -0.22460944
-#> cell:5       -0.1769124      -0.32589331        1.0865580       0.09678745
+#> cell:1       0.06600486      -0.32589331       -0.3443518       -0.6878139
+#> cell:2       0.79771250       0.59917382        0.8702276       -0.1726648
+#> cell:3      -0.13370457       0.16003457       -0.1779444       -0.6353998
+#> cell:4      -0.81795983       0.02240982       -0.1106094       -0.6686143
+#> cell:5       1.01558920      -0.31934930       -0.3443518       -0.5876332
 #>        fastTopicCOCL2_5
-#> cell:1      -0.30615968
-#> cell:2      -0.45021257
-#> cell:3      -0.45021257
-#> cell:4      -0.03842152
-#> cell:5       2.57059409
+#> cell:1      -0.45021257
+#> cell:2       0.09380737
+#> cell:3       0.65639445
+#> cell:4      -0.30615968
+#> cell:5      -0.45021257
 ```
 
 ``` r
 
 head(priming_simulation$cell_lineage)
-#> [1] "lineage:33" "lineage:1"  "lineage:15" "lineage:15" "lineage:37"
-#> [6] "lineage:37"
+#> [1] "lineage:32" "lineage:23" "lineage:20" "lineage:33" "lineage:1" 
+#> [6] "lineage:24"
 ```
 
 ``` r
 
 head(priming_simulation$lineage_future_count)
-#>  lineage:1  lineage:4  lineage:7 lineage:15 lineage:12 lineage:14 
-#>        342        178        169        144        136        126
+#> lineage:1 lineage:2 lineage:3 lineage:4 lineage:5 lineage:6 
+#>       342       226       196       178       173       173
 ```
 
 ``` r
 
 head(priming_simulation$tab_mat)
-#>            now future
-#> lineage:1  221    342
-#> lineage:4  154    178
-#> lineage:7  162    169
-#> lineage:15 169    144
-#> lineage:12 149    136
-#> lineage:14 144    126
+#>           now future
+#> lineage:1 221    342
+#> lineage:2 175    226
+#> lineage:3 161    196
+#> lineage:4 154    178
+#> lineage:5 156    173
+#> lineage:6 161    173
 ```
 
 ``` r
@@ -141,11 +153,14 @@ fit_res <- multiomeFate::cyfer(
   lineage_future_count = priming_simulation$lineage_future_count,
   lambda_initial = 3,
   lambda_sequence_length = 10,
-  num_folds = 2,
+  num_folds = 5,
   verbose = 2
 )
-#> [1] "Dropping fold #1 out of 2"
-#> [1] "Dropping fold #2 out of 2"
+#> [1] "Dropping fold #1 out of 5"
+#> [1] "Dropping fold #2 out of 5"
+#> [1] "Dropping fold #3 out of 5"
+#> [1] "Dropping fold #4 out of 5"
+#> [1] "Dropping fold #5 out of 5"
 ```
 
 ``` r
@@ -219,11 +234,14 @@ fit_res <- multiomeFate::cyfer(
   lineage_future_count = plastic_simulation$lineage_future_count,
   lambda_initial = 3,
   lambda_sequence_length = 10,
-  num_folds = 2,
+  num_folds = 5,
   verbose = 2
 )
-#> [1] "Dropping fold #1 out of 2"
-#> [1] "Dropping fold #2 out of 2"
+#> [1] "Dropping fold #1 out of 5"
+#> [1] "Dropping fold #2 out of 5"
+#> [1] "Dropping fold #3 out of 5"
+#> [1] "Dropping fold #4 out of 5"
+#> [1] "Dropping fold #5 out of 5"
 
 final_fit <- multiomeFate::cyfer_finalize(
   cell_features = plastic_simulation$cell_features,

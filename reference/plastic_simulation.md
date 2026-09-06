@@ -6,7 +6,7 @@ has roughly the same median growth potential, but certain lineages have
 a few cells with extremely high growth potential (fate propensity).
 Downstream lineage sizes scale with \\\exp(\alpha + X\beta)\\.
 
-The dataset was reduced to \*\*15 lineages\*\* for a fast example.
+All \*\*50 lineages\*\* of the simulation are included (7,940 cells).
 
 ## Usage
 
@@ -32,21 +32,21 @@ A named list with four elements:
 
 - lineage_future_count:
 
-  Named numeric vector (length = 15). Names are lineage IDs matching
+  Named numeric vector (length = 50). Names are lineage IDs matching
   `unique(cell_lineage)`. Each value is an integer equal to the rounded
   sum of per-cell expected progenies (i.e., \\\sum\_{i \in \ell}
   \exp(\alpha + x_i^\top \beta)\\).
 
 - tab_mat:
 
-  Integer matrix with 15 rows and 2 columns `c("now","future")`;
+  Integer matrix with 50 rows and 2 columns `c("now","future")`;
   rownames are lineage IDs. Column `"now"` is the number of current
   cells observed in that lineage (in this subset); column `"future"`
   equals `lineage_future_count`.
 
 ## Details
 
-Plastic simulation dataset (15 lineages)
+Plastic simulation dataset (50 lineages)
 
 **How this dataset was generated (summary).**
 
@@ -54,7 +54,7 @@ Plastic simulation dataset (15 lineages)
     `multiomeFate:::data_loader("fasttopics")`; used the
     `"fasttopic.COCL2"` cell embeddings as an early-timepoint RNA
     feature space and preprocessed them with an internal helper
-    `.preprocess_rna(…, "day10_COCL2")`.
+    `.preprocess_rna(..., "day10_COCL2")`.
 
 2.  Estimated a plastic direction and intercept using internal helpers:
     `.generate_simulation_plastic()` returned `coefficient_vec` and
@@ -64,12 +64,13 @@ Plastic simulation dataset (15 lineages)
     via the internal functions `.compute_plastic_probabilities()` and
     `.assign_plastic_lineages()`.
 
-3.  For packaging, lineages were ranked by future size; 15 lineages were
-    retained by taking equally spaced ranks along this ordering. Cells
-    not belonging to the retained lineages were dropped. Cell rownames
-    were reset to `"cell:1..n"` for clarity. The four objects in
-    `plastic_simulation` were then assembled as below and saved with
-    `usethis::use_data()`:
+3.  For packaging, lineages were ordered by decreasing future size and
+    all 50 retained (an earlier release shipped 15, too few to identify
+    a 30-feature fit; see
+    [`cyfer`](https://nancyrzhanglab.github.io/multiomeFate/reference/cyfer.md)).
+    Cell rownames were reset to `"cell:1..n"` for clarity. The four
+    objects in `plastic_simulation` were then assembled as below and
+    saved with `usethis::use_data()`:
 
 
           plastic_simulation <- list(
@@ -111,16 +112,16 @@ Plastic simulation dataset (15 lineages)
 data(plastic_simulation)
 str(plastic_simulation)
 #> List of 4
-#>  $ cell_features       : num [1:2384, 1:30] 1.016 1.057 1.702 -0.177 -0.66 ...
+#>  $ cell_features       : num [1:7940, 1:30] 0.066 0.798 -0.134 -0.818 1.016 ...
 #>   ..- attr(*, "dimnames")=List of 2
-#>   .. ..$ : chr [1:2384] "cell:1" "cell:2" "cell:3" "cell:4" ...
+#>   .. ..$ : chr [1:7940] "cell:1" "cell:2" "cell:3" "cell:4" ...
 #>   .. ..$ : chr [1:30] "fastTopicCOCL2_1" "fastTopicCOCL2_2" "fastTopicCOCL2_3" "fastTopicCOCL2_4" ...
-#>  $ cell_lineage        : chr [1:2384] "lineage:40" "lineage:41" "lineage:42" "lineage:25" ...
-#>  $ lineage_future_count: Named num [1:15] 532 191 156 128 119 99 95 90 87 77 ...
-#>   ..- attr(*, "names")= chr [1:15] "lineage:16" "lineage:14" "lineage:3" "lineage:5" ...
-#>  $ tab_mat             : num [1:15, 1:2] 159 159 159 159 159 159 159 159 159 159 ...
+#>  $ cell_lineage        : chr [1:7940] "lineage:26" "lineage:44" "lineage:49" "lineage:26" ...
+#>  $ lineage_future_count: Named num [1:50] 532 256 232 191 187 173 160 156 143 139 ...
+#>   ..- attr(*, "names")= chr [1:50] "lineage:16" "lineage:9" "lineage:10" "lineage:14" ...
+#>  $ tab_mat             : num [1:50, 1:2] 159 159 159 159 159 150 159 159 159 159 ...
 #>   ..- attr(*, "dimnames")=List of 2
-#>   .. ..$ : chr [1:15] "lineage:16" "lineage:14" "lineage:3" "lineage:5" ...
+#>   .. ..$ : chr [1:50] "lineage:16" "lineage:9" "lineage:10" "lineage:14" ...
 #>   .. ..$ : chr [1:2] "now" "future"
 
 # \donttest{
@@ -132,9 +133,9 @@ with(plastic_simulation, {
     cell_lineage  = cell_lineage,
     lineage_future_count = lineage_future_count,
     lambda_initial = NA,
-    lambda_sequence_length = 20,
+    lambda_sequence_length = 10,
     num_folds = 5,
-    verbose = 1
+    verbose = 0
   )
   fit <- cyfer_finalize(
     cell_features = cell_features,
@@ -147,12 +148,7 @@ with(plastic_simulation, {
   head(fit$cell_imputed_score)
   head(fit$lineage_imputed_count)
 })
-#> [1] "Dropping fold #1 out of 5"
-#> [1] "Dropping fold #2 out of 5"
-#> [1] "Dropping fold #3 out of 5"
-#> [1] "Dropping fold #4 out of 5"
-#> [1] "Dropping fold #5 out of 5"
-#> lineage:13 lineage:14 lineage:16 lineage:17 lineage:18  lineage:2 
-#>  134.54594  183.75544  525.19055   90.75140  104.06692   79.58526 
+#>  lineage:1 lineage:10 lineage:11 lineage:12 lineage:13 lineage:14 
+#>  135.92109  229.71790   93.84451  134.29372  128.30764  196.10378 
 # }
 ```
